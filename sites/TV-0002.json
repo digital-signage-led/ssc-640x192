@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "projectId": "AC-0002",
+  "projectId": "TV-0002",
   "status": "active",
   "customer": "志摩機械株式会社",
   "rental": "志摩機械株式会社",
@@ -10,7 +10,7 @@
   "latitude": 35.445427,
   "longitude": 135.299683,
   "resolution": "640x192",
-  "layout": "SSC-640",
+  "layout": "TV-640",
   "faces": 3,
   "timeZone": "Asia/Tokyo",
   "footSource": "データ提供：気象庁、環境省",

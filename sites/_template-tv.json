@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "projectId": "AC-0000",
+  "projectId": "TV-0000",
   "status": "template",
   "customer": "",
   "rental": "",
@@ -10,7 +10,7 @@
   "latitude": 0,
   "longitude": 0,
   "resolution": "640x192",
-  "layout": "SSC-640",
+  "layout": "TV-640",
   "faces": 3,
   "timeZone": "Asia/Tokyo",
   "footSource": "データ提供：気象庁、環境省",

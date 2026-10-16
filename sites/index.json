@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "resolution": "640x192",
-  "defaultSite": "AC-0002",
-  "productionSites": ["AC-0001", "AC-0002"],
-  "templateSites": ["AC-0000"],
-  "notes": "AC-0000 はマスターコンテンツテンプレート（本番端末へ登録しない）。AC-0001 住之江。AC-0002 志摩機械。発行済みIDは再利用しない。",
+  "defaultSite": "TV-0002",
+  "productionSites": ["TV-0001", "TV-0002"],
+  "templateSites": ["TV-0000"],
+  "notes": "トライビジョン。TV-0000 はマスターコンテンツテンプレート（本番端末へ登録しない）。TV-0001 住之江。TV-0002 志摩機械。発行済みIDは再利用しない。AC はアラートキューブ用。",
   "sites": [
-    { "projectId": "AC-0000", "status": "template", "name": "マスターコンテンツテンプレート" },
-    { "projectId": "AC-0001", "status": "active", "name": "住之江" },
-    { "projectId": "AC-0002", "status": "active", "name": "志摩機械" }
+    { "projectId": "TV-0000", "status": "template", "name": "マスターコンテンツテンプレート" },
+    { "projectId": "TV-0001", "status": "active", "name": "住之江" },
+    { "projectId": "TV-0002", "status": "active", "name": "志摩機械" }
   ]
 }

@@ -146,7 +146,7 @@
 <body>
   <aside>
     <h1>自販機 640×192</h1>
-    <p class="sub">sites/AC-XXXX.json で切替</p>
+    <p class="sub">トライビジョン · sites/TV-XXXX.json</p>
     <div class="brand" id="sites" role="group" aria-label="案件"></div>
     <nav class="nav" id="nav" aria-label="コンテンツ"></nav>
   </aside>
@@ -161,11 +161,11 @@
 (function () {
   var VER = '2026.10.16.02';
   var SITES = [
-    { id: 'AC-0000', label: '0000' },
-    { id: 'AC-0001', label: '0001' },
-    { id: 'AC-0002', label: '0002' }
+    { id: 'TV-0000', label: '0000' },
+    { id: 'TV-0001', label: '0001' },
+    { id: 'TV-0002', label: '0002' }
   ];
-  var siteId = 'AC-0002';
+  var siteId = 'TV-0002';
   function siteQ() { return '&site=' + encodeURIComponent(siteId); }
   var items = [
     { id: 'typhoon', label: '台風情報', note: '進路図のみ', href: function () {
@@ -193,9 +193,9 @@
     return './index_ds.html';
   }
   function siteLabel() {
-    if (siteId === 'AC-0000') return 'テンプレート';
-    if (siteId === 'AC-0001') return '住之江';
-    if (siteId === 'AC-0002') return '志摩機械';
+    if (siteId === 'TV-0000') return 'テンプレート';
+    if (siteId === 'TV-0001') return '住之江';
+    if (siteId === 'TV-0002') return '志摩機械';
     return siteId;
   }
 

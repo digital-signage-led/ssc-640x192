@@ -1,12 +1,12 @@
 /**
- * 案件設定の読込（sites/AC-XXXX.json → SignageConfig）
+ * トライビジョン案件設定の読込（sites/TV-XXXX.json → SignageConfig）
  * 同期読込。後続スクリプトより前に置く。
- * ?site=AC-0002 / ?site=0002 / ?project= / ?ac=
+ * ?site=TV-0002 / ?site=0002 / ?project=
  */
 (function (global) {
   'use strict';
 
-  var SITE_RE = /^AC-[0-9]{4}$/;
+  var SITE_RE = /^TV-[0-9]{4}$/;
   var GAS = 'https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec';
 
   function sitesBase() {
@@ -28,12 +28,13 @@
     var raw = '';
     try {
       var q = new URLSearchParams(global.location.search);
-      raw = q.get('site') || q.get('project') || q.get('ac') || '';
+      raw = q.get('site') || q.get('project') || q.get('tv') || '';
     } catch (e) {}
     var id = String(raw || '').trim().toUpperCase();
-    if (/^[0-9]{4}$/.test(id)) id = 'AC-' + id;
+    if (/^AC-[0-9]{4}$/.test(id)) id = 'TV-' + id.slice(3);
+    if (/^[0-9]{4}$/.test(id)) id = 'TV-' + id;
     if (SITE_RE.test(id)) return { siteId: id, source: 'query' };
-    var fallback = (catalog && catalog.defaultSite) || 'AC-0002';
+    var fallback = (catalog && catalog.defaultSite) || 'TV-0002';
     return { siteId: fallback, source: raw ? 'invalid-fallback' : 'default' };
   }
 
@@ -97,7 +98,7 @@
       weatherLogoSrc: withVer(markSrc, ver),
       weatherLogoAlt: logo.alt || site.customer || site.siteName || ''
     };
-    global.AlertCubeSite = { siteId: site.projectId, status: site.status || 'active' };
+    global.TrivisionSite = { siteId: site.projectId, status: site.status || 'active' };
     try {
       var name = site.siteName || site.projectName || site.projectId;
       if (name && global.document) global.document.title = name + ' 自販機 640×192 · ' + site.projectId;
@@ -113,8 +114,8 @@
   try {
     site = loadJson(base + resolved.siteId + '.json');
   } catch (e1) {
-    if (resolved.siteId !== 'AC-0000') {
-      try { site = loadJson(base + 'AC-0000.json'); resolved = { siteId: 'AC-0000', source: 'template-fallback' }; } catch (e2) {}
+    if (resolved.siteId !== 'TV-0000') {
+      try { site = loadJson(base + 'TV-0000.json'); resolved = { siteId: 'TV-0000', source: 'template-fallback' }; } catch (e2) {}
     }
   }
   if (!site) throw new Error('site config missing: ' + resolved.siteId);
