@@ -2832,9 +2832,11 @@ html.wx-no-anim #weather-panel .side-pane {
   overflow: hidden;
   animation: iconFloat 3.2s ease-in-out infinite;
 }
-#weather-panel .now-icon svg {
+#weather-panel .now-icon svg,
+#weather-panel .now-icon img.jma-wx {
   width: 52px; height: 52px; display: block;
   margin: 0; flex: none;
+  object-fit: contain;
 }
 /* アイコン全体を少し下げ気味 */
 @keyframes iconFloat {
@@ -3118,10 +3120,12 @@ html.wx-no-anim #weather-panel .side-pane {
   flex: none; grid-row: 2; overflow: hidden;
   transform: translateY(3px);
 }
-#weather-panel .wx-icon svg {
+#weather-panel .wx-icon svg,
+#weather-panel .wx-icon img.jma-wx {
   width: 100%; height: 100%; display: block;
-  overflow: visible;
+  object-fit: contain;
 }
+#weather-panel .wx-icon svg { overflow: visible; }
 #weather-panel .weekly .wx-icon,
 #weather-panel .hourly .wx-icon { width: 34px; height: 34px; }
 #weather-panel .hourly-chart { display: block; width: 100%; height: 100%; }
@@ -10803,6 +10807,7 @@ html.wx-no-anim #weather-panel .side-pane {
 
 </script>
 
+<script src="./assets/js/jma-weather-icons.js"></script>
 <script>
 /* ===== 販売機天気（同一ページ） ===== */
 (function () {
@@ -11084,6 +11089,7 @@ async function fetchJmaAmedasObservation() {
 
 var lastForecastDesc = null;
 var lastForecastIcon = null;
+var lastForecastCode = null;
 
 async function fetchWeather() {
   var result = await fetchJmaAmedasObservation();
@@ -11191,6 +11197,7 @@ function buildWeeklyFromForecast(fc, todayHi, todayLo, todayIcon) {
     lastForecastDesc = shortWeatherDesc(wxTexts[0], jmaWeatherCodeToType(wxCodes && wxCodes[0]));
   }
   if (wxCodes && wxCodes[0]) {
+    lastForecastCode = wxCodes[0];
     lastForecastIcon = jmaWeatherCodeToType(wxCodes[0]);
   }
 
@@ -11200,6 +11207,7 @@ function buildWeeklyFromForecast(fc, todayHi, todayLo, todayIcon) {
   days.push({
     label: weekdays[today.getDay()],
     icon: todayIconFinal,
+    code: lastForecastCode,
     max: todayHi != null && isFinite(Number(todayHi)) ? Math.round(Number(todayHi)) : "--",
     min: todayLo != null && isFinite(Number(todayLo)) ? Math.round(Number(todayLo)) : "--"
   });
@@ -11263,6 +11271,7 @@ function buildWeeklyFromForecast(fc, todayHi, todayLo, todayIcon) {
     days.push({
       label: weekdays[dt.getDay()],
       icon: code != null ? jmaWeatherCodeToType(code) : "cloudy",
+      code: code,
       max: maxV != null ? Math.round(maxV) : "--",
       min: minV != null ? Math.round(minV) : "--"
     });
@@ -11296,19 +11305,28 @@ function buildHourlyFromForecast(fc, liveTemp) {
       var ts = new Date(tempBlock.times[t]).getTime();
       if (!isFinite(ts)) continue;
       var icon = "cloudy";
+      var code = null;
       if (wxBlock) {
         var best = 0;
         for (var w = 0; w < wxBlock.times.length; w++) {
           var wt = new Date(wxBlock.times[w]).getTime();
           if (wt <= ts) best = w;
         }
-        if (wxBlock.codes[best]) icon = jmaWeatherCodeToType(wxBlock.codes[best]);
+        if (wxBlock.codes[best]) {
+          code = wxBlock.codes[best];
+          icon = jmaWeatherCodeToType(code);
+        }
       }
-      points.push({ t: ts, temp: Number(tempVal), icon: icon });
+      points.push({ t: ts, temp: Number(tempVal), icon: icon, code: code });
     }
   }
   if (liveTemp != null && isFinite(Number(liveTemp))) {
-    points.unshift({ t: Date.now(), temp: Number(liveTemp), icon: lastForecastIcon || (points[0] && points[0].icon) || "cloudy" });
+    points.unshift({
+      t: Date.now(),
+      temp: Number(liveTemp),
+      icon: lastForecastIcon || (points[0] && points[0].icon) || "cloudy",
+      code: lastForecastCode || (points[0] && points[0].code) || null
+    });
   }
   points.sort(function(a, b) { return a.t - b.t; });
   /* 同一時刻は後勝ち */
@@ -11331,7 +11349,8 @@ function buildHourlyFromForecast(fc, liveTemp) {
         temp: Math.round(only.temp),
         hour: String(dt1.getHours()).padStart(2, "0"),
         hourLabel: String(dt1.getHours()).padStart(2, "0") + "時",
-        icon: only.icon
+        icon: only.icon,
+        code: only.code
       });
     }
     return out1;
@@ -11360,7 +11379,8 @@ function buildHourlyFromForecast(fc, liveTemp) {
       temp: Math.round(p0.temp + (p1.temp - p0.temp) * ratio),
       hour: String(dt.getHours()).padStart(2, "0"),
       hourLabel: String(dt.getHours()).padStart(2, "0") + "時",
-      icon: ratio < 0.5 ? p0.icon : p1.icon
+      icon: ratio < 0.5 ? p0.icon : p1.icon,
+      code: ratio < 0.5 ? p0.code : p1.code
     });
   }
   return out;
@@ -11470,7 +11490,9 @@ function weatherSvg(type, temp) {
   else if (type === "snow") body = cloud + snow;
   return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" overflow="visible">' + body + "</svg>";
 }
-function iconHtml(icon, temp) {
+function iconHtml(icon, temp, code) {
+  var url = (window.JmaWeatherIcons && code != null && code !== "") ? JmaWeatherIcons.url(code) : "";
+  if (url) return '<div class="wx-icon"><img class="jma-wx" src="' + url + '" alt=""></div>';
   return '<div class="wx-icon">' + weatherSvg(iconType(icon), temp) + "</div>";
 }
 /**
@@ -11510,7 +11532,7 @@ function setAll(sel, htmlOrText, asHtml) {
 function renderWeekly(days) {
   var html = !days.length ? '<div class="day">データなし</div>' : days.map(function(d) {
     return '<div class="day"><div class="d-label">' + d.label + "</div>" +
-      iconHtml(d.icon, d.max) +
+      iconHtml(d.icon, d.max, d.code) +
       '<div class="d-temp"><span class="d-max">' + d.max + "</span>" +
       '<span class="d-sep">/</span><span class="d-min">' + d.min + "</span></div></div>";
   }).join("");
@@ -11521,7 +11543,7 @@ function renderHourly(hours) {
   var html = !hours.length ? '<div class="hour-slot">データなし</div>' : hours.map(function(h) {
     var hh = String(h.hour || String(h.hourLabel || "").replace("時", "")).padStart(2, "0");
     return '<div class="hour-slot"><div class="h-time">' + hh + u("時") + "</div>" +
-      iconHtml(h.icon, h.temp) +
+      iconHtml(h.icon, h.temp, h.code) +
       '<div class="h-temp" style="color:' + tempBandColor(h.temp) + '">' + nu(h.temp, "℃") + "</div></div>";
   }).join("");
   setAll(".js-hourly", html, true);
@@ -11708,9 +11730,14 @@ function fillUI(w, todayHi, todayLo) {
   setAll(".js-hero-desc", w.desc || "--");
   setAll(".js-hero-sub", sub + "　　" + sub, true);
   document.querySelectorAll(".js-hero-icon").forEach(function(el) {
-    el.innerHTML = weatherSvg(iconType(w.icon), w.temp);
-    /* アイコン背景も気温帯に合わせる */
-    el.style.background = "color-mix(in srgb, " + tempBandColor(w.temp) + " 22%, var(--surface))";
+    var url = (window.JmaWeatherIcons && lastForecastCode != null && lastForecastCode !== "") ? JmaWeatherIcons.url(lastForecastCode) : "";
+    if (url) {
+      el.innerHTML = '<img class="jma-wx" src="' + url + '" alt="">';
+      el.style.background = "transparent";
+    } else {
+      el.innerHTML = weatherSvg(iconType(w.icon), w.temp);
+      el.style.background = "color-mix(in srgb, " + tempBandColor(w.temp) + " 22%, var(--surface))";
+    }
   });
   setAll(".js-side-weather", w.desc || "--");
   setAll(".js-rain", values.rain, true);
