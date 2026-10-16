@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>志摩機械 自販機 確認</title>
+  <style>
+    :root {
+      --bg: #12151a;
+      --panel: #1c222b;
+      --line: #2c3542;
+      --ink: #e8eef6;
+      --muted: #8b98a8;
+      --accent: #3d8bfd;
+      --on: #1a3a66;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
+    }
+    body {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+    aside {
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1.35;
+    }
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: -4px;
+      margin-bottom: 8px;
+    }
+    .brand {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .brand button {
+      flex: 1;
+      font-size: 12px;
+      padding: 8px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .brand button.is-on {
+      background: var(--on);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav button {
+      text-align: left;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #161b22;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .nav button:hover { border-color: #4a5a70; background: #1a222c; }
+    .nav button.is-on {
+      background: var(--on);
+      border-color: var(--accent);
+    }
+    .nav button small {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .nav button.is-on small { color: #b7c9e0; }
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 24px;
+    }
+    .stage-label {
+      font-size: 13px;
+      color: var(--muted);
+      align-self: stretch;
+      max-width: 960px;
+      width: 100%;
+    }
+    .stage-label strong { color: var(--ink); font-weight: 700; }
+    .stage {
+      width: min(960px, 100%);
+      aspect-ratio: 640 / 192;
+      background: #000;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+      position: relative;
+    }
+    .stage iframe {
+      position: absolute;
+      left: 0; top: 0;
+      width: 640px;
+      height: 192px;
+      border: 0;
+      transform-origin: 0 0;
+      background: #000;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      max-width: 960px;
+      width: 100%;
+    }
+    @media (max-width: 800px) {
+      body { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>自販機 640×192</h1>
+    <p class="sub">sites/AC-XXXX.json で切替</p>
+    <div class="brand" id="sites" role="group" aria-label="案件"></div>
+    <nav class="nav" id="nav" aria-label="コンテンツ"></nav>
+  </aside>
+  <main>
+    <div class="stage-label">表示中: <strong id="label">—</strong></div>
+    <div class="stage" id="stage">
+      <iframe id="frame" title="サイネージプレビュー" src="about:blank"></iframe>
+    </div>
+    <p class="hint">640×192 を拡大表示しています。本番ループ全体は「フル再生」を選んでください。</p>
+  </main>
+  <script>
+(function () {
+  var VER = '2026.10.16.02';
+  var SITES = [
+    { id: 'AC-0000', label: '0000' },
+    { id: 'AC-0001', label: '0001' },
+    { id: 'AC-0002', label: '0002' }
+  ];
+  var siteId = 'AC-0002';
+  function siteQ() { return '&site=' + encodeURIComponent(siteId); }
+  var items = [
+    { id: 'typhoon', label: '台風情報', note: '進路図のみ', href: function () {
+      return './typhoon/index.html?preview=1&v=20261016t1' + siteQ();
+    }},
+    { id: 'rain', label: '雨雲レーダー', note: 'ナウキャスト', href: function () {
+      return './rain/index.html?preview=1&loops=2' + siteQ();
+    }},
+    { id: 'thunder', label: '雷ナウキャスト', note: '活動度マップ', href: function () {
+      return './rain/index.html?preview=1&mode=thunder&loops=1' + siteQ();
+    }},
+    { id: 'wbgt', label: '熱中症 WBGT', note: '天気なし', href: function () {
+      return base() + '?only=s4&nowx=1&norain=1&nothunder=1&notyphoon=1&v=' + VER + '&native640=1&embed=1' + siteQ();
+    }},
+    { id: 'weather', label: '天気パネル', note: 'WBGT＋天気カード', href: function () {
+      return base() + '?only=s4&norain=1&nothunder=1&notyphoon=1&v=' + VER + '&native640=1&embed=1' + siteQ();
+    }},
+    { id: 'full', label: 'フル再生', note: 'WBGT→天気→雨雲→雷→台風', href: function () {
+      return base() + '?only=all&v=' + VER + '&native640=1&embed=1' + siteQ();
+    }}
+  ];
+  var current = 'full';
+
+  function base() {
+    return './index_ds.html';
+  }
+  function siteLabel() {
+    if (siteId === 'AC-0000') return 'テンプレート';
+    if (siteId === 'AC-0001') return '住之江';
+    if (siteId === 'AC-0002') return '志摩機械';
+    return siteId;
+  }
+
+  var nav = document.getElementById('nav');
+  var frame = document.getElementById('frame');
+  var label = document.getElementById('label');
+  var stage = document.getElementById('stage');
+
+  function fitFrame() {
+    var w = stage.clientWidth;
+    var s = w / 640;
+    if (!isFinite(s) || s <= 0) s = 1;
+    frame.style.transform = 'scale(' + s + ')';
+  }
+
+  function findItem(id) {
+    for (var i = 0; i < items.length; i++) if (items[i].id === id) return items[i];
+    return items[0];
+  }
+
+  function show(id) {
+    current = id;
+    var item = findItem(id);
+    label.textContent = item.label + '（' + siteId + ' ' + siteLabel() + '）';
+    Array.prototype.forEach.call(nav.querySelectorAll('button'), function (btn) {
+      btn.classList.toggle('is-on', btn.getAttribute('data-id') === id);
+    });
+    frame.src = item.href();
+    fitFrame();
+  }
+
+  var siteBox = document.getElementById('sites');
+  SITES.forEach(function (s) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = s.label;
+    b.setAttribute('data-site', s.id);
+    if (s.id === siteId) b.classList.add('is-on');
+    b.addEventListener('click', function () {
+      siteId = s.id;
+      Array.prototype.forEach.call(siteBox.querySelectorAll('button'), function (el) {
+        el.classList.toggle('is-on', el.getAttribute('data-site') === siteId);
+      });
+      show(current);
+    });
+    siteBox.appendChild(b);
+  });
+
+  items.forEach(function (item) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('data-id', item.id);
+    btn.innerHTML = item.label + '<small>' + item.note + '</small>';
+    btn.addEventListener('click', function () { show(item.id); });
+    nav.appendChild(btn);
+  });
+
+  window.addEventListener('resize', fitFrame);
+  show('full');
+  setTimeout(fitFrame, 50);
+  setTimeout(fitFrame, 300);
+})();
+  </script>
+</body>
+</html>

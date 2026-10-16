@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "projectId": "AC-0000",
+  "status": "template",
+  "customer": "",
+  "rental": "",
+  "projectName": "",
+  "siteName": "",
+  "location": "",
+  "latitude": 0,
+  "longitude": 0,
+  "resolution": "640x192",
+  "layout": "SSC-640",
+  "faces": 3,
+  "timeZone": "Asia/Tokyo",
+  "footSource": "データ提供：気象庁、環境省",
+  "releasePin": null,
+  "logo": {
+    "src": "./assets/ds_logo.png",
+    "textSrc": "./assets/ds_logo_text.png",
+    "markSrc": "./assets/ds_logo.png",
+    "bannerSrc": "./assets/ds_logo_text.png",
+    "alt": "",
+    "panelBg": "#ffffff"
+  },
+  "moe": {
+    "gasUrl": "https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec",
+    "point": "",
+    "fallbackPoint": "",
+    "pointName": "",
+    "alertArea": "",
+    "region": "",
+    "prefecture": ""
+  },
+  "jma": {
+    "amedasPoint": "",
+    "amedasSupplementPoint": "",
+    "forecastArea": "",
+    "forecastWeatherArea": "",
+    "forecastLabel": "",
+    "warnArea": "",
+    "warnCity": "",
+    "warnCityLabel": ""
+  },
+  "ui": {
+    "kicker": "",
+    "impactName": "",
+    "impactMatch": [],
+    "placeLabels": []
+  },
+  "wbgt": {
+    "seasonStart": { "month": 4, "day": 22 },
+    "seasonEnd": { "month": 10, "day": 22 }
+  },
+  "season": { "override": null },
+  "updateSettings": { "refreshMs": 60000 },
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon"],
+  "contents": {
+    "wbgt": { "on": true },
+    "weather": { "on": true },
+    "rain-nowcast": { "on": true },
+    "thunder": { "on": true },
+    "typhoon": { "on": true },
+    "warning": { "on": true }
+  }
+}

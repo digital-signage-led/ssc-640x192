@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "projectId": "AC-0001",
+  "status": "active",
+  "customer": "デジタルサイネージ",
+  "rental": "デジタルサイネージ",
+  "projectName": "住之江",
+  "siteName": "住之江区",
+  "location": "〒559-0066 大阪市住之江区新北島1-9-13",
+  "latitude": 34.605184,
+  "longitude": 135.470949,
+  "resolution": "640x192",
+  "layout": "SSC-640",
+  "faces": 3,
+  "timeZone": "Asia/Tokyo",
+  "footSource": "データ提供：気象庁、環境省",
+  "releasePin": "2026.10.16.02",
+  "logo": {
+    "src": "./assets/ds_logo.png",
+    "textSrc": "./assets/ds_logo_text.png",
+    "markSrc": "./assets/ds_logo.png",
+    "bannerSrc": "./assets/ds_logo_text.png",
+    "alt": "住之江",
+    "panelBg": "#ffffff"
+  },
+  "moe": {
+    "gasUrl": "https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec",
+    "point": "62078",
+    "fallbackPoint": "62091",
+    "pointName": "大阪",
+    "alertArea": "大阪府",
+    "region": "07",
+    "prefecture": "62"
+  },
+  "jma": {
+    "amedasPoint": "62078",
+    "amedasSupplementPoint": "62091",
+    "forecastArea": "270000",
+    "forecastWeatherArea": "270000",
+    "forecastLabel": "大阪市",
+    "warnArea": "270000",
+    "warnCity": "2710000",
+    "warnCityLabel": "大阪市"
+  },
+  "ui": {
+    "kicker": "住之江",
+    "impactName": "住之江",
+    "impactMatch": ["大阪", "住之江"],
+    "placeLabels": [
+      { "name": "住之江", "lat": 34.6052, "lon": 135.4709, "major": true },
+      { "name": "大阪", "lat": 34.7025, "lon": 135.4959 }
+    ]
+  },
+  "updateSettings": { "refreshMs": 60000 },
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon"]
+}

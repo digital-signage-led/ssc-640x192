@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "projectId": "AC-0002",
+  "status": "active",
+  "customer": "志摩機械株式会社",
+  "rental": "志摩機械株式会社",
+  "projectName": "志摩機械",
+  "siteName": "舞鶴市",
+  "location": "京都府舞鶴市上福井117番地",
+  "latitude": 35.445427,
+  "longitude": 135.299683,
+  "resolution": "640x192",
+  "layout": "SSC-640",
+  "faces": 3,
+  "timeZone": "Asia/Tokyo",
+  "footSource": "データ提供：気象庁、環境省",
+  "releasePin": "2026.10.16.02",
+  "logo": {
+    "src": "./assets/shima_kikai_ja.png",
+    "textSrc": "./assets/shima_kikai_en.png",
+    "markSrc": "./assets/shima_kikai_ja.png",
+    "bannerSrc": "./assets/shima_kikai_en.png",
+    "alt": "志摩機械株式会社",
+    "panelBg": "#ffffff"
+  },
+  "moe": {
+    "gasUrl": "https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec",
+    "point": "61111",
+    "fallbackPoint": "",
+    "pointName": "舞鶴",
+    "alertArea": "京都府",
+    "region": "06",
+    "prefecture": "61"
+  },
+  "jma": {
+    "amedasPoint": "61111",
+    "amedasSupplementPoint": "61111",
+    "forecastArea": "260000",
+    "forecastWeatherArea": "260020",
+    "forecastLabel": "舞鶴市",
+    "warnArea": "260000",
+    "warnCity": "2620200",
+    "warnCityLabel": "舞鶴市"
+  },
+  "ui": {
+    "kicker": "志摩機械",
+    "impactName": "舞鶴",
+    "impactMatch": ["舞鶴", "京都"],
+    "placeLabels": [
+      { "name": "舞鶴", "lat": 35.4747, "lon": 135.386, "major": true },
+      { "name": "福知山", "lat": 35.2967, "lon": 135.1266 }
+    ]
+  },
+  "updateSettings": { "refreshMs": 60000 },
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon"]
+}

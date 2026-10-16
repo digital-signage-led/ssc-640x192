@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "projectId": "AC-0000",
+  "status": "template",
+  "customer": "",
+  "rental": "",
+  "projectName": "",
+  "siteName": "",
+  "location": "",
+  "latitude": 0,
+  "longitude": 0,
+  "resolution": "640x192",
+  "layout": "SSC-640",
+  "faces": 3,
+  "timeZone": "Asia/Tokyo",
+  "footSource": "データ提供：気象庁、環境省",
+  "releasePin": null,
+  "logo": {
+    "src": "./assets/ds_logo.png",
+    "textSrc": "./assets/ds_logo_text.png",
+    "markSrc": "./assets/ds_logo.png",
+    "bannerSrc": "./assets/ds_logo_text.png",
+    "alt": "",
+    "panelBg": "#ffffff"
+  },
+  "moe": {
+    "gasUrl": "",
+    "point": "",
+    "fallbackPoint": "",
+    "pointName": "",
+    "alertArea": "",
+    "region": "",
+    "prefecture": ""
+  },
+  "jma": {
+    "amedasPoint": "",
+    "amedasSupplementPoint": "",
+    "forecastArea": "",
+    "forecastWeatherArea": "",
+    "forecastLabel": "",
+    "warnArea": "",
+    "warnCity": "",
+    "warnCityLabel": ""
+  },
+  "ui": {
+    "kicker": "",
+    "impactName": "",
+    "impactMatch": [],
+    "placeLabels": []
+  },
+  "updateSettings": { "refreshMs": 60000 }
+}
