@@ -14,11 +14,11 @@
   "faces": 3,
   "timeZone": "Asia/Tokyo",
   "footSource": "データ提供：気象庁、環境省",
-  "releasePin": "2026.10.16.02",
+  "releasePin": "2026.10.22.01",
   "logo": {
-    "src": "./assets/shima_kikai_ja.png",
+    "src": "./assets/shima_kikai_en.png",
     "textSrc": "./assets/shima_kikai_en.png",
-    "markSrc": "./assets/shima_kikai_ja.png",
+    "markSrc": "./assets/shima_kikai_en.png",
     "bannerSrc": "./assets/shima_kikai_en.png",
     "alt": "志摩機械株式会社",
     "panelBg": "#ffffff"
