@@ -2622,6 +2622,7 @@ html.wx-no-anim #weather-panel .side-pane {
   object-fit: contain;
   object-position: center center;
 }
+html.wbgt-off #weather-panel .side-half.is-wbgt { display: none !important; }
 #weather-panel .side-half {
   flex: 1 1 50%;
   min-height: 0;
@@ -3573,13 +3574,13 @@ html.wx-no-anim #weather-panel .side-pane {
               <div class="side-lbl">最大瞬間</div>
               <div class="side-val js-gust">--</div>
             </div>
-            <div class="side-half">
+            <div class="side-half is-wbgt">
               <div class="side-lbl">WBGT</div>
               <div class="side-val js-side-wbgt">--</div>
             </div>
           </div>
           <div class="side-pane">
-            <div class="side-half">
+            <div class="side-half is-wbgt">
               <div class="side-lbl">警報</div>
               <div class="side-val js-side-wbgt-lv">--</div>
             </div>
@@ -3734,13 +3735,13 @@ html.wx-no-anim #weather-panel .side-pane {
               <div class="side-lbl">最大瞬間</div>
               <div class="side-val js-gust">--</div>
             </div>
-            <div class="side-half">
+            <div class="side-half is-wbgt">
               <div class="side-lbl">WBGT</div>
               <div class="side-val js-side-wbgt">--</div>
             </div>
           </div>
           <div class="side-pane">
-            <div class="side-half">
+            <div class="side-half is-wbgt">
               <div class="side-lbl">警報</div>
               <div class="side-val js-side-wbgt-lv">--</div>
             </div>
@@ -4620,8 +4621,13 @@ html.wx-no-anim #weather-panel .side-pane {
 
         /*
          * 雨雲なし時のみ: 縦押し出しで WBGT へ復帰。
-         * WBGT 下端と天気上端を常に接合（weatherY = wbgtY + 192）。
+         * 期間外は WBGT を出さず天気を続ける。
          */
+        if (wbgtOffSeason) {
+            clearScene4Timers();
+            playScene4();
+            return;
+        }
         const H = 192;
         const easeOutCubic = function (t) {
             return 1 - Math.pow(1 - t, 3);
@@ -4710,13 +4716,24 @@ html.wx-no-anim #weather-panel .side-pane {
         swapRaf = requestAnimationFrame(frameV_);
         weatherSwapTimerId_ = setTimeout(finishVSwap_, SCENE_SWAP_MS + 80);
     }
+    function hideWbgtSceneEl_() {
+        if (!s4) return;
+        s4.classList.remove('active', 'is-exit-push', 'is-swap-rtl-flow', 'is-swap-front', 'is-enter-top', 'is-swap-v-flow');
+        s4.style.visibility = 'hidden';
+        s4.style.opacity = '0';
+        s4.style.zIndex = '';
+        s4.style.transform = '';
+        s4.style.transition = '';
+    }
     function goWeatherAfterWbgt_() {
-        const lv = resolveWbgtLevelForWeather_();
-        /* レベル未確定なら天気へ行かない（青仮背景の固定を防ぐ）。少し待って再試行 */
-        if (lv < 0) {
-            if (!wbgtUnavailable && !wbgtOffSeason) {
+        if (weatherShowing_) return;
+        const off = !!wbgtOffSeason;
+        const lv = off ? -1 : resolveWbgtLevelForWeather_();
+        /* レベル未確定なら天気へ行かない（青仮背景の固定を防ぐ）。期間外は WBGT を出さず天気へ */
+        if (!off && lv < 0) {
+            if (!wbgtUnavailable) {
                 setTimeout(function () {
-                    if (resolveWbgtLevelForWeather_() >= 0) goWeatherAfterWbgt_();
+                    if (wbgtOffSeason || resolveWbgtLevelForWeather_() >= 0) goWeatherAfterWbgt_();
                     else playScene4();
                 }, 1500);
                 return;
@@ -4724,6 +4741,7 @@ html.wx-no-anim #weather-panel .side-pane {
             playScene4();
             return;
         }
+        if (off) hideWbgtSceneEl_();
         /* 改修:sessionStorage 廃止 */
         const panel = document.getElementById('weather-panel');
         const area = document.querySelector('.content-area');
@@ -4733,7 +4751,9 @@ html.wx-no-anim #weather-panel .side-pane {
         }
         clearWeatherTimers_();
         weatherShowing_ = true;
-        const bgHex = ['#308ED8', '#FFD92E', '#FFBE2C', '#FF7E00', '#D61914'][lv] || '#FF7E00';
+        const bgHex = lv >= 0
+            ? (['#308ED8', '#FFD92E', '#FFBE2C', '#FF7E00', '#D61914'][lv] || '#FF7E00')
+            : '#555555';
         panel.style.background = bgHex;
         panel.style.setProperty('--wbgt-bg', bgHex);
         panel.style.display = 'block';
@@ -4755,7 +4775,7 @@ html.wx-no-anim #weather-panel .side-pane {
         if (typeof hideInactiveLegacyScenes_ === 'function') hideInactiveLegacyScenes_();
         /* 画面切替中は天気コンテンツを静止。着地後に動き出す */
         try {
-            if (window.WbgtWeather) window.WbgtWeather.prepare({ level: lv });
+            if (window.WbgtWeather) window.WbgtWeather.prepare(lv >= 0 ? { level: lv } : {});
         } catch (e2) { console.error(e2); }
         /* 右から素早く押し出し：天気が入る／WBGT は左へ退場（被らない） */
         panel.style.setProperty('--wx-rtl-ms', (SCENE_SWAP_RTL_MS / 1000) + 's');
@@ -8223,6 +8243,11 @@ html.wx-no-anim #weather-panel .side-pane {
         if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
         console.warn('[WBGT] 取得不可表示（成功値が一度もない）');
     }
+    function wbgtSlotsLackCurrent_(slots) {
+        if (!slots || slots === 'offseason' || !slots.length) return true;
+        const row = slots[0];
+        return !row || row.wbgt == null || !isFinite(Number(row.wbgt));
+    }
     function syncWbgtSlotsToDomIfReady_() {
         if (wbgtIsStale_()) {
             applyWbgtUnavailableToDom_();
@@ -8258,13 +8283,8 @@ html.wx-no-anim #weather-panel .side-pane {
         applyWbgtUnavailableToDom_();
         return false;
     }
-    /* 提供期間外: 成功値があれば灰色にせず維持。無いときだけ期間外グレー */
+    /* 提供期間外: WBGT画面は出さず、天気以降へ飛ばす */
     function applyWbgtOffSeason_() {
-        if (lastGoodWbgtSlots_ && hasFull4Slots(lastGoodWbgtSlots_)) {
-            applyWbgtInSeason_();
-            keepLastGoodWbgtDisplay_('off-season応答');
-            return;
-        }
         wbgtOffSeason = true;
         wbgtUnavailable = false;
         clearWbgtUnavailableGrace_();
@@ -8272,6 +8292,7 @@ html.wx-no-anim #weather-panel .side-pane {
         currentWbgtLevel = -1;
         lastWbgtSlots = null;
         syncWbgtDependentAlerts_();
+        try { document.documentElement.classList.add('wbgt-off'); } catch (eCls) {}
         document.querySelectorAll('#scene4 .fc-scroll-wrap, #scene4 .fc-lv-bar').forEach(function (el) {
             el.style.display = 'none';
         });
@@ -8282,9 +8303,14 @@ html.wx-no-anim #weather-panel .side-pane {
         persistSignageStateCache_();
         queueDisplayRefresh_();
         if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
+        try { window.dispatchEvent(new Event('wbgt-off')); } catch (eEv) {}
+        if (!weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_) {
+            try { playScene4(); } catch (eSkip) {}
+        }
     }
     function applyWbgtInSeason_() {
         wbgtOffSeason = false;
+        try { document.documentElement.classList.remove('wbgt-off'); } catch (eCls) {}
         document.querySelectorAll('#scene4 .fc-scroll-wrap, #scene4 .fc-lv-bar').forEach(function (el) {
             el.style.display = '';
         });
@@ -8407,8 +8433,8 @@ html.wx-no-anim #weather-panel .side-pane {
                         fetchWbgtData_(), DATA_FETCH_TIMEOUT_MS, 'WBGT'
                     );
                     timings['WBGT(GAS)'] = Math.round(performance.now() - sWbgt);
-                    if (wbgtSlots === 'offseason') {
-                        applyWbgtOffSeason_(); /* 成功値があれば灰色にせず維持 */
+                    if (wbgtSlots === 'offseason' || wbgtSlotsLackCurrent_(wbgtSlots)) {
+                        applyWbgtOffSeason_();
                         moeOk = true;
                     } else {
                         applyWbgtInSeason_();
@@ -10408,14 +10434,17 @@ html.wx-no-anim #weather-panel .side-pane {
         gotoSceneAfterScene4_();
     }
     function playScene4() {
+        if (wbgtOffSeason) {
+            if (previewOffSeasonHold_('s4', playScene4)) return;
+            clearScene4Timers();
+            hideWbgtSceneEl_();
+            if (PLAY_WEATHER_AFTER_S4) goWeatherAfterWbgt_();
+            else finishScene4();
+            return;
+        }
         ensureWbgtSceneVisible_();
         applyDisplayRefreshAtSceneEntry_();
         clearScene4Timers();
-        if (wbgtOffSeason) {
-            if (previewOffSeasonHold_('s4', playScene4)) return;
-            finishScene4();
-            return;
-        }
         if (!lastWbgtSlots && DEMO_SIGNAGE_ACTIVE && currentWbgtLevel >= 0) {
             updateForecastSlots(mockSlotsForDemoLevel(currentWbgtLevel));
         } else {
@@ -10779,7 +10808,10 @@ html.wx-no-anim #weather-panel .side-pane {
                 var panelOn = document.querySelector('#weather-panel.is-on');
                 var rainOn = document.querySelector('#rain-panel.is-on');
                 var tyOn = document.querySelector('#typhoon-panel.is-on');
-                if (!active && !panelOn && !rainOn && !tyOn) ensureWbgtSceneVisible_();
+                if (!active && !panelOn && !rainOn && !tyOn) {
+                    if (wbgtOffSeason) goWeatherAfterWbgt_();
+                    else ensureWbgtSceneVisible_();
+                }
             } catch (eWatch) {}
         }, 2000);
         /* 改修:二重 rAF 待ちを廃止。即 fetch 開始（表示と並列） */
@@ -12244,8 +12276,18 @@ let savedNormalBottom_ = 1;
 /* 改修:気象観測テロップは rAF で流す（CSS animation はサイネージで止まることがある） */
 let meteoRaf_ = 0;
 
+function wbgtFrontSkipped_() {
+  return document.documentElement.classList.contains("wbgt-off");
+}
 function nextNormalCard_(idx) {
-  return (Number(idx) + 1) % NORMAL_CARD_COUNT;
+  var n = (Number(idx) + 1) % NORMAL_CARD_COUNT;
+  if (wbgtFrontSkipped_() && n === 6) n = (n + 1) % NORMAL_CARD_COUNT;
+  return n;
+}
+function avoidSkippedWbgtCards_() {
+  if (!wbgtFrontSkipped_()) return;
+  if (topIdx === 6) topIdx = 0;
+  if (bottomIdx === 6 || bottomIdx === topIdx) bottomIdx = nextNormalCard_(topIdx);
 }
 function clampNormalPair_() {
   if (topIdx >= NORMAL_CARD_COUNT || topIdx < 0) topIdx = 0;
@@ -12566,6 +12608,7 @@ function nextEnterCard_() {
 /** 正面：上段→下段→退場の一定方向 cascade（気象観測は含めない） */
 function frontStep() {
   if (frontAnim || weatherMeteoVisit_) return false;
+  avoidSkippedWbgtCards_();
   var enterIdx = nextEnterCard_();
   var elTop = cardEl(topIdx), elBot = cardEl(bottomIdx), elEnter = cardEl(enterIdx);
   if (!elTop || !elBot || !elEnter) return false;
@@ -12666,6 +12709,7 @@ function resetFrontFlow_() {
 
 /** 現在の index を画面に反映（リセットせず継続表示用） */
 function syncFrontFlow_() {
+  avoidSkippedWbgtCards_();
   document.querySelectorAll("#frontFlow .flow-card").forEach(function (el) {
     clearCard(el);
     var i = parseInt(el.getAttribute("data-card"), 10);
@@ -12795,6 +12839,10 @@ function finishWeatherToWbgt_(endPauseMs) {
   }, Math.max(0, pause)));
 }
 
+window.addEventListener("wbgt-off", function () {
+  avoidSkippedWbgtCards_();
+  try { syncFrontFlow_(); } catch (eOff) {}
+});
 window.WbgtWeather = {
   prepare: function (opts) {
     opts = opts || {};
