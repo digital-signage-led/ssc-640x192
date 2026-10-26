@@ -1570,6 +1570,32 @@
         water[y * big + x] = src[y * big + x];
       }
     }
+
+    /* 岸から湖へ突き出した小さな四角（注記や橋の残り）を湖面に戻す */
+    var reach = Math.max(8, Math.min(14, Math.round(1300 / mpp)));
+    var dirs4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    var passN, di, step, xx, yy, open, mark, mi;
+    for (passN = 0; passN < 2; passN++) {
+      mark = [];
+      for (y = 0; y < big; y++) {
+        for (x = 0; x < big; x++) {
+          at = y * big + x;
+          if (water[at] || !inBiwa(y, x)) continue;
+          open = 0;
+          for (di = 0; di < 4; di++) {
+            for (step = 1; step <= reach; step++) {
+              xx = x + dirs4[di][0] * step;
+              yy = y + dirs4[di][1] * step;
+              if (xx < 0 || yy < 0 || xx >= big || yy >= big || !inBiwa(yy, xx)) break;
+              if (water[yy * big + xx]) { open++; break; }
+            }
+          }
+          if (open >= 3) mark.push(at);
+        }
+      }
+      if (!mark.length) break;
+      for (mi = 0; mi < mark.length; mi++) water[mark[mi]] = 1;
+    }
   }
 
   function mosaicMask_(coords, cb) {
