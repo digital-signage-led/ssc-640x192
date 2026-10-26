@@ -164,8 +164,8 @@
         }
         /* 3面（640×192）: 左128+正面384+右128 を連続コンテンツとして全面流し（ロゴ列なし・カード5枚×128） */
         .logo-panel { display: none !important; }
-        /* 改修:起動時は安全の青にしない（未取得は中立グレー） */
-        .content-area { width: 640px; height: 192px; position: relative; overflow: hidden; flex: 0 0 640px; flex-shrink: 0; background: #555555; }
+        /* 起動待ちは天気と同じ青。未取得の熱中症画面（灰色）は出さない */
+        .content-area { width: 640px; height: 192px; position: relative; overflow: hidden; flex: 0 0 640px; flex-shrink: 0; background: #308ED8; }
         .content-area > .scene-strip-bg { z-index: 0; }
         .content-area > .scene { z-index: 1; will-change: transform; }
         .scene {
@@ -3359,7 +3359,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <div class="s2-meta-bar"><div class="s2-meta-track" id="s2-meta-track"></div></div>
     </div>
 
-        <div class="scene active" id="scene4">
+        <div class="scene" id="scene4">
         <div class="s4-dash">
             <div class="s4-flow" aria-label="WBGTステータス">
                 <div class="s4-flow-track">
@@ -4146,9 +4146,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     /** 雷（または雨雲）の次に台風情報を流す（?notyphoon=1 でスキップ） */
     const PLAY_TYPHOON_AFTER_RAIN = query.get('notyphoon') !== '1' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rain' && DEMO_ONLY !== 'thunder';
     const WEATHER_HOLD_MS = 120000; /* 通常cascade＋気象観測1周＋最後の時刻＋終了静止＋余裕 */
-    const RAIN_HOLD_MS = 180000; /* 安全弁上限。通常は iframe が2周完了で postMessage */
+    const RAIN_HOLD_MS = 180000; /* 安全弁上限。通常は iframe が1周完了で postMessage */
     const THUNDER_HOLD_MS = 90000; /* 雷: 約1時間分のコマ・1周＋余裕 */
-    const TYPHOON_HOLD_MS = 60000; /* 台風: 広域→付近→各号拡大の目安 */
+    const TYPHOON_HOLD_MS = 180000; /* 安全弁。通常は広域→付近→各号の1周完了で postMessage */
     const SCENE_SWAP_MS = 1100; /* 天気→WBGT の縦押し出し（ゆったり） */
     /* 顔・文言の横流れ: 1周(640px)を SCENE4_HOLD(15秒)ちょうどで回す → 区間中ずっと同じ間隔 */
     const S4_FLOW_DESIGN_W = 896; /* 224×4。顔＋長文 */
@@ -4224,7 +4224,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=2&v=20261026r2&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026r8&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4237,7 +4237,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20260828th1';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20261026th3';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4248,7 +4248,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&v=20260825t10&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026ty3&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
@@ -4308,7 +4308,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         rain.style.visibility = 'visible';
         rain.style.opacity = '1';
         rain.style.background = '#000';
-        /* 通常は rain iframe の 2周完了 postMessage で切替。取れないとき用の上限 */
+        /* 通常は rain iframe の 1周完了 postMessage で切替。取れないとき用の上限 */
         rainHoldTimerId_ = setTimeout(function () {
             rainHoldTimerId_ = null;
             onRainDone_();
@@ -4374,6 +4374,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (d.type === 'thunder-radar-done') {
             if (!thunderShowing_) return;
             onThunderDone_();
+            return;
+        }
+        if (d.type === 'typhoon-done') {
+            if (!typhoonShowing_) return;
+            onTyphoonDone_();
         }
     }
     if (typeof window !== 'undefined') {
@@ -8353,27 +8358,28 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             });
         } catch (eFlowBoot) {}
     }
-    /** 起動直後: WBGT（scene4）をすぐ描画して表示する */
+    /** 起動直後は熱中症画面を出さない。灰色の空画面ではなく天気（青）を出す */
     function paintBootSplash_() {
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
-        ensureWbgtSceneVisible_();
-        /* 流し文字の transform 残像を消す */
-        try {
-            s4FlowX_ = 0;
-            const track = document.querySelector('#scene4 .s4-flow-track');
-            if (track) track.style.transform = 'translate3d(0,0,0)';
-        } catch (eFlow) {}
-        syncWbgtSlotsToDomIfReady_();
-        /* 改修:未確定でも render（pending＝中立グレー）。安全の仮描画はしない */
-        if (typeof SignageBg !== 'undefined') {
-            const hasLv = (currentWbgtLevel >= 0 && currentWbgtLevel <= 4)
-                || (typeof levelFromLastGoodWbgtSlots_ === 'function' && levelFromLastGoodWbgtSlots_() != null);
-            if (hasLv) refreshSignageBg();
+        hideWbgtSceneEl_();
+        const area = document.querySelector('.content-area');
+        const panel = document.getElementById('weather-panel');
+        if (area) {
+            area.classList.add('weather-on');
+            area.style.background = '#308ED8';
         }
-        if (typeof renderS4Dashboard_ === 'function') {
-            try { renderS4Dashboard_(); } catch (e) {}
+        if (panel) {
+            panel.style.background = '#308ED8';
+            panel.style.setProperty('--wbgt-bg', '#308ED8');
+            panel.classList.add('is-on');
+            panel.setAttribute('aria-hidden', 'false');
+            panel.style.display = 'block';
+            panel.style.visibility = 'visible';
+            panel.style.opacity = '1';
         }
+        /* 現在のWBGTが無い間は熱中症画面へ進まない。天気の中身だけ先に出す */
+        try { if (window.WbgtWeather) window.WbgtWeather.prepare({}); } catch (eBootWx) {}
     }
     function queueDisplayRefresh_() {
         pendingDisplayRefresh = true;
@@ -10814,10 +10820,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         updateClock();
         startClockTicker();
         startNetworkClockSync_();
-        if (s4) {
-            s4.style.display = sceneDisplayMode(s4);
-            s4.classList.add('active');
-        }
+        hideWbgtSceneEl_();
         mainLoopStarted_ = true;
         try { playScene4(); } catch (ePlay) { console.warn(ePlay); }
         /* 色だけ画面（シーンも天気も雨雲も台風も無い）になったら WBGT に戻す */
@@ -13048,7 +13051,7 @@ window.addEventListener("pageshow", function (ev) {
 <!--
 改修要約（即起動・永続動作 / 実務版）:
 - CONTENT_VER 2026.10.26.04（?v= で HTML 取り直し） / clock jst-network-v5
-- 再生: WBGT → 天気 → 雨雲 → 雷ナウキャスト(thns) → 台風（?nothunder=1 で雷スキップ）
+- 再生: WBGT → 天気 → 雨雲(1周) → 雷ナウキャスト(1周) → 台風(広域→付近→各号を1周)
 - 本番 s4: 旧シーン(scene1/2/3/5)を DOM から削除。天気中は display:none で映り込み防止
 - フォント: Google Fonts + display=swap
 - html に native-640 直書き。640×192 等倍固定（WEB＝サイネージ同一ピクセル）
