@@ -234,11 +234,7 @@
       background: #0E7BC4;
     }
     .face-side .body {
-      top: var(--side-top-h);
-      height: var(--side-body-h);
-      padding: 2px 4px 4px;
-      justify-content: center;
-      gap: 0;
+      display: none !important;
     }
     .side-clock {
       flex-shrink: 0;
@@ -251,9 +247,9 @@
       text-align: center;
       text-shadow: 0 1px 2px rgba(0,0,0,.35);
     }
-    /* 左右の本文（号数・影響）は下帯へ。中央は正面と同じ進路図を128×128で */
-    .face-side .body { display: none !important; }
+    /* 左右128×128の進路図は常に表示する */
     .side-map {
+      display: block !important;
       position: absolute;
       left: 0;
       top: var(--side-top-h);
@@ -378,10 +374,12 @@
       flex-direction: row;
       flex-wrap: nowrap;
       white-space: nowrap;
+      width: max-content;
       will-change: transform;
       backface-visibility: hidden;
     }
     .foot-ticker span {
+      flex: 0 0 auto;
       font-size: 18px;
       font-weight: 900;
       letter-spacing: 0.06em;
@@ -756,7 +754,7 @@
     width: 640,
     height: 192,
     refreshMs: 5 * 60 * 1000,
-    viewMs: 5 * 1000,
+    viewMs: 3 * 1000,
     sideSwapMs: 6 * 1000,
     /* 舞鶴市上福井117（WBGTサイネージと同座標） */
     osaka: [35.445427, 135.299683],
@@ -993,6 +991,7 @@
     var a = document.getElementById('footTickerA');
     var b = document.getElementById('footTickerB');
     if (!a || !b) return;
+    if (a.textContent === text) return;
     a.textContent = text;
     b.textContent = text;
     tickerOffset = 0;
@@ -1661,33 +1660,36 @@
 
   function syncSideFrames() {
     if (!map || !sideMaps || !sideMaps.length) return;
-    var b;
-    try { b = map.getBounds(); } catch (e0) { return; }
-    if (!b || !b.isValid || !b.isValid()) return;
-    var bounds = [b.getSouthWest(), b.getNorthEast()];
+    var c, z;
+    try {
+      c = map.getCenter();
+      z = map.getZoom();
+    } catch (e0) { return; }
     for (var i = 0; i < sideMaps.length; i++) {
-      try {
-        sideMaps[i].fitBounds(bounds, {
-          animate: false,
-          padding: [0, 0],
-          maxZoom: 8,
-          minZoom: 2
-        });
-      } catch (e1) {}
+      try { sideMaps[i].setView(c, z, { animate: false }); } catch (e1) {}
     }
   }
 
-  function fitBoundsAll(bounds, maxZ, minZ) {
-    var frontOpts = {
-      animate: false,
-      padding: [2, 2],
-      paddingTopLeft: [2, 4],
-      paddingBottomRight: [2, 4],
-      maxZoom: maxZ,
-      minZoom: minZ
-    };
-    if (map) map.fitBounds(bounds, frontOpts);
-    syncSideFrames();
+  function fitBoundsAll(bounds, maxZ, minZ, center) {
+    if (!map) return;
+    var z;
+    try {
+      z = map.getBoundsZoom(bounds, false, L.point(2, 4));
+    } catch (e0) {
+      z = map.getZoom();
+    }
+    if (maxZ != null && z > maxZ) z = maxZ;
+    if (minZ != null && z < minZ) z = minZ;
+    var c = center;
+    if (!c) {
+      try { c = L.latLngBounds(bounds).getCenter(); }
+      catch (e1) { c = map.getCenter(); }
+    }
+    var maps = [map];
+    for (var i = 0; i < sideMaps.length; i++) maps.push(sideMaps[i]);
+    for (var j = 0; j < maps.length; j++) {
+      try { maps[j].setView(c, z, { animate: false }); } catch (e2) {}
+    }
   }
 
   function initMap() {
@@ -2444,11 +2446,7 @@
   }
 
   function fitFixedFrame(sw, ne, center, maxZ, minZ) {
-    fitBoundsAll([sw, ne], maxZ, minZ);
-    try {
-      if (map) map.setView(center, map.getZoom(), { animate: false });
-    } catch (e) {}
-    syncSideFrames();
+    fitBoundsAll([sw, ne], maxZ, minZ, center);
   }
 
   /**
@@ -2578,7 +2576,7 @@
     setImpFace('l', imp.big, impSub);
     setImpFace('r', imp.big, impSub);
 
-    setTickerText(buildTickerText(isZoom ? [s] : storms));
+    setTickerText(buildTickerText(storms));
     applySideFlip();
 
     /* 先に枠を合わせてから描画（ラベル間引き・配置を正しくする） */
@@ -2598,7 +2596,7 @@
     }
   }
 
-  /** 日本広域 → 日本付近 → 各号拡大（各5秒）。埋め込み時はこの1周で親へ終了 */
+  /** 日本広域 → 日本付近 → 各号拡大（各3秒・3面同時）。埋め込み時はこの1周で親へ終了 */
   function buildViewPlaylist() {
     var pl = [{ mode: 'wide', idx: 0 }, { mode: 'near', idx: 0 }];
     for (var i = 0; i < storms.length; i++) {
@@ -2611,11 +2609,6 @@
   function notifyTyphoonPassDone_() {
     if (typhoonPassDone_) return;
     typhoonPassDone_ = true;
-    if (rotateTimer) {
-      clearInterval(rotateTimer);
-      clearTimeout(rotateTimer);
-      rotateTimer = null;
-    }
     if (!embedded) return;
     try {
       if (window.parent && window.parent !== window) {
@@ -2651,9 +2644,9 @@
     rotateTimer = setInterval(function () {
       viewStep += 1;
       var playlist = buildViewPlaylist();
-      if (embedded && viewStep >= playlist.length) {
-        notifyTyphoonPassDone_();
-        return;
+      if (viewStep >= playlist.length) {
+        if (embedded) notifyTyphoonPassDone_();
+        viewStep = 0;
       }
       applyStep();
     }, CFG.viewMs);
