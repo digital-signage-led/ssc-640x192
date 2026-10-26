@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CONTENT_VER: 2026.10.26.08 — このコンテンツの版管理起点（更新時は必ず上げる） -->
+<!-- CONTENT_VER: 2026.10.26.09 — このコンテンツの版管理起点（更新時は必ず上げる） -->
 <!-- 京都 舞鶴 志摩機械 自販機サイネージ（本番 3面 640×192・全面流し・カード128×192） -->
 <!-- 同階層: assets/shima_kikai_en.png / shima_kikai_ja.png（WBGTヘッダー・天気左右・下帯） -->
 <!-- 会場: 京都府舞鶴市上福井117番地（北緯35.445427 東経135.299683）志摩機械株式会社 -->
@@ -14,7 +14,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v5 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 / demoも同期 / hourCycle h23 / 端末TZ非依存 -->
-    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.08</title>
+    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.09</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- display=swap: optional だとサイネージでフォントが落ちて隙間が変わるのを防止 -->
@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.26.08';
+    var VER = '2026.10.26.09';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4086,7 +4086,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.26.08';
+    const CONTENT_VER = '2026.10.26.09';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4802,26 +4802,15 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         try {
             if (window.WbgtWeather) window.WbgtWeather.prepare(lv >= 0 ? { level: lv } : {});
         } catch (e2) { console.error(e2); }
-        /* 右から素早く押し出し：天気が入る／WBGT は左へ退場（被らない） */
-        panel.style.setProperty('--wx-rtl-ms', (SCENE_SWAP_RTL_MS / 1000) + 's');
-        if (s4 && !immediate) {
-            s4.style.setProperty('--wx-rtl-ms', (SCENE_SWAP_RTL_MS / 1000) + 's');
-            s4.classList.add('is-swap-rtl-flow');
-            s4.style.visibility = 'visible';
-            s4.style.opacity = '1';
-            s4.style.zIndex = '39'; /* 天気(40)の下だが接面のみ・面積は被らない */
-        } else if (immediate) {
-            hideWbgtSceneEl_();
-        }
-        panel.classList.add('is-on', 'is-swap-rtl-flow');
-        if (!immediate) panel.classList.add('is-enter-rtl');
+        /* 読み込み時の横スライドはしない。その場に出す */
+        hideWbgtSceneEl_();
+        panel.classList.remove('is-enter-rtl', 'is-swap-rtl-flow', 'is-exit-down', 'is-swap-v-flow');
+        panel.classList.add('is-on');
+        panel.style.transition = 'none';
+        panel.style.transform = 'none';
+        panel.style.removeProperty('--wx-rtl-ms');
         panel.setAttribute('aria-hidden', 'false');
-        requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                panel.classList.remove('is-enter-rtl');
-                if (s4) s4.classList.add('is-exit-push');
-            });
-        });
+        area.classList.add('weather-on');
         weatherSwapTimerId_ = setTimeout(function () {
             weatherSwapTimerId_ = null;
             area.classList.add('weather-on');
@@ -4859,8 +4848,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 onWeatherDone_();
             };
             /* 万一切替が進まないときの安全弁 */
-            weatherSafetyTimerId_ = setTimeout(onWeatherDone_, WEATHER_HOLD_MS + SCENE_SWAP_RTL_MS);
-        }, immediate ? 0 : SCENE_SWAP_RTL_MS);
+            weatherSafetyTimerId_ = setTimeout(onWeatherDone_, WEATHER_HOLD_MS);
+        }, 0);
     }
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
     /* 改修:常に native-640。WEB確認もサイネージも同一ピクセル */
@@ -10903,7 +10892,7 @@ var SITE_JMA = SITE.jma || {};
 var SITE_MOE = SITE.moe || {};
 var SITE_GEO = SITE.geo || {};
 var SITE_SITE = SITE.site || {};
-const CONTENT_VERSION = "2026.10.26.08";
+const CONTENT_VERSION = "2026.10.26.09";
 const DATA_SOURCE_ATTR = SITE.footSource || "データ提供：気象庁、環境省";
 const LAT = SITE_GEO.lat != null ? SITE_GEO.lat : 35.445427;
 const LON = SITE_GEO.lon != null ? SITE_GEO.lon : 135.299683;
@@ -12918,8 +12907,8 @@ window.WbgtWeather = {
     frontAnim = false;
     sideBeatCount_ = 0;
     frontHoldBeatsLeft_ = -1;
-    document.documentElement.classList.remove("wx-no-anim");
-    /* 配置失敗してもタイマーは必ず組む（例外で流れが全停止するのを防ぐ） */
+    /* 初回配置はトランジションなし。横から滑り込ませない */
+    document.documentElement.classList.add("wx-no-anim");
     try {
       syncFrontFlow_();
       var flow = document.getElementById("frontFlow");
@@ -12927,6 +12916,7 @@ window.WbgtWeather = {
       document.querySelectorAll("#frontFlow .flow-card").forEach(function (el) {
         void el.offsetWidth;
       });
+      document.documentElement.classList.remove("wx-no-anim");
       scheduleMeteoToChart_();
     } catch (ePrime) {
       console.warn("beginMotion setup:", ePrime);
@@ -13072,7 +13062,7 @@ window.addEventListener("pageshow", function (ev) {
 </body>
 <!--
 改修要約（即起動・永続動作 / 実務版）:
-- CONTENT_VER 2026.10.26.08（?v= で HTML 取り直し） / clock jst-network-v5
+- CONTENT_VER 2026.10.26.09（?v= で HTML 取り直し） / clock jst-network-v5
 - 再生: WBGT → 天気 → 雨雲(1周) → 雷ナウキャスト(1周) → 台風(広域→付近→各号を1周)
 - 本番 s4: 旧シーン(scene1/2/3/5)を DOM から削除。天気中は display:none で映り込み防止
 - フォント: Google Fonts + display=swap
