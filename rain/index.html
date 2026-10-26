@@ -172,17 +172,17 @@
     }
     .side-band-top,
     .side-band-bottom {
-      flex: 0 0 32px;
-      height: 32px;
+      flex: 0 0 40px;
+      height: 40px;
     }
     .side-clock {
       display: block;
       width: 128px;
       text-align: center;
-      font-size: 22px;
+      font-size: 28px;
       font-weight: 800;
-      line-height: 32px;
-      height: 32px;
+      line-height: 40px;
+      height: 40px;
       letter-spacing: 0;
       color: #fff !important;
       font-variant-numeric: tabular-nums;
@@ -190,10 +190,10 @@
     }
     .side-date {
       max-width: 124px;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 900;
-      line-height: 32px;
-      height: 32px;
+      line-height: 40px;
+      height: 40px;
       letter-spacing: 0;
       color: #fff !important;
       white-space: nowrap;
@@ -202,8 +202,8 @@
     .side-radar,
     .side-radar.leaflet-container {
       width: 128px !important;
-      height: 128px !important;
-      flex: 0 0 128px;
+      height: 112px !important;
+      flex: 1 1 112px;
       position: relative !important;
       overflow: hidden;
       background: #8f979e !important;
@@ -1016,7 +1016,7 @@
       var box = m.getContainer();
       if (box) {
         box.style.width = '128px';
-        box.style.height = '128px';
+        box.style.height = '112px';
       }
       m.invalidateSize({ animate: false, pan: false });
       m.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });

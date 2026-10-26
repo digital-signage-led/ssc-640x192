@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CONTENT_VER: 2026.10.26.05 — このコンテンツの版管理起点（更新時は必ず上げる） -->
+<!-- CONTENT_VER: 2026.10.26.06 — このコンテンツの版管理起点（更新時は必ず上げる） -->
 <!-- 京都 舞鶴 志摩機械 自販機サイネージ（本番 3面 640×192・全面流し・カード128×192） -->
 <!-- 同階層: assets/shima_kikai_en.png / shima_kikai_ja.png（WBGTヘッダー・天気左右・下帯） -->
 <!-- 会場: 京都府舞鶴市上福井117番地（北緯35.445427 東経135.299683）志摩機械株式会社 -->
@@ -14,7 +14,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v5 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 / demoも同期 / hourCycle h23 / 端末TZ非依存 -->
-    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.05</title>
+    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.06</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- display=swap: optional だとサイネージでフォントが落ちて隙間が変わるのを防止 -->
@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.26.05';
+    var VER = '2026.10.26.06';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -164,8 +164,8 @@
         }
         /* 3面（640×192）: 左128+正面384+右128 を連続コンテンツとして全面流し（ロゴ列なし・カード5枚×128） */
         .logo-panel { display: none !important; }
-        /* 起動待ちは天気と同じ青。未取得の熱中症画面（灰色）は出さない */
-        .content-area { width: 640px; height: 192px; position: relative; overflow: hidden; flex: 0 0 640px; flex-shrink: 0; background: #308ED8; }
+        /* 起動待ちはカードと同じ明るい灰。未取得の熱中症画面は出さない */
+        .content-area { width: 640px; height: 192px; position: relative; overflow: hidden; flex: 0 0 640px; flex-shrink: 0; background: #F0F1F3; }
         .content-area > .scene-strip-bg { z-index: 0; }
         .content-area > .scene { z-index: 1; will-change: transform; }
         .scene {
@@ -2428,13 +2428,13 @@ html.wx-no-anim #weather-panel .side-pane {
   --accent: #7A6E5C;
   --on-accent: #202124;
   --ease: cubic-bezier(.22, 1, .36, 1);
-  --bg0: #2478c4;
-  --bg1: #2F8CDC;
+  --bg0: #F0F1F3;
+  --bg1: #F0F1F3;
   position: absolute; left: 0; top: 0; width: 640px; height: 192px;
   margin: 0; padding: 0; overflow: hidden !important;
   font-family: var(--font); color: var(--on);
   display: none; z-index: 40;
-  background: var(--wbgt-bg, #308ED8);
+  background: var(--wbgt-bg, #F0F1F3);
   transform: translate3d(0, 0, 0);
   clip-path: inset(0);
 }
@@ -2443,17 +2443,17 @@ html.wx-no-anim #weather-panel .side-pane {
   display: block;
   visibility: visible;
   opacity: 1;
-  /* 下レイヤの透け・残像を防ぐ不透明カバー */
-  background: var(--wbgt-bg, #308ED8) !important;
+  /* 下レイヤの透け・残像を防ぐ不透明カバー。カードと同じ灰で青を出さない */
+  background: var(--wbgt-bg, #F0F1F3) !important;
   isolation: isolate;
 }
 #weather-stage {
   width: 640px; height: 192px; overflow: hidden; position: relative;
   flex-shrink: 0;
-  background: linear-gradient(180deg, var(--bg0), var(--bg1));
+  background: #F0F1F3;
   transition: background .6s ease;
 }
-.lv-safe { --bg0:#2478c4; --bg1:#2F8CDC; }
+.lv-safe { --bg0:#F0F1F3; --bg1:#F0F1F3; }
 .lv-caution { --bg0:#E6C200; --bg1:#FDD72E; }
 .lv-warning { --bg0:#E8910C; --bg1:#FDBA2B; }
 .lv-alert { --bg0:#E06A00; --bg1:#FE7D03; }
@@ -4086,7 +4086,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.26.05';
+    const CONTENT_VER = '2026.10.26.06';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4158,6 +4158,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     /* 絵コンテ①→②→③→④→⑤(=①戻し) = 配置切替4回で天気終了 */
     const WEATHER_LAYOUT_SWITCHES = 4;
     let weatherShowing_ = false;
+    let bootWeatherEarly_ = false;
     let rainShowing_ = false;
     let thunderShowing_ = false;
     let typhoonShowing_ = false;
@@ -4224,7 +4225,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026r9&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026r10&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4237,7 +4238,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20261026th4';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20261026th5';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4248,7 +4249,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026ty4&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026ty5&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
@@ -4733,12 +4734,28 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         s4.style.transform = '';
         s4.style.transition = '';
     }
-    function goWeatherAfterWbgt_() {
+    function cancelBootWeather_() {
+        bootWeatherEarly_ = false;
+        weatherShowing_ = false;
+        clearWeatherTimers_();
+        try { if (window.WbgtWeather && window.WbgtWeather.stop) window.WbgtWeather.stop(); } catch (eStop) {}
+        const panel = document.getElementById('weather-panel');
+        const area = document.querySelector('.content-area');
+        if (area) area.classList.remove('weather-on');
+        if (!panel) return;
+        panel.classList.remove('is-on', 'is-enter-rtl', 'is-exit-down', 'is-swap-rtl-flow', 'is-swap-v-flow');
+        panel.setAttribute('aria-hidden', 'true');
+        panel.style.display = 'none';
+        panel.style.visibility = 'hidden';
+        panel.style.opacity = '0';
+        panel.style.transform = '';
+    }
+    function goWeatherAfterWbgt_(forceBoot) {
         if (weatherShowing_) return;
         const off = !!wbgtOffSeason;
         const lv = off ? -1 : resolveWbgtLevelForWeather_();
-        /* レベル未確定なら天気へ行かない（青仮背景の固定を防ぐ）。期間外は WBGT を出さず天気へ */
-        if (!off && lv < 0) {
+        /* レベル未確定なら天気へ行かない。起動時だけは待たず天気を出す */
+        if (!forceBoot && !off && lv < 0) {
             if (!wbgtUnavailable) {
                 setTimeout(function () {
                     if (wbgtOffSeason || resolveWbgtLevelForWeather_() >= 0) goWeatherAfterWbgt_();
@@ -4749,7 +4766,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             playScene4();
             return;
         }
-        if (off) hideWbgtSceneEl_();
+        const immediate = off || !!forceBoot;
+        bootWeatherEarly_ = !!(forceBoot && !off && lv < 0);
+        if (immediate) hideWbgtSceneEl_();
         /* 改修:sessionStorage 廃止 */
         const panel = document.getElementById('weather-panel');
         const area = document.querySelector('.content-area');
@@ -4759,7 +4778,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         clearWeatherTimers_();
         weatherShowing_ = true;
-        const bgHex = '#308ED8';
+        const bgHex = '#F0F1F3';
         panel.style.background = bgHex;
         panel.style.setProperty('--wbgt-bg', bgHex);
         panel.style.display = 'block';
@@ -4785,16 +4804,17 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         } catch (e2) { console.error(e2); }
         /* 右から素早く押し出し：天気が入る／WBGT は左へ退場（被らない） */
         panel.style.setProperty('--wx-rtl-ms', (SCENE_SWAP_RTL_MS / 1000) + 's');
-        if (s4 && !off) {
+        if (s4 && !immediate) {
             s4.style.setProperty('--wx-rtl-ms', (SCENE_SWAP_RTL_MS / 1000) + 's');
             s4.classList.add('is-swap-rtl-flow');
             s4.style.visibility = 'visible';
             s4.style.opacity = '1';
             s4.style.zIndex = '39'; /* 天気(40)の下だが接面のみ・面積は被らない */
-        } else if (off) {
+        } else if (immediate) {
             hideWbgtSceneEl_();
         }
-        panel.classList.add('is-on', 'is-enter-rtl', 'is-swap-rtl-flow');
+        panel.classList.add('is-on', 'is-swap-rtl-flow');
+        if (!immediate) panel.classList.add('is-enter-rtl');
         panel.setAttribute('aria-hidden', 'false');
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
@@ -4840,7 +4860,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             };
             /* 万一切替が進まないときの安全弁 */
             weatherSafetyTimerId_ = setTimeout(onWeatherDone_, WEATHER_HOLD_MS + SCENE_SWAP_RTL_MS);
-        }, off ? 0 : SCENE_SWAP_RTL_MS);
+        }, immediate ? 0 : SCENE_SWAP_RTL_MS);
     }
     const DEMO_EMBED = query.get('embed') === '1';  /* 確認ボード iframe 用（バッジ非表示） */
     /* 改修:常に native-640。WEB確認もサイネージも同一ピクセル */
@@ -8314,6 +8334,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         queueDisplayRefresh_();
         if (!shouldDeferDisplayRefresh_()) flushDisplayRefresh_(false);
         try { window.dispatchEvent(new Event('wbgt-off')); } catch (eEv) {}
+        bootWeatherEarly_ = false;
         if (!weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_) {
             try { playScene4(); } catch (eSkip) {}
         }
@@ -8367,11 +8388,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const panel = document.getElementById('weather-panel');
         if (area) {
             area.classList.add('weather-on');
-            area.style.background = '#308ED8';
+            area.style.background = '#F0F1F3';
         }
         if (panel) {
-            panel.style.background = '#308ED8';
-            panel.style.setProperty('--wbgt-bg', '#308ED8');
+            panel.style.background = '#F0F1F3';
+            panel.style.setProperty('--wbgt-bg', '#F0F1F3');
             panel.classList.add('is-on');
             panel.setAttribute('aria-hidden', 'false');
             panel.style.display = 'block';
@@ -8452,6 +8473,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                         wbgtFirstFetchDone_ = true;
                         applyWbgtInSeason_();
                         moeOk = applyWbgtSlotsToDom(wbgtSlots);
+                        if (bootWeatherEarly_) cancelBootWeather_();
                         if (!weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_) {
                             try { playScene4(); } catch (eShow) {}
                         }
@@ -10822,7 +10844,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         startNetworkClockSync_();
         hideWbgtSceneEl_();
         mainLoopStarted_ = true;
-        try { playScene4(); } catch (ePlay) { console.warn(ePlay); }
+        try { goWeatherAfterWbgt_(true); } catch (ePlay) { console.warn(ePlay); }
         /* 色だけ画面（シーンも天気も雨雲も台風も無い）になったら WBGT に戻す */
         setInterval(function () {
             try {
@@ -10881,7 +10903,7 @@ var SITE_JMA = SITE.jma || {};
 var SITE_MOE = SITE.moe || {};
 var SITE_GEO = SITE.geo || {};
 var SITE_SITE = SITE.site || {};
-const CONTENT_VERSION = "2026.10.26.05";
+const CONTENT_VERSION = "2026.10.26.06";
 const DATA_SOURCE_ATTR = SITE.footSource || "データ提供：気象庁、環境省";
 const LAT = SITE_GEO.lat != null ? SITE_GEO.lat : 35.445427;
 const LON = SITE_GEO.lon != null ? SITE_GEO.lon : 135.299683;
@@ -11650,14 +11672,14 @@ function applyTheme(temp, hum, icon) {
   if (!stage) return;
   var keep640 = stage.classList.contains("is-640");
   var wx = weatherCardClass(icon);
-  /* 天気の地色は WBGT 段階に連動させない */
+  /* 天気の地色はカードと同じ灰。青は残さない */
   stage.className = "lv-safe " + wx + (keep640 ? " is-640" : "");
-  stage.style.setProperty("background", "#308ED8", "important");
-  stage.style.setProperty("--wbgt-bg", "#308ED8");
+  stage.style.setProperty("background", "#F0F1F3", "important");
+  stage.style.setProperty("--wbgt-bg", "#F0F1F3");
   var panel = document.getElementById("weather-panel");
   if (panel) {
-    panel.style.background = "#308ED8";
-    panel.style.setProperty("--wbgt-bg", "#308ED8");
+    panel.style.background = "#F0F1F3";
+    panel.style.setProperty("--wbgt-bg", "#F0F1F3");
   }
 }
 /* boot color: WbgtWeather.start(level) */
@@ -13050,7 +13072,7 @@ window.addEventListener("pageshow", function (ev) {
 </body>
 <!--
 改修要約（即起動・永続動作 / 実務版）:
-- CONTENT_VER 2026.10.26.05（?v= で HTML 取り直し） / clock jst-network-v5
+- CONTENT_VER 2026.10.26.06（?v= で HTML 取り直し） / clock jst-network-v5
 - 再生: WBGT → 天気 → 雨雲(1周) → 雷ナウキャスト(1周) → 台風(広域→付近→各号を1周)
 - 本番 s4: 旧シーン(scene1/2/3/5)を DOM から削除。天気中は display:none で映り込み防止
 - フォント: Google Fonts + display=swap
