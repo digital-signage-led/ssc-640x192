@@ -1,0 +1,431 @@
+/* 販売機 地震緊急 640×192 · E.Q1.0 */
+
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@500;700;900&family=Noto+Sans+JP:wght@500;700;900&display=swap");
+
+:root {
+  --quake-font: "Roboto", "Noto Sans JP", sans-serif;
+  --quake-warn: #c62828;
+  --quake-warn-hot: #ff1744;
+  --quake-yellow0: #0a0a0a;
+  --quake-yellow1: #141414;
+  --quake-surface: #f7f5f0;
+  --quake-on: #1a1a1a;
+  --quake-muted: #5f6368;
+  --quake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.is-quake {
+  background: #000 !important;
+}
+
+.quake-stage {
+  width: 640px;
+  height: 192px;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  flex-shrink: 0;
+  display: none;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--quake-yellow0), var(--quake-yellow1));
+  border-radius: 2px;
+  font-family: var(--quake-font);
+  color: var(--quake-on);
+  z-index: 20;
+}
+
+.quake-stage.is-visible {
+  display: flex;
+}
+
+.machine.is-hidden {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ===== 上段：点滅＋ニュースティッカー ===== */
+.quake-alert-bar {
+  height: 48px;
+  flex-shrink: 0;
+  background: var(--quake-warn);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  animation: quake-alert-flash 0.7s steps(2) infinite;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+@keyframes quake-alert-flash {
+  0%,
+  100% {
+    background: #b71c1c;
+  }
+  50% {
+    background: #ff1744;
+  }
+}
+
+.quake-stage.is-severe .quake-alert-bar {
+  animation-duration: 0.45s;
+}
+
+.quake-stage.is-extreme .quake-alert-bar {
+  animation: quake-alert-flash-hard 0.32s steps(2) infinite;
+}
+
+@keyframes quake-alert-flash-hard {
+  0%,
+  100% {
+    background: #7f0000;
+  }
+  50% {
+    background: #ff1744;
+    box-shadow: inset 0 0 24px rgba(255, 255, 255, 0.25);
+  }
+}
+
+.quake-ticker-clip {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.quake-ticker-track {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 0;
+  will-change: transform;
+  animation: quake-ticker-x 22s linear infinite;
+}
+
+.quake-stage.is-severe .quake-ticker-track {
+  animation-duration: 18s;
+}
+
+.quake-stage.is-extreme .quake-ticker-track {
+  animation-duration: 15s;
+}
+
+@keyframes quake-ticker-x {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.quake-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 48px 0 24px;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.quake-alert-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.quake-alert-icon svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.quake-alert-text {
+  white-space: nowrap;
+}
+
+.quake-stage.is-live .quake-demo-badge {
+  display: none;
+}
+
+.quake-demo-badge {
+  flex-shrink: 0;
+  margin-left: 10px;
+  margin-right: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #1e3a5f;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+/* ===== 下段：黄地＋3カード ===== */
+.quake-detail {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* 天気の左右カード幅に合わせる: 128 - 8*2 = 112px、折り目相当 gap 12px */
+  grid-template-columns: 112px minmax(0, 1fr) 112px;
+  gap: 12px;
+  padding: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.quake-card {
+  background: var(--quake-surface);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    0 3px 8px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  padding: 10px 12px;
+  min-width: 0;
+  gap: 2px;
+}
+
+.quake-card-mid {
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  padding: 8px 14px;
+  gap: 3px;
+  background: var(--quake-surface);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.quake-front-main {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--int-fg, #c62828);
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+}
+
+.quake-front-main.is-wide {
+  font-size: 26px;
+  letter-spacing: -0.03em;
+}
+
+.quake-front-sub {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #3c4043;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.quake-front-advice {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 2px;
+}
+
+.quake-advice-act,
+.quake-advice-desc {
+  width: 100%;
+  min-width: 0;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
+.quake-advice-act {
+  font-size: 16px;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.quake-advice-desc {
+  font-size: 14px;
+  color: #3c4043;
+  white-space: normal;
+  overflow: hidden;
+}
+
+.quake-side-int-lbl {
+  font-size: 20px;
+  font-weight: 900;
+  color: inherit;
+  letter-spacing: 0.12em;
+  width: 100%;
+  text-align: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.quake-side-int {
+  font-size: 72px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: inherit;
+  width: 100%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* 「6弱」「5強」：数字と弱／強を同じ大きさ・同じ高さに揃える */
+.quake-side-int .int-num,
+.quake-side-int .int-mod {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  height: 1em;
+}
+
+.quake-side-int .int-mod {
+  margin-left: -0.02em;
+}
+
+.quake-side-int.is-wide {
+  font-size: 58px;
+  letter-spacing: -0.04em;
+}
+
+.quake-card-side {
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  padding: 14px 10px 12px;
+  gap: 4px;
+  transition:
+    background 0.35s ease,
+    color 0.35s ease;
+  border: 2px solid rgba(0, 0, 0, 0.16);
+  border-radius: 14px;
+}
+
+.quake-card-side.i0 {
+  background: #ffffff;
+  color: #212121;
+}
+.quake-card-side.i1 {
+  background: #f0f0f0;
+  color: #212121;
+}
+.quake-card-side.i2 {
+  background: #4fc3f7;
+  color: #0d47a1;
+}
+.quake-card-side.i3 {
+  background: #1565c0;
+  color: #ffffff;
+}
+.quake-card-side.i4 {
+  background: #fff59d;
+  color: #212121;
+}
+.quake-card-side.i5l {
+  background: #ffee58;
+  color: #212121;
+}
+.quake-card-side.i5u {
+  background: #ff9800;
+  color: #212121;
+}
+.quake-card-side.i6l {
+  background: #f44336;
+  color: #ffffff;
+}
+.quake-card-side.i6u {
+  background: #b71c1c;
+  color: #ffffff;
+}
+.quake-card-side.i7 {
+  background: #9c27b0;
+  color: #ffffff;
+}
+
+.quake-stage.is-enter .quake-alert-bar {
+  animation: none;
+  background: #ff1744;
+}
+
+.quake-stage.is-enter .quake-detail .quake-card {
+  animation: quake-card-in 0.45s var(--quake-ease) both;
+}
+
+.quake-stage.is-enter .quake-detail .quake-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.quake-stage.is-enter .quake-detail .quake-card:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.quake-stage.is-enter .quake-detail .quake-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+@keyframes quake-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.quake-detail::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 23, 68, 0.12), transparent 55%);
+  opacity: 0;
+  animation: quake-glow-breath 2.2s ease-in-out infinite;
+}
+
+.quake-stage.is-severe .quake-detail::after,
+.quake-stage.is-extreme .quake-detail::after {
+  opacity: 1;
+}
+
+@keyframes quake-glow-breath {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}

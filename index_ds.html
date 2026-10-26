@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CONTENT_VER: 2026.10.26.12 — このコンテンツの版管理起点（更新時は必ず上げる） -->
+<!-- CONTENT_VER: 2026.10.26.16 — このコンテンツの版管理起点（更新時は必ず上げる） -->
 <!-- 京都 舞鶴 志摩機械 自販機サイネージ（本番 3面 640×192・全面流し・カード128×192） -->
 <!-- 同階層: assets/shima_kikai_en.png / shima_kikai_ja.png（WBGTヘッダー・天気左右・下帯） -->
 <!-- 会場: 京都府舞鶴市上福井117番地（北緯35.445427 東経135.299683）志摩機械株式会社 -->
@@ -14,7 +14,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v5 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 / demoも同期 / hourCycle h23 / 端末TZ非依存 -->
-    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.12</title>
+    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.15</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- display=swap: optional だとサイネージでフォントが落ちて隙間が変わるのを防止 -->
@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.26.12';
+    var VER = '2026.10.26.15';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -114,11 +114,13 @@
         html.native-640 #weather-stage,
         html.native-640 #rain-panel,
         html.native-640 #typhoon-panel,
+        html.native-640 #alert-panel,
         body.native-640 .content-area,
         body.native-640 #weather-panel,
         body.native-640 #weather-stage,
         body.native-640 #rain-panel,
-        body.native-640 #typhoon-panel {
+        body.native-640 #typhoon-panel,
+        body.native-640 #alert-panel {
             width: 640px !important;
             height: 192px !important;
             left: 0 !important;
@@ -147,10 +149,10 @@
         html.native-640 #weather-panel .face.front .card-front,
         body.native-640 #weather-panel .face.front .card-front {
             position: absolute !important;
-            left: 5px !important;
-            right: 5px !important;
-            top: 5px !important;
-            bottom: 5px !important;
+            left: var(--wx-card-gap, 5px) !important;
+            right: var(--wx-card-gap, 5px) !important;
+            top: var(--wx-card-gap, 5px) !important;
+            bottom: var(--wx-card-gap, 5px) !important;
             width: auto !important;
             height: auto !important;
             max-width: none !important;
@@ -2439,6 +2441,37 @@ html[data-demo-only="s1s4"] #scene5 {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+/* 台風の次: 舞鶴の警報・地震（発表中だけ出す） */
+#alert-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 640px;
+  height: 192px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  z-index: 57;
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  background: #000;
+  pointer-events: none;
+}
+#alert-panel.is-on {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto;
+  background: #000 !important;
+  z-index: 57 !important;
+}
+#alert-panel.is-gate {
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 #weather-panel:not(.is-on) .flow-card,
 #weather-panel:not(.is-on) .side-pane {
   transition: none !important;
@@ -2574,10 +2607,10 @@ html.wx-no-anim #weather-panel .side-pane {
 }
 #weather-panel .face.front .card-front {
   position: absolute;
-  left: 5px;
-  right: 5px;
-  top: 5px;
-  bottom: 5px;
+  left: var(--wx-card-gap, 5px);
+  right: var(--wx-card-gap, 5px);
+  top: var(--wx-card-gap, 5px);
+  bottom: var(--wx-card-gap, 5px);
   width: auto;
   height: auto;
   background: transparent;
@@ -2643,30 +2676,31 @@ html.wx-no-anim #weather-panel .side-pane {
   opacity: 1 !important;
   visibility: visible !important;
 }
-/* 左右テロップ：DIGITAL SIGNAGE ロゴ枠（8気象枠に続く） */
+/* 左右テロップ：ロゴはカード面の中に収める（全面青だと背景と同じ空洞に見える） */
 #weather-panel .side-pane-logo {
   align-items: center;
   justify-content: center;
   padding: 0;
   z-index: 7;
-  background: #0E7BC4;
+  background: var(--surface);
 }
 #weather-panel .side-logo-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  width: 96px;
+  height: 56px;
   box-sizing: border-box;
   background: #0E7BC4;
+  border-radius: 10px;
 }
 #weather-panel .side-logo-img {
   display: block;
   width: 100%;
-  height: 100%;
-  max-width: 100px;
-  max-height: 168px;
-  padding: 6px;
+  height: auto;
+  max-width: 88px;
+  max-height: 40px;
+  padding: 0;
   box-sizing: border-box;
   object-fit: contain;
   object-position: center center;
@@ -3288,18 +3322,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         #sceneQuake .quake-alert-bar {
             height: 48px; flex-shrink: 0; background: #c62828; color: #fff;
-            display: grid; grid-template-columns: 128px 384px 128px;
-            align-items: stretch; position: relative; z-index: 2;
+            display: flex; align-items: center; position: relative; z-index: 2;
             overflow: hidden; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
             animation: quake-alert-flash 0.7s steps(2) infinite;
-        }
-        #sceneQuake .quake-alert-face {
-            min-width: 0; height: 100%; display: flex; align-items: center; justify-content: center;
-            overflow: hidden; padding: 0 8px; gap: 8px;
-        }
-        #sceneQuake .quake-alert-face--front {
-            padding: 0 12px;
-            box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.28), inset -1px 0 0 rgba(0, 0, 0, 0.28);
         }
         @keyframes quake-alert-flash {
             0%, 100% { background: #b71c1c; }
@@ -3313,18 +3338,29 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             0%, 100% { background: #7f0000; }
             50% { background: #ff1744; box-shadow: inset 0 0 24px rgba(255, 255, 255, 0.25); }
         }
+        #sceneQuake .quake-ticker-clip {
+            flex: 1; min-width: 0; height: 100%; overflow: hidden;
+            display: flex; align-items: center;
+            mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+        }
+        #sceneQuake .quake-ticker-track {
+            display: inline-flex; align-items: center; white-space: nowrap;
+            will-change: transform; animation: quake-ticker-x 22s linear infinite;
+        }
+        #sceneQuake .quake-stage.is-severe .quake-ticker-track { animation-duration: 18s; }
+        #sceneQuake .quake-stage.is-extreme .quake-ticker-track { animation-duration: 15s; }
+        @keyframes quake-ticker-x {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        #sceneQuake .quake-ticker-item {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 0 48px 0 24px; font-size: 22px; font-weight: 900; letter-spacing: 0.06em;
+        }
         #sceneQuake .quake-alert-icon { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; }
         #sceneQuake .quake-alert-icon svg { width: 26px; height: 26px; display: block; }
-        #sceneQuake .quake-alert-text {
-            min-width: 0; overflow: hidden; white-space: nowrap; text-align: center;
-            font-size: 20px; font-weight: 900; letter-spacing: 0.02em; line-height: 1;
-        }
-        #sceneQuake .quake-demo-badge {
-            flex-shrink: 0; margin: 0; padding: 2px 8px;
-            border-radius: 999px; background: #1e3a5f; border: 1px solid rgba(255, 255, 255, 0.35);
-            color: #fff; font-size: 13px; font-weight: 900; letter-spacing: 0.08em;
-        }
-        #sceneQuake .quake-stage.is-live .quake-demo-badge { display: none; }
+        #sceneQuake .quake-alert-text { white-space: nowrap; }
+        #sceneQuake .quake-demo-badge { display: none !important; }
         #sceneQuake .quake-detail {
             flex: 1; min-height: 0; display: grid;
             grid-template-columns: 112px minmax(0, 1fr) 112px;
@@ -3543,13 +3579,10 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     <div class="scene" id="sceneQuake" aria-label="地震緊急">
         <div class="quake-stage" id="quakeStage">
             <header class="quake-alert-bar">
-                <div class="quake-alert-face quake-alert-face--side" aria-hidden="true"><span class="quake-alert-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/><path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="#C62828"/></svg></span></div>
-                <div class="quake-alert-face quake-alert-face--front">
-                    <span class="quake-demo-badge">デモ</span>
-                    <span class="quake-alert-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/><path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="#C62828"/></svg></span>
-                    <span class="quake-alert-text" id="quakeAlertText">緊急地震速報</span>
+                <span class="quake-demo-badge">デモ</span>
+                <div class="quake-ticker-clip">
+                    <div class="quake-ticker-track" id="quakeTickerTrack"></div>
                 </div>
-                <div class="quake-alert-face quake-alert-face--side" aria-hidden="true"><span class="quake-alert-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/><path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="#C62828"/></svg></span></div>
             </header>
             <div class="quake-detail">
                 <section class="quake-card quake-card-side i1">
@@ -3557,8 +3590,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                     <div class="quake-side-int js-quake-side-int">1</div>
                 </section>
                 <section class="quake-card quake-card-mid">
-                    <div class="quake-front-main" id="quakeFrontMain">震度1（デモ）</div>
-                    <div class="quake-front-sub" id="quakeFrontSub">【デモ】震源 ---- / M--</div>
+                    <div class="quake-front-main" id="quakeFrontMain"></div>
+                    <div class="quake-front-sub" id="quakeFrontSub"></div>
                     <div class="quake-front-advice">
                         <div class="quake-advice-act" id="quakeAdviceAct">身の安全を確保してください</div>
                         <div class="quake-advice-desc" id="quakeAdviceDesc"></div>
@@ -4010,6 +4043,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 </div>
         <iframe id="rain-panel" class="rain-panel" title="雨雲レーダー" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
+        <iframe id="alert-panel" class="alert-panel" title="舞鶴 警報・地震" aria-hidden="true" src="about:blank"></iframe>
     </div>
 </div>
 
@@ -4330,7 +4364,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.26.12';
+    const CONTENT_VER = '2026.10.26.16';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4356,8 +4390,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
      *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
-     * 舞鶴: 既定は 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報。時刻は出さない。全シーンは ?only=all
-     * WBGTの次は 販売機天気（同一ページ）へ遷移。天気の次に雨雲、雨雲の次に雷、雷の次に台風
+     * 舞鶴: 既定は 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 先頭へ。時刻は出さない。全シーンは ?only=all
+     * 発表がなければ警報・地震は出さず、すぐ熱中症へ進む
      */
     function normalizeOnlyParam_(raw) {
         if (raw == null || raw === '') return null;
@@ -4377,7 +4411,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     const SCENE_LABEL_BY_KEY = {
         s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5',
-        s1s4: '熱中症(WBGT)＋天気＋雨雲＋雷＋台風', alert: '熱中症アラート', rainwarn: '大雨警報',
+        s1s4: '熱中症(WBGT)＋天気＋雨雲＋雷＋台風＋警報＋地震', alert: '熱中症アラート', rainwarn: '警報情報',
         rain: '雨雲レーダー', thunder: '雷ナウキャスト', typhoon: '台風情報', quake: '地震情報'
     };
     /* 本番既定: WBGT と天気の2本のみ（時刻なし）。only= は再生フィルタ */
@@ -4391,6 +4425,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const PLAY_THUNDER_AFTER_RAIN = query.get('nothunder') !== '1' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rain' && DEMO_ONLY !== 'typhoon';
     /** 雷（または雨雲）の次に台風情報を流す（?notyphoon=1 でスキップ） */
     const PLAY_TYPHOON_AFTER_RAIN = query.get('notyphoon') !== '1' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rain' && DEMO_ONLY !== 'thunder';
+    /** 台風の次に舞鶴の警報・地震ボード（発表がなければ子がすぐ終了）。?nowarn=1 でスキップ */
+    const PLAY_ALERT_BOARD = query.get('nowarn') !== '1' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rain' && DEMO_ONLY !== 'thunder' && DEMO_ONLY !== 'typhoon' && DEMO_ONLY !== 'quake';
+    const ALERT_BOARD_HOLD_MS = 45000;
     const WEATHER_HOLD_MS = 120000; /* 通常cascade＋気象観測1周＋最後の時刻＋終了静止＋余裕 */
     const RAIN_HOLD_MS = 180000; /* 安全弁上限。通常は iframe が1周完了で postMessage */
     const THUNDER_HOLD_MS = 90000; /* 雷: 約1時間分のコマ・1周＋余裕 */
@@ -4408,6 +4445,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let rainShowing_ = false;
     let thunderShowing_ = false;
     let typhoonShowing_ = false;
+    let alertBoardShowing_ = false;
+    let alertBoardTimerId_ = null;
     /* 接近していない雨雲・雷・台風は出さない。確認用の単独再生では待たない */
     let radarGate_ = '';
     let weatherReturnTimerId_ = null;
@@ -4667,6 +4706,23 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             if (!typhoonShowing_) return;
             radarGate_ = '';
             onTyphoonDone_();
+            return;
+        }
+        if (d.type === 'alert-board-status' && radarGate_ === 'alert') {
+            if (!d.show) {
+                radarGate_ = '';
+                onAlertBoardDone_();
+                return;
+            }
+            radarGate_ = '';
+            revealAlertBoard_();
+            armAlertBoardHold_(ALERT_BOARD_HOLD_MS);
+            return;
+        }
+        if (d.type === 'alert-board-done') {
+            if (!alertBoardShowing_ && radarGate_ !== 'alert') return;
+            radarGate_ = '';
+            onAlertBoardDone_();
         }
     }
     if (typeof window !== 'undefined') {
@@ -4817,10 +4873,12 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         weatherShowing_ = false;
         hideRainOverlay_();
         hideTyphoonOverlay_();
+        hideAlertBoard_();
         if (area) {
             area.classList.remove('weather-on');
             area.classList.remove('rain-on');
             area.classList.remove('typhoon-on');
+            area.classList.remove('alert-on');
         }
         clearSceneSwapClasses_();
         if (panel) {
@@ -6570,7 +6628,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (levelKey && JMA_LEVEL_KINDS[levelKey] && JMA_LEVEL_KINDS[levelKey][v]) return [v];
         if (JMA_L3_KIND_ORDER.indexOf(v) >= 0) return [v];
         if (rw === 'warning' || rw === '3') return JMA_L3_KIND_ORDER.slice();
-        if (DEMO_RAINWARN_ONLY) return JMA_L3_KIND_ORDER.slice();
+        if (DEMO_RAINWARN_ONLY && (DEMO_SIGNAGE || parseRainWarnParam_().length)) return JMA_L3_KIND_ORDER.slice();
         return ['rain'];
     }
     function jmaKindName_(levelKey, kindKey) {
@@ -6624,7 +6682,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (isDemoFullRainLoop_()) rainWarnKindActive = JMA_L3_KINDS.slice();
     }
     let rainWarnKindActive = parseWarnKindParam_();
-    const rainWarnForced = !NO_JMA_WARN && (parseRainWarnParam_().length > 0 || DEMO_SIGNAGE || DEMO_RAINWARN_ONLY);
+    const rainWarnForced = !NO_JMA_WARN && (parseRainWarnParam_().length > 0 || DEMO_SIGNAGE);
     const warnKindForced = !!(query.get('warntype') || query.get('warnkind'));
     function buildRainWhiteDemoQueue_() {
         const q = [];
@@ -6731,7 +6789,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     if (RAIN_WHITE_DESIGN) {
         syncRainWarnActiveForWhite_();
-    } else if (!NO_JMA_WARN && !rainWarnActive.length && DEMO_RAINWARN_ONLY) {
+    } else if (!NO_JMA_WARN && !rainWarnActive.length && DEMO_RAINWARN_ONLY && rainWarnForced) {
         rainWarnActive = RAIN_WARN_ORDER.slice();
     }
     function shouldUseHeroLayout_(levelKey) {
@@ -7181,7 +7239,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let quakeEnterTimerId_ = null;
     const QUAKE_SHOW_MS = 3 * 60 * 60 * 1000;
     const QUAKE_SCENE_MS = 12000;
-    const QUAKE_DEMO_STEP_MS = 3500;
+    const QUAKE_POLL_MS = 60000;
     const QUAKE_INT_META = {
         0: { cls: 'i0', label: '0', fg: '#212121', desc: '人はゆれを感じない' },
         1: { cls: 'i1', label: '1', fg: '#212121', desc: '屋内にいる人の一部がわずかにゆれを感じる' },
@@ -7194,17 +7252,6 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         '6u': { cls: 'i6u', label: '6強', fg: '#B71C1C', desc: '耐震性の低い建物では、傾くものや倒れるものが多くなる' },
         7: { cls: 'i7', label: '7', fg: '#9C27B0', desc: '耐震性の低い建物では、傾くものや倒れるものがさらに多くなる' }
     };
-    const QUAKE_DEMO_SCENES = [
-        { localInt: 1, epicenter: '大阪府北部', mag: 3.2 },
-        { localInt: 2, epicenter: '滋賀県北部', mag: 4.0 },
-        { localInt: 3, epicenter: '京都府南部', mag: 4.4 },
-        { localInt: 4, epicenter: '奈良県', mag: 5.0 },
-        { localInt: 5, epicenter: '大阪府北部', mag: 5.4 },
-        { localInt: '5u', epicenter: '兵庫県南東部', mag: 5.8 },
-        { localInt: 6, epicenter: '和歌山県北部', mag: 6.2 },
-        { localInt: '6u', epicenter: '和歌山県北部', mag: 6.6 },
-        { localInt: 7, epicenter: '和歌山県北部', mag: 7.0 }
-    ];
     function quakeTimeMs_(item) {
         if (!item) return 0;
         const at = Date.parse(item.at || '');
@@ -7336,41 +7383,41 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const stage = document.getElementById('quakeStage');
         if (!stage || stage.offsetWidth < 10) return;
         const main = document.getElementById('quakeFrontMain');
-        fitQuakeNowrap_(document.getElementById('quakeAlertText'), 20, 13);
         fitQuakeNowrap_(main, main && main.classList.contains('is-wide') ? 26 : 32, 20);
         fitQuakeNowrap_(document.getElementById('quakeFrontSub'), 16, 12);
         fitQuakeNowrap_(document.getElementById('quakeAdviceAct'), 16, 12);
         fitQuakeWrap_(document.getElementById('quakeAdviceDesc'), 14, 11, 36);
     }
     function setQuakeTicker_(text) {
-        const el = document.getElementById('quakeAlertText');
-        if (!el) return;
-        el.textContent = text;
-        refitQuakeText_();
+        const track = document.getElementById('quakeTickerTrack');
+        if (!track) return;
+        const item = '<span class="quake-ticker-item">' + quakeAlertIconHtml_() +
+            '<span class="quake-alert-text"></span></span>';
+        track.innerHTML = item + item + item + item + item + item;
+        track.querySelectorAll('.quake-alert-text').forEach(function (n) { n.textContent = text; });
+        restartQuakeTrack_(track);
     }
     function applyQuakeBoard_(spec) {
         const stage = document.getElementById('quakeStage');
         if (!stage || !spec) return;
         const key = quakeIntKey_(spec.localInt);
         const meta = quakeIntMeta_(key);
-        const demo = spec.demo !== false;
         const city = spec.city || getSiteLocationLabel_() || 'この地域';
         const severe = quakeSevereClass_(key);
-        stage.classList.remove('is-severe', 'is-extreme', 'is-live');
+        stage.classList.remove('is-severe', 'is-extreme');
+        stage.classList.add('is-live');
         if (severe) stage.classList.add(severe);
-        if (!demo) stage.classList.add('is-live');
-        const prefix = demo ? '【デモ】' : '';
-        setQuakeTicker_(prefix + '緊急地震速報　' + quakeAlertPhrase_(key));
+        setQuakeTicker_('緊急地震速報　' + quakeAlertPhrase_(key));
         const main = document.getElementById('quakeFrontMain');
         if (main) {
-            const text = city + ' 震度' + meta.label + (demo ? '（デモ）' : '');
+            const text = city + ' 震度' + meta.label;
             main.textContent = text;
             main.style.setProperty('--int-fg', meta.fg);
             main.classList.toggle('is-wide', text.length >= 12);
         }
         const sub = document.getElementById('quakeFrontSub');
         if (sub) {
-            sub.textContent = prefix + '震源 ' + (spec.epicenter || '----') + ' / M' + quakeMagLabel_(spec.mag);
+            sub.textContent = '震源 ' + (spec.epicenter || '----') + ' / M' + quakeMagLabel_(spec.mag);
         }
         stage.querySelectorAll('.quake-card-side').forEach(function (card) {
             card.className = 'quake-card quake-card-side ' + meta.cls;
@@ -7388,7 +7435,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         });
         const act = document.getElementById('quakeAdviceAct');
         const desc = document.getElementById('quakeAdviceDesc');
-        if (act) act.textContent = (demo ? '【デモ】' : '') + '身の安全を確保してください';
+        if (act) act.textContent = '身の安全を確保してください';
         if (desc) desc.textContent = meta.desc || '';
         refitQuakeText_();
         stage.classList.add('is-enter');
@@ -7418,27 +7465,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     function stopQuakeDemoLoop_() {
         if (quakeDemoTimerId_) { clearTimeout(quakeDemoTimerId_); quakeDemoTimerId_ = null; }
     }
-    function startQuakeDemoLoop_() {
-        stopQuakeDemoLoop_();
-        let i = 0;
-        applyQuakeBoard_(QUAKE_DEMO_SCENES[0]);
-        revealQuakeStage_();
-        quakeDemoTimerId_ = setTimeout(function tick() {
-            i = (i + 1) % QUAKE_DEMO_SCENES.length;
-            applyQuakeBoard_(QUAKE_DEMO_SCENES[i]);
-            quakeDemoTimerId_ = setTimeout(tick, QUAKE_DEMO_STEP_MS);
-        }, QUAKE_DEMO_STEP_MS);
-    }
     function showQuakeOnWarnScene_() {
         if (quakeTimerId_) { clearTimeout(quakeTimerId_); quakeTimerId_ = null; }
-        stopQuakeDemoLoop_();
-        if (DEMO_QUAKE_ONLY) {
-            quakeShownThisPass_ = true;
-            startQuakeDemoLoop_();
-            return;
-        }
         if (!quakeActive || !sceneQuake) {
             quakeShownThisPass_ = true;
+            if (DEMO_QUAKE_ONLY) {
+                hideSceneEl(sceneQuake);
+                return;
+            }
             transitionToScene(s4, playScene4);
             return;
         }
@@ -7447,24 +7481,130 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             localInt: q.shindo,
             epicenter: q.place || '----',
             mag: q.mag || '--',
-            city: rainWarnMeta.cityName || getSiteLocationLabel_(),
-            demo: false
+            city: rainWarnMeta.cityName || getSiteLocationLabel_()
         });
         revealQuakeStage_();
         quakeShownThisPass_ = true;
+        if (DEMO_QUAKE_ONLY) return;
         quakeTimerId_ = setTimeout(function () {
             quakeTimerId_ = null;
             hideSceneEl(sceneQuake);
             transitionToScene(s4, playScene4);
         }, QUAKE_SCENE_MS);
     }
-    function startQuakeOnlyPreview_() {
+    async function startQuakeOnlyPreview_() {
         resetLogoRotation();
         stopQuakeDemoLoop_();
+        hideWeatherOverlay_();
+        const area = document.querySelector('.content-area');
+        if (area) area.style.background = '#0a0a0a';
         const badge = document.getElementById('demo-badge');
         if (badge) badge.hidden = true;
         if (!DEMO_EMBED) document.title = '地震情報';
-        startQuakeDemoLoop_();
+        const prevQuake = quakeActive;
+        await updateQuakeFromJma_();
+        const sameQuake = !!(quakeActive && prevQuake && quakeActive.atMs === prevQuake.atMs && quakeActive.shindo === prevQuake.shindo);
+        if (quakeActive && sceneQuake) {
+            if (!sameQuake || !sceneQuake.classList.contains('active')) showQuakeOnWarnScene_();
+        } else {
+            hideSceneEl(sceneQuake);
+        }
+        quakeDemoTimerId_ = setTimeout(startQuakeOnlyPreview_, QUAKE_POLL_MS);
+    }
+    function alertBoardSrc_() {
+        const q = 'embed=1&live=1&v=20261026d';
+        try {
+            return new URL('./alert/index.html?' + q, location.href).href;
+        } catch (eUrl) {
+            return './alert/index.html?' + q;
+        }
+    }
+    function hideAlertBoard_() {
+        const panel = document.getElementById('alert-panel');
+        alertBoardShowing_ = false;
+        if (alertBoardTimerId_ != null) { clearTimeout(alertBoardTimerId_); alertBoardTimerId_ = null; }
+        const area = document.querySelector('.content-area');
+        if (area) area.classList.remove('alert-on');
+        if (!panel) return;
+        panel.classList.remove('is-on', 'is-gate');
+        panel.setAttribute('aria-hidden', 'true');
+        panel.style.display = 'none';
+        panel.style.visibility = 'hidden';
+        panel.style.opacity = '0';
+        try { panel.src = 'about:blank'; } catch (eBlank) {}
+    }
+    function revealAlertBoard_() {
+        const panel = document.getElementById('alert-panel');
+        const area = document.querySelector('.content-area');
+        clearWeatherTimers_();
+        hideRainOverlay_();
+        hideTyphoonOverlay_();
+        if (s4) {
+            s4.classList.remove('active');
+            s4.style.display = 'none';
+            s4.style.visibility = 'hidden';
+            s4.style.opacity = '0';
+        }
+        if (area) {
+            area.classList.remove('rain-on', 'typhoon-on');
+            area.classList.add('alert-on');
+            area.style.background = '#000';
+            area.style.backgroundColor = '#000';
+        }
+        if (!panel) return;
+        panel.classList.remove('is-gate');
+        panel.classList.add('is-on');
+        panel.setAttribute('aria-hidden', 'false');
+        panel.style.display = 'block';
+        panel.style.visibility = 'visible';
+        panel.style.opacity = '1';
+        panel.style.background = '#000';
+    }
+    function armAlertBoardHold_(ms) {
+        if (alertBoardTimerId_ != null) { clearTimeout(alertBoardTimerId_); alertBoardTimerId_ = null; }
+        alertBoardTimerId_ = setTimeout(function () {
+            alertBoardTimerId_ = null;
+            onAlertBoardDone_();
+        }, ms);
+    }
+    function continueAfterAlert_() {
+        if (alertBoardShowing_ || radarGate_ === 'alert') return;
+        /* 起動直後は WBGT 取得前に playScene4 すると一周が止まる */
+        if (!wbgtFirstFetchDone_) {
+            hideWbgtSceneEl_();
+            setTimeout(continueAfterAlert_, 400);
+            return;
+        }
+        playScene4();
+    }
+    function onAlertBoardDone_() {
+        if (radarGate_ === 'alert' || alertBoardShowing_) {
+            radarGate_ = '';
+            hideAlertBoard_();
+            const area = document.querySelector('.content-area');
+            if (area) area.classList.remove('alert-on');
+            clearScene4Timers();
+            continueAfterAlert_();
+        }
+    }
+    function goAlertBoard_() {
+        const panel = document.getElementById('alert-panel');
+        if (!panel || !PLAY_ALERT_BOARD) {
+            continueAfterAlert_();
+            return;
+        }
+        alertBoardShowing_ = true;
+        radarGate_ = 'alert';
+        try {
+            panel.src = alertBoardSrc_();
+        } catch (eSrc) {
+            radarGate_ = '';
+            hideAlertBoard_();
+            continueAfterAlert_();
+            return;
+        }
+        panel.classList.add('is-gate');
+        armAlertBoardHold_(12000);
     }
     function showIssuedAlertsOrScene4_() {
         if (quakeTimerId_) { clearTimeout(quakeTimerId_); quakeTimerId_ = null; }
@@ -7472,6 +7612,10 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const singleMap = DEMO_ONLY === 'rain' || DEMO_ONLY === 'thunder' || DEMO_ONLY === 'typhoon' || DEMO_ONLY === 'rainwarn' || DEMO_ONLY === 'alert';
         if ((DEMO_SIGNAGE && !DEMO_ONLY) || singleMap) {
             playScene4();
+            return;
+        }
+        if (PLAY_ALERT_BOARD) {
+            goAlertBoard_();
             return;
         }
         if (hasIssuedWarn_() && sceneRainWarn) {
@@ -7517,13 +7661,13 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const pairEl = document.getElementById('ra-pair');
         const hasQueue = whiteBundle ? getRainWhiteScrollQueue_().length : rainWarnActive.length;
         if (!hasQueue) {
-            if (DEMO_RAINWARN_ONLY) return;
+            if (DEMO_RAINWARN_ONLY) { scheduleWarnOnlyRetry_(); return; }
             finishMainLoopToS1_();
             return;
         }
         const idx = startIdx || 0;
         if (!setRainWarn_(idx)) {
-            if (DEMO_RAINWARN_ONLY) return;
+            if (DEMO_RAINWARN_ONLY) { scheduleWarnOnlyRetry_(); return; }
             finishMainLoopToS1_();
             return;
         }
@@ -7696,16 +7840,41 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             else finishMainLoopToS1_();
         });
     }
+    let warnOnlyRetryId_ = null;
+    function parkWarnOnly_() {
+        hideSceneEl(sceneRainWarn);
+        const area = document.querySelector('.content-area');
+        if (!area) return;
+        area.classList.remove('ra-white-canvas', 'weather-on', 'rain-on', 'typhoon-on');
+        area.style.background = '#0a0a0a';
+        area.style.backgroundColor = '#0a0a0a';
+    }
+    function scheduleWarnOnlyRetry_() {
+        if (warnOnlyRetryId_) return;
+        parkWarnOnly_();
+        warnOnlyRetryId_ = setTimeout(function () {
+            warnOnlyRetryId_ = null;
+            startRainWarnOnlyDemo_();
+        }, 60000);
+    }
     async function startRainWarnOnlyDemo_() {
+        if (warnOnlyRetryId_) { clearTimeout(warnOnlyRetryId_); warnOnlyRetryId_ = null; }
         resetLogoRotation();
+        hideWeatherOverlay_();
         [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
-        if (sceneRainWarn) {
+        parkWarnOnly_();
+        if (!rainWarnForced) {
+            await updateRainWarnFromJmaDirect_();
+        } else if (RAIN_WHITE_DESIGN && !whiteModeForced_()) {
+            await updateRainWarnFromGas_();
+        }
+        const warnReady = shouldUseWhiteLayout_() ? rainWhiteHasActive_() : hasIssuedWarn_();
+        if (warnReady && sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
             sceneRainWarn.style.transform = 'translateX(0px)';
-        }
-        if (RAIN_WHITE_DESIGN && !whiteModeForced_()) {
-            await updateRainWarnFromGas_();
+            sceneRainWarn.style.visibility = 'visible';
+            sceneRainWarn.style.opacity = '1';
         }
         const badge = document.getElementById('demo-badge');
         const liveLabel = RAIN_WHITE_DESIGN && !whiteModeForced_()
@@ -9091,7 +9260,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                         applyWbgtInSeason_();
                         moeOk = applyWbgtSlotsToDom(wbgtSlots);
                         if (bootWeatherEarly_) cancelBootWeather_();
-                        if (!weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_ && !(sceneQuake && sceneQuake.classList.contains('active'))) {
+                        if (!DEMO_RAINWARN_ONLY && !DEMO_QUAKE_ONLY && !weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_ && !(sceneQuake && sceneQuake.classList.contains('active')) && !(sceneRainWarn && sceneRainWarn.classList.contains('active'))) {
                             try { playScene4(); } catch (eShow) {}
                         }
                     }
@@ -11468,19 +11637,23 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         startNetworkClockSync_();
         hideWbgtSceneEl_();
         mainLoopStarted_ = true;
-        try { goWeatherAfterWbgt_(true); } catch (ePlay) { console.warn(ePlay); }
+        try {
+            if (PLAY_ALERT_BOARD) goAlertBoard_();
+            else goWeatherAfterWbgt_(true);
+        } catch (ePlay) { console.warn(ePlay); }
         /* 色だけ画面（シーンも天気も雨雲も台風も無い）になったら WBGT に戻す */
         setInterval(function () {
             try {
                 if (!wbgtFirstFetchDone_) return;
-                if (weatherShowing_ || rainShowing_ || thunderShowing_ || typhoonShowing_) return;
+                if (weatherShowing_ || rainShowing_ || thunderShowing_ || typhoonShowing_ || alertBoardShowing_) return;
                 var area = document.querySelector('.content-area');
-                if (!area || area.classList.contains('weather-on') || area.classList.contains('rain-on') || area.classList.contains('typhoon-on')) return;
+                if (!area || area.classList.contains('weather-on') || area.classList.contains('rain-on') || area.classList.contains('typhoon-on') || area.classList.contains('alert-on')) return;
                 var active = document.querySelector('.content-area > .scene.active');
                 var panelOn = document.querySelector('#weather-panel.is-on');
                 var rainOn = document.querySelector('#rain-panel.is-on');
                 var tyOn = document.querySelector('#typhoon-panel.is-on');
-                if (!active && !panelOn && !rainOn && !tyOn) {
+                var alertOn = document.querySelector('#alert-panel.is-on');
+                if (!active && !panelOn && !rainOn && !tyOn && !alertOn) {
                     if (wbgtOffSeason) goWeatherAfterWbgt_();
                     else ensureWbgtSceneVisible_();
                 }
@@ -12423,6 +12596,16 @@ function fillFrontExtraCards_(w, todayHi, todayLo) {
     : (Math.round(rainMm * 10) / 10) + "mm");
 }
 
+/** 文言を「雨」などに畳んだ正面は、雲＋赤矢印＋傘の変化アイコンを出さない */
+function heroWeatherCode_(code, desc) {
+  var d = String(desc || "");
+  if (d === "雨") return 300;
+  if (d === "雪") return 400;
+  if (d === "曇り") return 200;
+  if (d === "晴れ") return 100;
+  return code;
+}
+
 function fillUI(w, todayHi, todayLo) {
   var now = new Date();
   var dateTxt = (now.getMonth() + 1) + "/" + now.getDate();
@@ -12450,7 +12633,8 @@ function fillUI(w, todayHi, todayLo) {
   setAll(".js-hero-desc", w.desc || "--");
   setMarqueeHtml_(".js-hero-sub", sub);
   document.querySelectorAll(".js-hero-icon").forEach(function(el) {
-    var url = (window.JmaWeatherIcons && lastForecastCode != null && lastForecastCode !== "") ? JmaWeatherIcons.url(lastForecastCode) : "";
+    var heroCode = heroWeatherCode_(lastForecastCode, w.desc);
+    var url = (window.JmaWeatherIcons && heroCode != null && heroCode !== "") ? JmaWeatherIcons.url(heroCode) : "";
     if (url) {
       el.innerHTML = '<img class="jma-wx" src="' + url + '" alt="">';
       el.style.background = "transparent";
@@ -12780,7 +12964,8 @@ function syncSides_() {
 }
 
 /**
- * 上から下へ連続スクロール。WBGT に戻るまで止めずループする。
+ * 上から下へ、1枠ずつ静止してから次枠へ送る。
+ * 連続スクロールだと「0.5mm」だけ残して下半分が青い空洞になる。
  */
 function startSideTickerMotion_() {
   if (!weatherRunning_) return;
@@ -12791,11 +12976,32 @@ function startSideTickerMotion_() {
   var cycleH = Math.max(left.cycleH || 0, right.cycleH || 0);
   var n = Math.max(left.count || 0, right.count || 0, 1);
   var cycleMs = SIDE_MS * n;
+  var slideMs = 420;
   sideTickerParts_ = { left: left, right: right, cycleH: cycleH };
   if (cycleH < 1) return;
+  function yAt_(part, pos) {
+    var count = Math.max(1, part.count || 1);
+    var span = pos * count;
+    var base = Math.floor(span);
+    var local = span - base;
+    if (base >= count) { base = 0; local = 0; }
+    var hold = 1 - (slideMs / SIDE_MS);
+    if (hold < 0.62) hold = 0.62;
+    var warped = 0;
+    if (local >= hold) {
+      var u = (local - hold) / (1 - hold);
+      if (u < 0) u = 0;
+      if (u > 1) u = 1;
+      warped = u * u * (3 - 2 * u);
+    }
+    var panes = base + warped;
+    var y = (-part.cycleH) * (1 - panes / count);
+    if (warped === 0) y = Math.round(y);
+    return y;
+  }
   /* 各面は自分の高さで周回。共通の進行率なので左右のテンポは揃い、継ぎ目は飛ばない */
-  left.track.style.transform = "translate3d(0," + (-left.cycleH) + "px,0)";
-  right.track.style.transform = "translate3d(0," + (-right.cycleH) + "px,0)";
+  left.track.style.transform = "translate3d(0," + yAt_(left, 0).toFixed(2) + "px,0)";
+  right.track.style.transform = "translate3d(0," + yAt_(right, 0).toFixed(2) + "px,0)";
   sideTickerAlive_ = true;
   var pos = 0;
   var last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
@@ -12811,8 +13017,8 @@ function startSideTickerMotion_() {
     if (dt > 48) dt = 48;
     pos += dt / cycleMs;
     if (pos >= 1) pos -= Math.floor(pos);
-    left.track.style.transform = "translate3d(0," + ((-left.cycleH) * (1 - pos)).toFixed(2) + "px,0)";
-    right.track.style.transform = "translate3d(0," + ((-right.cycleH) * (1 - pos)).toFixed(2) + "px,0)";
+    left.track.style.transform = "translate3d(0," + yAt_(left, pos).toFixed(2) + "px,0)";
+    right.track.style.transform = "translate3d(0," + yAt_(right, pos).toFixed(2) + "px,0)";
     sideTickerRaf_ = requestAnimationFrame(frame);
   }
   sideTickerRaf_ = requestAnimationFrame(frame);

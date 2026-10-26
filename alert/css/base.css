@@ -1,0 +1,81 @@
+/* サイネージ：原点 (0,0)、キャプチャ範囲 640×192 固定 */
+:root {
+  --w-total: 640px;
+  --h-total: 192px;
+  --w-side: 128px;
+  --w-front: 384px;
+  /*
+   * 隙間仕様（整数px固定・再描画/サイネージでも不変）:
+   * - 正面上下カード間: 5px（上下カード高さは均等）
+   * - 左右↔正面（折り目）: 12px = 側面内側8px + 正面外側4px
+   * - 上下外周: 5px
+   * - 左右端外周: 8px
+   */
+  --face-pad-y: 5px;
+  --face-pad-x-side: 8px;
+  --face-pad-x-front: 4px;
+  --face-gap: 5px;
+  --chip-gap: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: var(--w-total);
+  height: var(--h-total);
+  min-width: var(--w-total);
+  min-height: var(--h-total);
+  max-width: var(--w-total);
+  max-height: var(--h-total);
+  overflow: hidden;
+  background: #2c3e50;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+/* 左右を厳密に 128 | 384 | 128。外側余白・列ギャップなし */
+.machine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  width: var(--w-total);
+  height: var(--h-total);
+  margin: 0;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  border: 0;
+  box-shadow: none;
+}
+
+.face {
+  position: relative;
+  height: var(--h-total);
+  overflow: hidden;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+.face--left,
+.face--right {
+  width: var(--w-side);
+  flex: 0 0 var(--w-side);
+}
+
+.face--front {
+  width: var(--w-front);
+  flex: 0 0 var(--w-front);
+}

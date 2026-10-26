@@ -1,0 +1,694 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@500;600;700&family=Share+Tech+Mono:wght@400;700&display=swap");
+@import url("./base.css");
+
+/* 本番：カードUI — 警戒レベル5段階色 */
+
+:root {
+  /* 警戒レベル5段階（新しい防災気象情報の参考画像どおり） */
+  --lv1: #ffffff; /* 白・早期注意情報等 */
+  --lv2: #ffff00; /* 黄・注意報 */
+  --lv3: #ff2800; /* 赤橙・警報 */
+  --lv4: #c000c0; /* 紫・危険警報 */
+  --lv5: #000000; /* 黒・特別警報 */
+
+  /* 警戒レベル外（ブラウザ枠） */
+  --outside: #2c3e50;
+
+  --paper: var(--lv1);
+  --card: #ffffff;
+  --ink: #1a1a1a;
+  --mute: #6b7280;
+  --line: rgba(0, 0, 0, 0.06);
+  --blue: #3b82f6;
+  --hi: #f97316;
+  --lo: #60a5fa;
+  --advisory: #eab308;
+  --warning: #ff2800;
+  --danger: #c000c0;
+  --special: #000000;
+  --accent: var(--warning);
+}
+
+body {
+  background: var(--outside);
+  color: var(--ink);
+  font-family: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+
+.machine {
+  background: var(--paper);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  transition: background-color 0.45s ease;
+}
+
+/* 警戒レベル → 画面内背景色 */
+.machine[data-level="1"] {
+  --paper: var(--lv1);
+  --accent: #374151;
+}
+.machine[data-level="2"] {
+  --paper: var(--lv2);
+  --accent: #ca8a04;
+}
+.machine[data-level="3"] {
+  --paper: var(--lv3);
+  --accent: #ff2800;
+}
+.machine[data-level="4"] {
+  --paper: var(--lv4);
+  --accent: #c000c0;
+}
+.machine[data-level="5"] {
+  --paper: var(--lv5);
+  --accent: #ffffff;
+}
+
+/* 発表がないあいだは画面を出さない（黒） */
+body:not(.is-quake):has(.machine[data-active="false"]) {
+  background: #000;
+}
+.machine[data-active="false"] {
+  --paper: var(--lv1);
+  --accent: #374151;
+  visibility: hidden;
+}
+
+.face {
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 左右128px：上下5px・左右端8px・折り目側8px（固定） */
+.face--left,
+.face--right {
+  justify-content: stretch;
+  align-items: stretch;
+  padding: var(--face-pad-y) var(--face-pad-x-side);
+  box-sizing: border-box;
+}
+
+.face--left .card-stage,
+.face--right .card-stage {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 正面384px：上下カード均等 + 隙間5px固定（gridで再描画時も不変） */
+.face--front {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) var(--face-gap) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: stretch;
+  justify-items: stretch;
+  gap: 0;
+  padding: var(--face-pad-y) var(--face-pad-x-front);
+  box-sizing: border-box;
+}
+
+.face--front .card {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  flex: none;
+}
+
+.face--front .card--top {
+  grid-row: 1;
+  padding: 6px 10px;
+}
+
+.face--front .card--bottom {
+  grid-row: 3;
+  padding: 6px 10px 4px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.face--left .card,
+.face--right .card {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  text-align: center;
+  padding: 10px 6px;
+}
+
+.card-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.card-stage .card {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+}
+
+.face--left .stack,
+.face--right .stack {
+  width: 100%;
+  align-items: center;
+}
+
+.face--left .stack-item,
+.face--right .stack-item {
+  align-items: center;
+  width: 100%;
+}
+
+.face--left .label,
+.face--right .label,
+.face--left .value,
+.face--right .value,
+.face--left .unit,
+.face--right .unit,
+.face--left .level-num,
+.face--right .level-num {
+  text-align: center;
+  width: 100%;
+}
+
+.face--left .level-pill,
+.face--right .level-pill {
+  align-self: center;
+}
+
+/* 下へ消える → 上から出現 */
+.card.is-exit {
+  animation: card-exit-down 0.38s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
+.card.is-enter {
+  animation: card-enter-top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes card-exit-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes card-enter-top {
+  from {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mute);
+  letter-spacing: 0.04em;
+}
+
+.value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.value--sm {
+  font-size: 26px;
+}
+
+.unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stack-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 右パネル：警戒レベル表示 */
+.level-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin: 8px 0 6px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #111;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  min-width: 72px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.machine[data-level="1"] .level-pill {
+  background: #fff;
+  color: #111;
+}
+.machine[data-level="2"] .level-pill {
+  background: #ffff00;
+  color: #111;
+}
+.machine[data-level="3"] .level-pill {
+  background: #ff0000;
+  color: #fff;
+  border-color: #fff;
+}
+.machine[data-level="4"] .level-pill {
+  background: var(--lv4);
+  color: #fff;
+  border-color: #fff;
+}
+.machine[data-level="5"] .level-pill {
+  background: var(--lv5);
+  color: #fff;
+  border-color: #fff;
+}
+
+.machine[data-active="true"] .level-pill {
+  animation: pill-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes pill-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+.level-num {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* レベル数字のない情報（雷など）：名称を大きく、数字欄は出さない */
+#sideCardLevel.is-no-level .level-num {
+  display: none;
+}
+
+#sideCardLevel.is-no-level .unit {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+  margin-top: 8px;
+  margin-bottom: 0;
+  letter-spacing: -0.02em;
+}
+
+.machine[data-active="true"][data-theme="advisory"] {
+  --accent: var(--advisory);
+}
+.machine[data-active="true"][data-theme="warning"] {
+  --accent: var(--warning);
+}
+.machine[data-active="true"][data-theme="danger"] {
+  --accent: var(--danger);
+}
+.machine[data-active="true"][data-theme="special"] {
+  --accent: var(--special);
+}
+
+/* 中央上：流れ文字（枠内スクロール・枠サイズ固定） */
+.ticker-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  border-radius: 6px;
+  background: #fff5f5;
+  min-height: 0;
+  height: 36px;
+  max-height: 36px;
+}
+
+.machine[data-active="false"] .ticker-wrap {
+  background: #f6f6f6;
+}
+
+.machine[data-active="true"] .ticker-wrap {
+  background: linear-gradient(180deg, #fee2e2, #fecaca);
+}
+
+.ticker-band {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 1;
+  background: transparent;
+  box-shadow: none;
+}
+
+.machine[data-active="false"] .ticker-band {
+  opacity: 0.55;
+}
+
+.marquee {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: max-content;
+  height: 36px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 36px;
+  color: #991b1b;
+  letter-spacing: 0.03em;
+  will-change: transform;
+}
+
+.marquee.is-running {
+  animation: marquee-scroll var(--marquee-duration, 28s) linear infinite;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.machine[data-active="false"] .marquee {
+  color: #9ca3af;
+}
+
+.marquee > span {
+  display: inline-block;
+  flex-shrink: 0;
+  padding-right: 40px;
+}
+
+.marquee .tag {
+  color: #dc2626;
+}
+
+/* 中央下：発表中チップ（枠固定・中身だけ横スクロール） */
+.face--front .card--bottom.card--news {
+  background: #ffffff;
+  padding: 6px 10px 4px;
+}
+
+.chip-ticker {
+  position: relative;
+  flex: 1 1 auto;
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  min-height: 0;
+  height: 30px;
+  max-height: 30px;
+}
+
+.chip-marquee {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  height: 30px;
+  gap: 0;
+  will-change: transform;
+}
+
+.chip-marquee.is-running {
+  animation: chip-scroll var(--chip-duration, 22s) linear infinite;
+}
+
+.chip-marquee.is-static {
+  transform: none;
+  animation: none;
+}
+
+@keyframes chip-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.chip-track {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  /* 項目間・トラック末尾（次の先頭との間）を同じ隙間に */
+  gap: var(--chip-gap, 8px);
+  padding: 0;
+  padding-right: var(--chip-gap, 8px);
+  margin: 0;
+  flex-shrink: 0;
+  height: 30px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  margin: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  overflow: visible;
+}
+
+.chip.is-warning {
+  background: #ffedd5;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.chip.is-advisory {
+  background: #fef9c3;
+  border-color: #fde047;
+  color: #854d0e;
+}
+
+.chip.is-danger {
+  background: #f3e8ff;
+  border-color: #c084fc;
+  color: #6b21a8;
+}
+
+.chip.is-special {
+  background: #000000;
+  border-color: #111;
+  color: #fff;
+}
+
+.chip.is-demo {
+  background: #1e3a5f;
+  border-color: #334155;
+  color: #fff;
+}
+
+.machine[data-phase="demo"] .card-title {
+  color: #1e3a5f;
+  font-weight: 700;
+}
+
+.chip-empty {
+  font-size: 12px;
+  color: var(--mute);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.machine[data-level="5"] .card--bottom.card--news {
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.card-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--mute);
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+/* グラフっぽい装飾（静的＋薄い動き） */
+.trend-dots {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  height: 36px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.trend-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  animation: dot-bob 2.8s ease-in-out infinite;
+}
+
+.trend-dot:nth-child(2) {
+  animation-delay: 0.2s;
+  transform: translateY(2px);
+}
+.trend-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+.trend-dot:nth-child(4) {
+  animation-delay: 0.6s;
+  transform: translateY(4px);
+}
+.trend-dot:nth-child(5) {
+  animation-delay: 0.8s;
+  transform: translateY(3px);
+}
+
+@keyframes dot-bob {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.15);
+  }
+}
+
+.trend-line {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 48px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.meta-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.meta {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 11px;
+  color: var(--mute);
+}
+
+/* 非表示互換ID用（既存JSが触る要素） */
+.sr-only,
+#levelPips,
+#leftBadge,
+#leftMark,
+#leftSub,
+#rightBadge,
+#rightMark,
+#rightSub,
+#frontStatus,
+#frontMeta {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: #fff7ed;
+  opacity: 0;
+  z-index: 8;
+  pointer-events: none;
+  border-radius: 0;
+}
+
+.machine.is-notifying .flash {
+  animation: flash-card 0.8s ease-out 1;
+}
+
+@keyframes flash-card {
+  0% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}

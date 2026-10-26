@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=640, height=192, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <title>舞鶴 警報情報</title>
+    <meta name="content-version" content="E.Q1.0" />
+    <link rel="stylesheet" href="./css/display.css?v=20261026a" />
+    <link rel="stylesheet" href="./css/quake.css?v=20261026d" />
+    <script>
+      /* サイネージキャプチャ(物理640×192)と見た目を一致させる */
+      (function () {
+        function lockSignagePixels() {
+          var dpr = window.devicePixelRatio || 1;
+          document.documentElement.style.zoom = String(1 / dpr);
+        }
+        lockSignagePixels();
+        window.addEventListener("resize", lockSignagePixels);
+      })();
+    </script>
+  </head>
+  <body>
+    <div
+      class="machine"
+      id="machine"
+      data-active="false"
+      data-theme="warning"
+      data-level="1"
+      data-speed="72"
+      data-design="cards"
+      aria-live="polite"
+    >
+      <div class="flash" aria-hidden="true"></div>
+
+      <section class="face face--left" aria-label="左面 128×192">
+        <div class="card-stage">
+          <div class="card" id="sideCardLevel">
+            <div class="label" id="cardLevelLabel">レベル</div>
+            <div class="level-pill" id="cardLevelPill">なし</div>
+            <div class="unit" id="cardLevelUnit">警報情報</div>
+            <div class="level-num" id="cardLevelNum">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="face face--front" aria-label="正面 384×192">
+        <div class="card card--top">
+          <div class="card-title" id="titleTicker">警報テロップ</div>
+          <div class="ticker-wrap">
+            <div class="ticker-band">
+              <div class="marquee" id="marquee">
+                <span id="marqueeTextA">気象庁データを取得しています　　</span>
+                <span id="marqueeTextB">気象庁データを取得しています　　</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card card--bottom card--news">
+          <div class="card-title" id="titleAlerts">発表中の情報</div>
+          <div class="chip-ticker">
+            <div class="chip-marquee" id="chipMarquee">
+              <div class="chip-track" id="alertList">
+                <span class="chip-empty">取得中…</span>
+              </div>
+              <div class="chip-track" id="alertListB" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="meta-line">
+            <span class="meta" id="cardUpdated">更新 --:--</span>
+            <span class="meta" id="cardCount">0件</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="face face--right" aria-label="右面 128×192">
+        <div class="card-stage">
+          <div class="card" id="sideCardMeta">
+            <div class="stack">
+              <div class="stack-item">
+                <div class="label">時刻</div>
+                <div class="value" id="clockTime">--:--</div>
+              </div>
+              <div class="stack-item">
+                <div class="label">地域</div>
+                <div class="value value--sm" id="cardArea">舞鶴市</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 地震緊急デモ E.Q1.0（プレイリスト／?quake=1） -->
+    <div
+      class="quake-stage"
+      id="quakeStage"
+      data-version="E.Q1.0"
+      aria-live="assertive"
+      aria-label="地震緊急デモ"
+      hidden
+    >
+      <header class="quake-alert-bar" id="quakeAlertBar">
+        <span class="quake-demo-badge">デモ</span>
+        <div class="quake-ticker-clip">
+          <div class="quake-ticker-track" id="quakeTickerTrack"></div>
+        </div>
+      </header>
+
+      <div class="quake-detail" id="quakeDetail">
+        <section class="quake-card quake-card-side" id="quakeCardLeft">
+          <div class="quake-side-int-lbl">震度</div>
+          <div class="quake-side-int js-quake-side-int">-</div>
+        </section>
+
+        <section class="quake-card quake-card-mid">
+          <div class="quake-front-main" id="quakeFrontMain">舞鶴市 震度-（デモ）</div>
+          <div class="quake-front-sub" id="quakeFrontSub">【デモ】震源 ---- / M--</div>
+          <div class="quake-front-advice">
+            <div class="quake-advice-act" id="quakeAdviceAct">身の安全を確保してください</div>
+            <div class="quake-advice-desc" id="quakeAdviceDesc"></div>
+          </div>
+        </section>
+
+        <section class="quake-card quake-card-side" id="quakeCardRight">
+          <div class="quake-side-int-lbl">震度</div>
+          <div class="quake-side-int js-quake-side-int">-</div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="./js/app.js?v=20261026d"></script>
+  </body>
+</html>
