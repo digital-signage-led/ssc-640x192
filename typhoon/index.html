@@ -684,12 +684,12 @@
             <div class="num-big" id="lNum">—</div>
             <div class="num-unit" id="lUnit">号</div>
           </div>
-          <div class="cat-pill" id="lCat">接続中</div>
+          <div class="cat-pill" id="lCat">—</div>
         </div>
         <div class="side-view side-view-imp" id="lViewImp">
           <div class="side-kicker">舞鶴への影響</div>
           <div class="impact-big" id="lImpact">—</div>
-          <div class="impact-sub" id="lSub">確認中</div>
+          <div class="impact-sub" id="lSub">—</div>
         </div>
       </div>
     </section>
@@ -707,7 +707,7 @@
         <div id="map"></div>
         <div class="wn-info" id="wnInfo" aria-hidden="true"></div>
       </div>
-      <div class="loading-veil" id="veil">図を取得中…</div>
+      <div class="loading-veil" id="veil" hidden></div>
     </section>
 
     <!-- 右 128×192：上32時刻 / 中央128×128は正面と同じ進路図 / 下32は全幅テロップ -->
@@ -720,7 +720,7 @@
         <div class="side-view side-view-imp is-on" id="rViewImp">
           <div class="side-kicker">舞鶴への影響</div>
           <div class="impact-big" id="rImpact">—</div>
-          <div class="impact-sub" id="rSub">確認中</div>
+          <div class="impact-sub" id="rSub">—</div>
         </div>
         <div class="side-view side-view-ty" id="rViewTy">
           <div class="side-kicker" id="rTyKicker">台風</div>
@@ -728,7 +728,7 @@
             <div class="num-big" id="rNum">—</div>
             <div class="num-unit" id="rUnit">号</div>
           </div>
-          <div class="cat-pill" id="rCat">接続中</div>
+          <div class="cat-pill" id="rCat">—</div>
         </div>
       </div>
     </section>
@@ -737,8 +737,8 @@
     <div class="stage-foot" aria-label="台風情報テロップ">
       <div class="foot-ticker-wrap">
         <div class="foot-ticker" id="footTicker">
-          <span id="footTickerA">台風情報を取得しています　　</span>
-          <span id="footTickerB">台風情報を取得しています　　</span>
+          <span id="footTickerA">台風進路　　出典：気象庁　　</span>
+          <span id="footTickerB">台風進路　　出典：気象庁　　</span>
         </div>
       </div>
     </div>
@@ -1806,7 +1806,47 @@
     return Object.keys(set).map(Number).sort(function (a, b) { return a - b; }).slice(0, maxN);
   }
 
-  /** 解析時刻から約24/48/72…時間後の予報点を選ぶ（WN参考図） */
+  /** 実況と、発表されている日付ごとの予報（24/48/72…時間） */
+  function forecastTimeline(storm) {
+    var a = storm && storm.analysis;
+    var list = [];
+    if (a && a.position && a.position.deg) {
+      list.push({
+        kind: 'now',
+        lat: a.position.deg[0],
+        lon: a.position.deg[1],
+        iso: a.validtime && a.validtime.JST,
+        loc: a.location || '',
+        rKm: 0,
+        galeKm: maxRangeKm(a.galeWarning),
+        stormKm: maxRangeKm(a.stormWarning)
+      });
+    }
+    (storm.forecasts || []).forEach(function (f) {
+      if (!f.position || !f.position.deg) return;
+      var iso = f.validtime && f.validtime.JST;
+      list.push({
+        kind: 'fc',
+        lat: f.position.deg[0],
+        lon: f.position.deg[1],
+        iso: iso,
+        loc: f.location || '',
+        rKm: Number((f.probabilityCircleRadius && f.probabilityCircleRadius.km) || 0) || 0,
+        galeKm: 0,
+        stormKm: 0
+      });
+    });
+    list.sort(function (p, q) {
+      return (parseJstMs(p.iso) || 0) - (parseJstMs(q.iso) || 0);
+    });
+    return list;
+  }
+
+  function plainValidLabel(iso, isNow) {
+    var t = fmtValid(iso);
+    if (!t || t === '—') return '';
+    return t + (isNow ? '現在' : '');
+  }
   function pickDailyForecastIndices(fcForecast, baseMs, maxN) {
     maxN = maxN == null ? 3 : maxN;
     if (!fcForecast.length) return [];
@@ -1878,21 +1918,50 @@
    * ・予報：白破線＝予報円 / 白実線＝中心進路・接線（不確定円錐）
    * ・予報点は約24時間おきを優先
    */
-  function drawForecastDetailed(storm) {
-    var a = storm.analysis;
+  function drawForecastDetailed(storm, stepIndex) {
     var strokeW = 1.6;
     var pathW = 1.35;
     var INK = '#111111';
     var YELLOW = '#f5d000';
     var RED = '#e31c23';
+    var timeline = forecastTimeline(storm);
+    if (!timeline.length) return;
+    var step = Math.max(0, Math.min(stepIndex || 0, timeline.length - 1));
+    var active = timeline[step];
+    var activeMs = parseJstMs(active.iso);
+    var shown = timeline.filter(function (p) {
+      var ms = parseJstMs(p.iso);
+      return activeMs == null || ms == null || ms <= activeMs + 60000;
+    });
+    var rest = timeline.slice(Math.max(0, shown.length - 1));
 
-    if (a && a.position && a.position.deg) {
-      var latlng = [a.position.deg[0], a.position.deg[1]];
-      var galeKm = maxRangeKm(a.galeWarning);
-      var stormKm = maxRangeKm(a.stormWarning);
-      if (galeKm > 0) {
+    if (rest.length > 1) {
+      layers.addLayer(L.polyline(rest.map(function (p) {
+        return [p.lat, p.lon];
+      }), {
+        color: INK,
+        weight: pathW,
+        opacity: 0.35,
+        dashArray: '4 4',
+        interactive: false
+      }));
+    }
+    if (shown.length > 1) {
+      layers.addLayer(L.polyline(shown.map(function (p) {
+        return [p.lat, p.lon];
+      }), {
+        color: INK,
+        weight: pathW,
+        opacity: 0.95,
+        interactive: false
+      }));
+    }
+
+    var latlng = [active.lat, active.lon];
+    if (active.kind === 'now') {
+      if (active.galeKm > 0) {
         layers.addLayer(L.circle(latlng, {
-          radius: galeKm * 1000,
+          radius: active.galeKm * 1000,
           color: YELLOW,
           weight: strokeW,
           opacity: 0.95,
@@ -1901,13 +1970,13 @@
           interactive: false
         }));
         placeMapLabel(
-          latlng[0], latlng[1] + (galeKm / 111) * 0.55,
+          latlng[0], latlng[1] + (active.galeKm / 111) * 0.55,
           '強風域', 'zone-label kyofu', 500, 10
         );
       }
-      if (stormKm > 0) {
+      if (active.stormKm > 0) {
         layers.addLayer(L.circle(latlng, {
-          radius: stormKm * 1000,
+          radius: active.stormKm * 1000,
           color: RED,
           weight: strokeW,
           opacity: 0.95,
@@ -1916,101 +1985,35 @@
           interactive: false
         }));
         placeMapLabel(
-          latlng[0], latlng[1] + (stormKm / 111) * 0.35,
+          latlng[0], latlng[1] + (active.stormKm / 111) * 0.35,
           '暴風域', 'zone-label bofu', 520, 10
         );
       }
-    }
-
-    var analysisIso = a && a.validtime && a.validtime.JST;
-    var baseMs = parseJstMs(analysisIso);
-    var fcAll = [];
-    if (a && a.position && a.position.deg) {
-      fcAll.push({
-        lat: a.position.deg[0],
-        lon: a.position.deg[1],
-        rKm: 0,
-        iso: analysisIso,
-        label: fmtValidMap(analysisIso, true)
-      });
-    }
-    (storm.forecasts || []).forEach(function (f) {
-      if (!f.position || !f.position.deg) return;
-      var r = (f.probabilityCircleRadius && f.probabilityCircleRadius.km) || 0;
-      var iso = f.validtime && f.validtime.JST;
-      fcAll.push({
-        lat: f.position.deg[0],
-        lon: f.position.deg[1],
-        rKm: Number(r) || 0,
-        iso: iso,
-        label: fmtValidMap(iso, false)
-      });
-    });
-
-    var fcForecast = fcAll.slice(1);
-    var keyIdx = pickDailyForecastIndices(fcForecast, baseMs, 3);
-    var fcCircles = fcAll.length ? [fcAll[0]] : [];
-    keyIdx.forEach(function (j) { fcCircles.push(fcForecast[j]); });
-
-    for (var i = 1; i < fcCircles.length; i++) {
-      var c = fcCircles[i];
-      if (c.rKm > 0) {
-        layers.addLayer(L.circle([c.lat, c.lon], {
-          radius: c.rKm * 1000,
-          color: INK,
-          weight: strokeW,
-          opacity: 0.95,
-          fill: false,
-          dashArray: '5 4',
-          interactive: false
-        }));
-      }
-      layers.addLayer(L.marker([c.lat, c.lon], {
-        interactive: false,
-        zIndexOffset: 650,
-        icon: L.divIcon({
-          className: '',
-          html: '<div class="fc-plus"></div>',
-          iconSize: [10, 10],
-          iconAnchor: [5, 5]
-        })
-      }));
-    }
-    if (fcCircles.length > 1) {
-      placeMapLabel(
-        fcCircles[1].lat, fcCircles[1].lon,
-        '予報円', 'zone-label yohou', 540, 10
-      );
-    }
-
-    if (fcAll.length > 1) {
-      layers.addLayer(L.polyline(fcAll.map(function (p) {
-        return [p.lat, p.lon];
-      }), {
+    } else if (active.rKm > 0) {
+      layers.addLayer(L.circle(latlng, {
+        radius: active.rKm * 1000,
         color: INK,
-        weight: pathW,
-        opacity: 0.92,
+        weight: strokeW,
+        opacity: 0.95,
+        fill: false,
+        dashArray: '5 4',
         interactive: false
       }));
-    }
-    if (fcCircles.length > 1) {
-      var tangentCircles = fcCircles.map(function (p) {
-        return { lat: p.lat, lon: p.lon, rKm: p.rKm || 0 };
-      });
-      drawTangentChain(tangentCircles, INK, pathW, 0.9, null);
+      placeMapLabel(latlng[0], latlng[1], '予報円', 'zone-label yohou', 540, 10);
     }
 
-    keyIdx.forEach(function (j, slot) {
-      var fl = fcForecast[j];
-      if (!fl || !fl.label || fl.label === '—') return;
-      placeMapLabel(fl.lat, fl.lon, fl.label, 'fc-label hi', 620 + slot, 12);
-    });
+    var dateLabel = fmtValidMap(active.iso, active.kind === 'now');
+    if (dateLabel && dateLabel !== '—') {
+      placeMapLabelForced(latlng[0], latlng[1], dateLabel, 'fc-label hi', 640, 13);
+    }
   }
 
-  function addStormCenterLabel(storm, hi) {
+  function addStormCenterLabel(storm, hi, latlng) {
     var a = storm && storm.analysis;
-    if (!a || !a.position || !a.position.deg) return;
-    var latlng = [a.position.deg[0], a.position.deg[1]];
+    if (!latlng) {
+      if (!a || !a.position || !a.position.deg) return;
+      latlng = [a.position.deg[0], a.position.deg[1]];
+    }
     var isTd = (a.category && a.category.en) === 'TD' ||
       (a.category && a.category.jp && a.category.jp.indexOf('熱帯低気圧') >= 0);
     layers.addLayer(L.marker(latlng, {
@@ -2264,7 +2267,7 @@
   }
 
   /** ○号拡大：予報円まで詳しく（号数を先に確保してから日時） */
-  function drawStormDetailed(storm) {
+  function drawStormDetailed(storm, stepIndex) {
     if (storm.track) {
       var pre = (storm.track.preTyphoon || []).map(function (p) { return [p[0], p[1]]; });
       var ty = (storm.track.typhoon || []).map(function (p) { return [p[0], p[1]]; });
@@ -2280,8 +2283,11 @@
         }));
       }
     }
-    drawForecastDetailed(storm);
-    addStormCenterLabel(storm, true);
+    var timeline = forecastTimeline(storm);
+    var step = Math.max(0, Math.min(stepIndex || 0, Math.max(0, timeline.length - 1)));
+    var active = timeline[step];
+    drawForecastDetailed(storm, step);
+    if (active) addStormCenterLabel(storm, true, [active.lat, active.lon]);
   }
 
   function kmToLatDeg(km) {
@@ -2586,8 +2592,16 @@
 
     resetLabelPlacer();
     if (isZoom) {
-      /* ○号拡大：予報円まで詳しく（WN風） */
-      drawStormDetailed(s);
+      var dateStep = opts.dateStep || 0;
+      var timeline = forecastTimeline(s);
+      var active = timeline[Math.max(0, Math.min(dateStep, Math.max(0, timeline.length - 1)))];
+      var datePlain = active ? plainValidLabel(active.iso, active.kind === 'now') : '';
+      if (datePlain) {
+        document.getElementById('cBadge').textContent = datePlain;
+        document.getElementById('cMeta').textContent =
+          datePlain + (active.loc || a.location ? ' · ' + (active.loc || a.location) : '');
+      }
+      drawStormDetailed(s, dateStep);
       setWnInfo(s);
     } else {
       /* 日本広域・日本付近：位置＋号数（重なり禁止） */
@@ -2596,11 +2610,17 @@
     }
   }
 
-  /** 日本広域 → 日本付近 → 各号拡大（各3秒・3面同時）。埋め込み時はこの1周で親へ終了 */
+  /** 日本広域 → 日本付近 → 各号を日付ごとに進める。埋め込み時はこの1周で親へ終了 */
   function buildViewPlaylist() {
-    var pl = [{ mode: 'wide', idx: 0 }, { mode: 'near', idx: 0 }];
+    var pl = [
+      { mode: 'wide', idx: 0, dateStep: 0 },
+      { mode: 'near', idx: 0, dateStep: 0 }
+    ];
     for (var i = 0; i < storms.length; i++) {
-      pl.push({ mode: 'zoom', idx: i });
+      var n = forecastTimeline(storms[i]).length || 1;
+      for (var d = 0; d < n; d++) {
+        pl.push({ mode: 'zoom', idx: i, dateStep: d });
+      }
     }
     return pl;
   }
@@ -2638,7 +2658,12 @@
       var step = playlist[viewStep];
       viewMode = step.mode;
       idx = step.idx;
-      paint(idx, { refit: true, forceFit: true, viewMode: viewMode });
+      paint(idx, {
+        refit: true,
+        forceFit: !(step.mode === 'zoom' && step.dateStep > 0),
+        viewMode: viewMode,
+        dateStep: step.dateStep || 0
+      });
     }
     applyStep();
     rotateTimer = setInterval(function () {
@@ -2659,21 +2684,6 @@
   }
 
   function load() {
-    var veilTimer = setTimeout(function () {
-      if (!firstLoadDone) setVeil(true);
-    }, 450);
-    var watchdog = setTimeout(function () {
-      setVeil(false);
-      firstLoadDone = true;
-      if (!storms.length) {
-        document.getElementById('cMeta').textContent = '取得が遅い／失敗の可能性';
-        setTyFace('l', { num: '—', unit: '号', hpa: false }, '再試行中', '', '台風');
-        setTyFace('r', { num: '—', unit: '号', hpa: false }, '再試行中', '', '台風');
-        document.getElementById('cBadge').textContent = '待機';
-        safeFitJapan();
-      }
-    }, 5000);
-
     return fetchJson(CFG.jamBase + '/targetTc.json')
       .then(function (targets) {
         var list = asTargetList(targets);
@@ -2720,8 +2730,6 @@
         safeFitJapan();
       })
       .finally(function () {
-        clearTimeout(veilTimer);
-        clearTimeout(watchdog);
         setVeil(false);
         firstLoadDone = true;
       });
