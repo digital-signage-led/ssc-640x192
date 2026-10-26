@@ -164,20 +164,24 @@
       width: 128px !important;
       flex: 0 0 128px;
       background: #6a7078;
-      display: block;
-      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
     .side-radar {
-      position: absolute;
-      left: 0;
-      top: 0;
       width: 128px;
-      height: 192px;
-      z-index: 5;
+      height: 128px;
+      flex: 0 0 128px;
+      position: relative;
+      overflow: hidden;
+      background: #6a7078;
     }
-    .face-side .side-head,
-    .face-side .side-body,
-    .face-side .side-foot { display: none; }
+    .side-radar .leaflet-container {
+      width: 128px;
+      height: 128px;
+      background: #6a7078;
+    }
     #faceRight.face-side {
       /* right foot is taller */
     }
@@ -605,23 +609,9 @@
 </head>
 <body>
   <div id="stage">
-    <!-- 左面 128×192：降雨タイミング目安 -->
+    <!-- 左面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceLeft" aria-label="左面 雨雲">
-      <div class="side-radar" id="mapLeft"></div>
-      <div class="side-head">
-        <div class="side-kicker">志摩機械</div>
-        <div class="side-title">雨の目安</div>
-      </div>
-      <div class="side-body">
-        <div class="status-pill none" id="statusPill">確認中</div>
-        <div class="eta-num" id="etaNum">—<small>分</small></div>
-        <div class="eta-label" id="etaLabel">データ取得中</div>
-        <div class="eta-sub" id="etaSub">目安（公式予報ではない）</div>
-      </div>
-      <div class="side-foot">
-        <div class="clock-lg" id="frameClock">--:--</div>
-        <div class="clock-sub" id="kindText">レーダー時刻</div>
-      </div>
+      <div class="side-radar" id="mapSideLeft"></div>
     </section>
 
     <!-- 正面 384×192：雨雲の動き -->
@@ -654,35 +644,9 @@
       </div>
     </section>
 
-    <!-- 右面 128×192：凡例・出典 -->
+    <!-- 右面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceRight" aria-label="右面 雨雲">
-      <div class="side-radar" id="mapRight"></div>
-      <div class="side-head">
-        <div class="side-kicker">RAIN</div>
-        <div class="side-title">雨の強さ</div>
-      </div>
-      <div class="side-body">
-        <div class="guide-line" id="guideLine">色が現場へ近づくと雨</div>
-        <div class="guide-sub" id="guideSub">青＝弱　黄〜赤＝強い雨</div>
-        <div class="legend-mini" aria-hidden="true">
-          <div class="scale">
-            <span style="background:#b0f0ff"></span>
-            <span style="background:#3eb8ff"></span>
-            <span style="background:#1e6cff"></span>
-            <span style="background:#ffe000"></span>
-            <span style="background:#ff8c00"></span>
-            <span style="background:#a00040"></span>
-          </div>
-          <div class="labs"><span>弱</span><span>中</span><span>強</span></div>
-        </div>
-      </div>
-      <div class="side-foot">
-        <div class="amedas-foot" id="amedasFoot">
-          アメダス —.—
-          <span>10分降水量 mm</span>
-        </div>
-        <div class="src-note">出典：気象庁・地理院<br>目安（予報ではない）</div>
-      </div>
+      <div class="side-radar" id="mapSideRight"></div>
     </section>
   </div>
 
@@ -1021,6 +985,82 @@
     });
   }
 
+  var sideMaps = [];
+  var sideLayers = [{}, {}];
+
+  function mapOptions_() {
+    return {
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      keyboard: false,
+      touchZoom: false,
+      fadeAnimation: false,
+      zoomAnimation: false,
+      markerZoomAnimation: false
+    };
+  }
+
+  function addRadarPanes_(m) {
+    m.createPane('basemap');
+    m.getPane('basemap').style.zIndex = 200;
+    m.createPane('veil');
+    m.getPane('veil').style.zIndex = 350;
+    m.getPane('veil').style.pointerEvents = 'none';
+    m.getPane('veil').style.background = 'rgba(90, 96, 104, 0.78)';
+    m.createPane('radar');
+    m.getPane('radar').style.zIndex = 450;
+    m.getPane('radar').style.pointerEvents = 'none';
+  }
+
+  function makeRadarLayer_(frame) {
+    return L.tileLayer(tileUrl(frame), {
+      pane: 'radar',
+      opacity: 0.88,
+      maxNativeZoom: 10,
+      maxZoom: 10,
+      className: 'radar-layer',
+      zIndex: 450,
+      updateWhenIdle: false,
+      keepBuffer: 2,
+      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+    });
+  }
+
+  function initSideMaps() {
+    if (sideMaps.length) return;
+    ['mapSideLeft', 'mapSideRight'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var m = L.map(id, mapOptions_());
+      addRadarPanes_(m);
+      m.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });
+      L.tileLayer(GSI_BLANK, {
+        pane: 'basemap',
+        maxZoom: 14,
+        maxNativeZoom: 14,
+        opacity: 0.4,
+        keepBuffer: 2,
+        updateWhenIdle: false,
+        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
+      }).addTo(m);
+      L.marker([CFG.lat, CFG.lon], {
+        interactive: false,
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="site-pin"><i></i></div>',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        })
+      }).addTo(m);
+      m.invalidateSize({ animate: false, pan: false });
+      sideMaps.push(m);
+    });
+  }
+
   function ensureBaseLayer() {
     initMap();
     if (baseLayer) {
@@ -1038,90 +1078,11 @@
       errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
       className: 'gsi-base'
     }).addTo(map);
+    initSideMaps();
     fixMapSize();
     setTimeout(fixMapSize, 100);
     setTimeout(fixMapSize, 400);
     setTimeout(fixMapSize, 1000);
-    initSideMaps();
-  }
-
-  var sideMaps = [];
-  function initSideMaps() {
-    if (sideMaps.length) return;
-    ['mapLeft', 'mapRight'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.style.width = '128px';
-      el.style.height = '192px';
-      var m = L.map(id, {
-        zoomControl: false,
-        attributionControl: false,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false,
-        touchZoom: false,
-        fadeAnimation: false,
-        zoomAnimation: false,
-        markerZoomAnimation: false
-      });
-      m.createPane('basemap');
-      m.getPane('basemap').style.zIndex = 200;
-      m.createPane('veil');
-      m.getPane('veil').style.zIndex = 350;
-      m.getPane('veil').style.pointerEvents = 'none';
-      m.getPane('veil').style.background = 'rgba(90, 96, 104, 0.78)';
-      m.createPane('radar');
-      m.getPane('radar').style.zIndex = 450;
-      m.getPane('radar').style.pointerEvents = 'none';
-      m.createPane('places');
-      m.getPane('places').style.zIndex = 460;
-      m.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });
-      L.tileLayer(GSI_BLANK, {
-        pane: 'basemap',
-        maxZoom: 14,
-        maxNativeZoom: 14,
-        opacity: 0.4,
-        keepBuffer: 2,
-        updateWhenIdle: false,
-        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
-      }).addTo(m);
-      L.marker([CFG.lat, CFG.lon], {
-        interactive: false,
-        pane: 'places',
-        icon: L.divIcon({
-          className: '',
-          html: '<div class="site-pin"><i></i></div>',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
-        })
-      }).addTo(m);
-      m._sideLayers = {};
-      m._sideCurrent = -1;
-      sideMaps.push(m);
-      setTimeout(function () { m.invalidateSize({ animate: false, pan: false }); }, 200);
-    });
-  }
-  function syncSideFrame(i, frame) {
-    if (!sideMaps.length) initSideMaps();
-    sideMaps.forEach(function (m) {
-      if (!m._sideLayers[i]) {
-        m._sideLayers[i] = L.tileLayer(tileUrl(frame), {
-          pane: 'radar',
-          opacity: 0.88,
-          maxNativeZoom: 10,
-          maxZoom: 10,
-          updateWhenIdle: false,
-          keepBuffer: 1,
-          errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
-        });
-      }
-      var prev = m._sideCurrent;
-      m._sideLayers[i].addTo(m);
-      if (prev !== -1 && prev !== i && m._sideLayers[prev]) m.removeLayer(m._sideLayers[prev]);
-      m._sideCurrent = i;
-    });
   }
 
   /* ========== ナウキャスト再生 ========== */
@@ -1189,27 +1150,21 @@
   function showFrame(i) {
     if (i < 0 || i >= frames.length) return;
     var f = frames[i];
-    if (!layers[i]) {
-      layers[i] = L.tileLayer(tileUrl(f), {
-        pane: 'radar',
-        opacity: 0.88,
-        maxNativeZoom: 10,
-        maxZoom: 10,
-        className: 'radar-layer',
-        zIndex: 450,
-        updateWhenIdle: false,
-        keepBuffer: 2,
-        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
-      });
-    }
+    if (!layers[i]) layers[i] = makeRadarLayer_(f);
     var prev = current;
     layers[i].addTo(map);
     layers[i].setOpacity(0.88);
     if (prev !== -1 && prev !== i && layers[prev]) map.removeLayer(layers[prev]);
+    sideMaps.forEach(function (m, idx) {
+      if (!sideLayers[idx][i]) sideLayers[idx][i] = makeRadarLayer_(f);
+      sideLayers[idx][i].addTo(m);
+      sideLayers[idx][i].setOpacity(0.88);
+      if (prev !== -1 && prev !== i && sideLayers[idx][prev]) m.removeLayer(sideLayers[idx][prev]);
+    });
     current = i;
-    try { syncSideFrame(i, f); } catch (eSide) {}
 
-    document.getElementById('frameClock').textContent = fmtClock(f.validtime);
+    var frameClock = document.getElementById('frameClock');
+    if (frameClock) frameClock.textContent = fmtClock(f.validtime);
     /* 遅延表示は「いま使っているデータ」の鮮度だけ。止まっているナウキャストの遅れは出さない */
     var lagNote = '';
     if (radarMeta.fallback) {
@@ -1226,13 +1181,13 @@
     var kindText = document.getElementById('kindText');
     if (f.kind === 'now') {
       badge.textContent = 'いま'; badge.className = 'badge now';
-      kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
+      if (kindText) kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
     } else if (f.kind === 'fc') {
       badge.textContent = '予測'; badge.className = 'badge fc';
-      kindText.textContent = isThunder ? 'これから〜約1時間' : 'これから〜約3時間';
+      if (kindText) kindText.textContent = isThunder ? 'これから〜約1時間' : 'これから〜約3時間';
     } else {
       badge.textContent = '過去1h'; badge.className = 'badge past';
-      kindText.textContent = '約1時間前〜';
+      if (kindText) kindText.textContent = '約1時間前〜';
     }
 
     var pct = frames.length <= 1 ? 0 : (i / (frames.length - 1)) * 100;
@@ -1455,6 +1410,12 @@
       if (layers[k]) map.removeLayer(layers[k]);
     });
     layers = {};
+    sideMaps.forEach(function (m, idx) {
+      Object.keys(sideLayers[idx]).forEach(function (k) {
+        if (sideLayers[idx][k]) m.removeLayer(sideLayers[idx][k]);
+      });
+      sideLayers[idx] = {};
+    });
     current = -1;
   }
 
@@ -1514,6 +1475,7 @@
   function applyEstimateUI(est) {
     rainEstimate = est;
     var pill = document.getElementById('statusPill');
+    if (!pill) return;
     pill.className = 'status-pill ' + est.level;
     pill.textContent = est.pill;
 
@@ -1880,19 +1842,24 @@
       });
 
       var foot = document.getElementById('amedasFoot');
-      if (isThunder) {
-        foot.innerHTML = '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>';
-      } else if (nearest) {
-        foot.innerHTML = (nearest.name || 'アメダス') + '  ' + nearest.rain
-          + ' mm<span>10分降水量 · ' + fmtClock(stamp) + '</span>';
-      } else {
-        foot.innerHTML = 'アメダス —.—<span>10分降水量</span>';
+      if (foot) {
+        if (isThunder) {
+          foot.innerHTML = '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>';
+        } else if (nearest) {
+          foot.innerHTML = (nearest.name || 'アメダス') + '  ' + nearest.rain
+            + ' mm<span>10分降水量 · ' + fmtClock(stamp) + '</span>';
+        } else {
+          foot.innerHTML = 'アメダス —.—<span>10分降水量</span>';
+        }
       }
     } catch (e) {
       console.warn('[amedas]', e.message || e);
-      document.getElementById('amedasFoot').innerHTML = isThunder
-        ? '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>'
-        : 'アメダス取得待機…<span>10分降水量</span>';
+      var footErr = document.getElementById('amedasFoot');
+      if (footErr) {
+        footErr.innerHTML = isThunder
+          ? '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>'
+          : 'アメダス取得待機…<span>10分降水量</span>';
+      }
     }
   }
 
