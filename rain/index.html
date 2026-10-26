@@ -203,11 +203,19 @@
     .side-radar.leaflet-container {
       width: 128px !important;
       height: 112px !important;
-      flex: 1 1 112px;
-      position: relative !important;
+      position: absolute !important;
+      left: 0;
+      top: 0;
       overflow: hidden;
-      background: #8f979e !important;
+      background: #4f8fbf !important;
       z-index: 1;
+    }
+    .side-radar-host {
+      position: relative;
+      width: 128px;
+      height: 112px;
+      flex: 1 1 112px;
+      overflow: hidden;
     }
     #faceRight.face-side {
       /* right foot is taller */
@@ -215,7 +223,7 @@
     .face-front {
       width: 384px !important;
       height: 192px !important;
-      background: #6a7078;
+      background: #4f8fbf;
       position: relative;
       flex: 0 0 384px;
       overflow: hidden;
@@ -326,7 +334,7 @@
       margin-top: 2px;
     }
 
-    /* ===== 正面：陸も海も単色。県境だけ細い線 ===== */
+    /* ===== 正面：海は青、陸は灰色、海岸と県境は白線 ===== */
     #map {
       position: absolute;
       left: 0;
@@ -334,16 +342,19 @@
       z-index: 0;
       width: 384px !important;
       height: 192px !important;
-      background: #8f979e !important;
+      background: #4f8fbf !important;
     }
     #map.leaflet-container {
       width: 384px !important;
       height: 192px !important;
-      background: #8f979e !important;
+      background: #4f8fbf !important;
     }
     .leaflet-basemap-pane { z-index: 200 !important; }
-    .leaflet-basemap-pane .leaflet-layer {
-      filter: none;
+    .leaflet-basemap-pane canvas,
+    .leaflet-basemap-pane img,
+    .leaflet-borders-pane canvas,
+    .leaflet-borders-pane svg {
+      image-rendering: auto;
     }
     .leaflet-veil-pane {
       z-index: 350 !important;
@@ -353,7 +364,10 @@
       pointer-events: none !important;
     }
     .leaflet-radar-pane { z-index: 450 !important; }
-    .leaflet-radar-pane img.radar-layer { mix-blend-mode: normal; }
+    .leaflet-radar-pane img.radar-layer {
+      mix-blend-mode: normal;
+      image-rendering: auto;
+    }
     .leaflet-borders-pane {
       z-index: 455 !important;
       pointer-events: none !important;
@@ -387,17 +401,18 @@
     }
     .site-pin {
       position: relative;
-      width: 16px;
-      height: 16px;
+      width: 10px;
+      height: 10px;
     }
     .site-pin > i {
       display: block;
-      width: 16px;
-      height: 16px;
+      width: 8px;
+      height: 8px;
+      margin: 1px;
       border-radius: 50%;
-      background: radial-gradient(circle at 40% 35%, #ffe08a, var(--now) 55%, #c49200);
-      border: 2px solid #fff;
-      box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 12px rgba(255,209,102,.55);
+      background: #fff;
+      border: 1.5px solid #d00000;
+      box-shadow: none;
     }
     .site-pin > b { display: none; }
     .rain-scale { display: none !important; }
@@ -589,20 +604,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .src-credit {
-      position: absolute;
-      left: 6px;
-      bottom: 24px;
-      z-index: 10001;
-      pointer-events: none;
-      font-size: 8px;
-      font-weight: 700;
-      color: rgba(230, 236, 244, .88);
-      text-shadow: 0 1px 2px #000;
-      letter-spacing: .02em;
-      line-height: 1.25;
-      max-width: 72%;
-    }
     .src-note {
       margin-top: 2px;
       font-size: 7px;
@@ -649,14 +650,15 @@
     <!-- 左面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceLeft" aria-label="左面 雨雲">
       <div class="side-band side-band-top" aria-label="時刻"><span class="side-clock">--:--</span></div>
-      <div class="side-radar" id="mapSideLeft"></div>
+      <div class="side-radar-host">
+        <div class="side-radar" id="mapSideLeft"></div>
+      </div>
       <div class="side-band side-band-bottom" aria-label="日付"><span class="side-date">--</span></div>
     </section>
 
     <!-- 正面 384×192：雨雲の動き -->
     <section class="face face-front" id="faceFront" aria-label="正面 雨雲">
       <div id="map"></div>
-      <div class="src-credit">出典：気象庁 / 地理院</div>
       <div class="rain-scale" aria-hidden="true">
         <span class="rs-lab">弱</span>
         <i></i><i></i><i></i><i></i><i></i>
@@ -665,9 +667,9 @@
       <div class="front-overlay">
         <div class="front-top">
           <div class="front-meta" id="metaLine">雨雲の動き</div>
-          <div class="badge past" id="kindBadge">読込中</div>
+          <div class="badge now" id="kindBadge">いま</div>
         </div>
-        <div class="tl-labels"><span>−1h</span><span>いま</span><span>+3h 予測</span></div>
+        <div class="tl-labels"><span>いま</span><span>+1h 予測</span></div>
         <div class="front-bottom">
           <div class="timeline" id="timeline">
             <i id="timelineFill"></i>
@@ -675,18 +677,15 @@
           </div>
         </div>
       </div>
-      <div class="toast" id="toast">
-        <div>
-          <div class="spinner"></div>
-          雨雲データを取得しています…
-        </div>
-      </div>
+      <div class="toast hidden" id="toast" hidden></div>
     </section>
 
     <!-- 右面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceRight" aria-label="右面 雨雲">
       <div class="side-band side-band-top" aria-label="時刻"><span class="side-clock">--:--</span></div>
-      <div class="side-radar" id="mapSideRight"></div>
+      <div class="side-radar-host">
+        <div class="side-radar" id="mapSideRight"></div>
+      </div>
       <div class="side-band side-band-bottom" aria-label="日付"><span class="side-date">--</span></div>
     </section>
   </div>
@@ -773,11 +772,11 @@
     zoom: 8,
     width: 640,
     height: 192,
-    playMs: 800,
-    playMsPast: 700,
-    playMsNow: 1400,
-    playMsFc: 1100,
-    loopPauseMs: 2200,
+    playMs: 450,
+    playMsPast: 400,
+    playMsNow: 700,
+    playMsFc: 550,
+    loopPauseMs: 900,
     pastMaxMin: 60,
     futureMaxMin: 180,
     staleMaxMin: 45,
@@ -809,13 +808,44 @@
   var isThunder = modeQ === 'thunder' || modeQ === 'thns' || modeQ === 'lts' || modeQ === '雷';
   var TILE_ELEM = isThunder ? 'thns' : 'hrpns';
   if (isThunder) {
-    CFG.futureMaxMin = 60; /* 雷ナウキャストは約1時間先まで */
-    CFG.pastMaxMin = 60;
+    CFG.futureMaxMin = 60; /* 雷ナウキャストはいまから約1時間先まで。過去は出さない */
+    CFG.pastMaxMin = 0;
     document.title = '京都 舞鶴 雷ナウキャスト 640×192｜志摩機械 自販機サイネージ';
+  } else {
+    CFG.futureMaxMin = 60; /* 高解像度降水ナウキャストは約1時間先まで */
+    CFG.pastMaxMin = 0;
   }
 
   var native = window.__RAIN_NATIVE640__ !== false;
   var embedded = !!window.__RAIN_EMBED__;
+  var approachGate = qs.get('gate') === '1';
+  var approachReported_ = false;
+  function rainApproaching_(est) {
+    if (!est) return false;
+    return est.level === 'raining' || est.level === 'approaching' || est.level === 'soon';
+  }
+  function reportApproach_(show) {
+    if (!embedded || !approachGate || approachReported_) return;
+    approachReported_ = true;
+    try {
+      if (!window.parent || window.parent === window) return;
+      if (!show) {
+        stopPlay();
+        window.parent.postMessage({
+          type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
+          loops: 0,
+          skip: true,
+          mode: isThunder ? 'thunder' : 'rain'
+        }, '*');
+        return;
+      }
+      window.parent.postMessage({
+        type: isThunder ? 'thunder-radar-status' : 'rain-radar-status',
+        show: true,
+        mode: isThunder ? 'thunder' : 'rain'
+      }, '*');
+    } catch (eGate) {}
+  }
   if (native) {
     document.documentElement.classList.add('native-640');
     document.body.classList.add('native-640');
@@ -838,12 +868,11 @@
     var scale = document.querySelector('.rain-scale');
     var legend = document.querySelector('.legend-mini .scale');
     var labs = document.querySelector('.legend-mini .labs');
-    var toast = document.getElementById('toast');
     var faceFront = document.getElementById('faceFront');
     if (leftTitle) leftTitle.textContent = '雷の目安';
     if (rightKicker) rightKicker.textContent = 'THUNDER';
     if (rightTitle) rightTitle.textContent = '活動度';
-    if (tl) tl.innerHTML = '<span>−1h</span><span>いま</span><span>+1h 予測</span>';
+    if (tl) tl.innerHTML = '<span>いま</span><span>+1h 予測</span>';
     if (scale) {
       scale.innerHTML = '<span class="rs-lab">1</span><i></i><i></i><i></i><i></i><span class="rs-lab">4</span>';
     }
@@ -855,9 +884,6 @@
         '<span style="background:#AB00AA"></span>';
     }
     if (labs) labs.innerHTML = '<span>1</span><span>2</span><span>3</span><span>4</span>';
-    if (toast) {
-      toast.innerHTML = '<div><div class="spinner"></div>雷ナウキャストを取得しています…</div>';
-    }
     if (faceFront) faceFront.setAttribute('aria-label', '正面 雷ナウキャスト');
   }
   applyThunderChrome_();
@@ -872,11 +898,13 @@
     stage.style.transformOrigin = '0 0';
     if (native || embedded) {
       stage.style.transform = 'none';
+      syncLandRatio_();
       return;
     }
     var sp = Math.min(window.innerWidth / CFG.width, window.innerHeight / CFG.height);
     if (!isFinite(sp) || sp <= 0) sp = 1;
     stage.style.transform = 'scale(' + sp + ')';
+    syncLandRatio_();
   }
 
   /* サイネージ本体と同じ 640×192 等倍。iframe 内では親窓を動かさない */
@@ -948,7 +976,6 @@
 
   /* 気象庁・地理院へブラウザから直接取得（特定PCのプロキシに依存しない） */
   var JMA_ORIGIN = 'https://www.jma.go.jp';
-  var GSI_PALE = 'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png';
   var apiBase = ''; /* 任意: ?api=http://host:8765 で旧プロキシ経由 */
 
   var apiFromQuery = (qs.get('api') || '').replace(/\/$/, '');
@@ -1085,23 +1112,12 @@
       icon: L.divIcon({
         className: '',
         html: '<div class="site-pin"><i></i></div>',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8]
+        iconSize: [10, 10],
+        iconAnchor: [5, 5]
       })
     }).addTo(map);
 
-    PLACE_LABELS.forEach(function (p) {
-      L.marker([p.lat, p.lon], {
-        interactive: false,
-        pane: 'places',
-        icon: L.divIcon({
-          className: 'place-label' + (p.major ? ' major' : ''),
-          html: '<span>' + p.name + '</span>',
-          iconSize: [1, 1],
-          iconAnchor: p.major ? [-8, 18] : [-6, 14]
-        })
-      }).addTo(map);
-    });
+    /* 地名は地図の上に浮かせない。地点はピンだけ */
   }
 
   var sideMaps = [];
@@ -1174,9 +1190,9 @@
         pane: 'borders',
         interactive: false,
         style: {
-          color: '#2c3540',
-          weight: 1.6,
-          opacity: 0.9,
+          color: '#ffffff',
+          weight: 1.25,
+          opacity: 1,
           fill: false,
           smoothFactor: 0,
           lineCap: 'round',
@@ -1189,100 +1205,751 @@
     return group;
   }
 
-  /* 淡色地図の道路・注記を捨て、陸と海をそれぞれ1色にする */
-  var FLAT_LAND = [143, 151, 158];
-  var FLAT_WATER = [236, 240, 242];
+  /* 地理院の淡色地図から陸と海を分ける。内陸の川は落とす */
+  var GSI_PALE = 'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png';
+  var FLAT_LAND = [186, 191, 196];
+  var FLAT_WATER = [79, 143, 191];
+  var gsiImgCache_ = Object.create(null);
 
   function isWaterPixel_(r, g, b) {
-    return b > 168 && (b - r) > 30 && (b - g) > 8;
+    /* 淡色地図の海・琵琶湖。道路や川の細い青は入れない */
+    return r > 150 && b > 235 && g > r + 8 && (b - r) > 28 && (b - g) > 18;
+  }
+
+  function gsiTileUrl_(coords) {
+    return GSI_PALE
+      .replace('{z}', String(coords.z))
+      .replace('{x}', String(coords.x))
+      .replace('{y}', String(coords.y));
+  }
+
+  function loadGsiImage_(coords, cb) {
+    var key = coords.z + '/' + coords.x + '/' + coords.y;
+    var rec = gsiImgCache_[key];
+    if (rec) {
+      if (rec.done) cb(rec.img);
+      else rec.wait.push(cb);
+      return;
+    }
+    rec = { done: false, img: null, mask: null, maskSize: 0, wait: [cb] };
+    gsiImgCache_[key] = rec;
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function () {
+      rec.done = true;
+      rec.img = img;
+      var wait = rec.wait.splice(0);
+      for (var i = 0; i < wait.length; i++) wait[i](img);
+    };
+    img.onerror = function () {
+      rec.done = true;
+      rec.img = null;
+      var wait = rec.wait.splice(0);
+      for (var i = 0; i < wait.length; i++) wait[i](null);
+    };
+    img.src = gsiTileUrl_(coords);
+  }
+
+  /* 表示ズームより細かいタイルで海岸を切る。舞鶴湾の入り江が残る */
+  var COAST_DETAIL = 2;
+  var maskCache_ = Object.create(null);
+
+  function loadMosaic_(coords, delta, cb) {
+    var scale = 1 << delta;
+    var imgs = new Array(scale * scale);
+    var left = imgs.length;
+    var n = 0;
+    var dy, dx;
+    for (dy = 0; dy < scale; dy++) {
+      for (dx = 0; dx < scale; dx++) {
+        (function (idx, x, y) {
+          loadGsiImage_({ z: coords.z + delta, x: x, y: y }, function (img) {
+            imgs[idx] = img;
+            left -= 1;
+            if (left === 0) cb(imgs, scale);
+          });
+        })(n, coords.x * scale + dx, coords.y * scale + dy);
+        n += 1;
+      }
+    }
+  }
+
+  function maskFromImages_(imgs, scale) {
+    var cell = 256;
+    var big = cell * scale;
+    var scratch = maskFromImages_._c;
+    if (!scratch) scratch = maskFromImages_._c = document.createElement('canvas');
+    if (scratch.width !== big || scratch.height !== big) {
+      scratch.width = big;
+      scratch.height = big;
+    }
+    var ctx = scratch.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = '#bee2ff';
+    ctx.fillRect(0, 0, big, big);
+    var i, dx, dy;
+    for (i = 0; i < imgs.length; i++) {
+      if (!imgs[i]) continue;
+      dx = (i % scale) * cell;
+      dy = Math.floor(i / scale) * cell;
+      ctx.drawImage(imgs[i], dx, dy, cell, cell);
+    }
+    var src = ctx.getImageData(0, 0, big, big).data;
+    var water = new Uint8Array(big * big);
+    var p, r, g, b;
+    for (i = 0, p = 0; i < water.length; i++, p += 4) {
+      r = src[p];
+      g = src[p + 1];
+      b = src[p + 2];
+      if (isWaterPixel_(r, g, b)) water[i] = 1;
+    }
+    var pass, y, x, at, grow, k, nWater, oy, ox, yy, xx;
+    for (pass = 0; pass < 2; pass++) {
+      grow = [];
+      for (y = 1; y < big - 1; y++) {
+        for (x = 1; x < big - 1; x++) {
+          at = y * big + x;
+          if (water[at]) continue;
+          nWater = 0;
+          for (oy = -1; oy <= 1; oy++) {
+            yy = y + oy;
+            for (ox = -1; ox <= 1; ox++) {
+              if (!ox && !oy) continue;
+              xx = x + ox;
+              if (water[yy * big + xx]) nWater++;
+            }
+          }
+          if (nWater >= 7) grow.push(at);
+        }
+      }
+      if (!grow.length) break;
+      for (k = 0; k < grow.length; k++) water[grow[k]] = 1;
+    }
+    return water;
+  }
+
+  /* 内陸の川・池を落とす。残すのは海と、琵琶湖だけ */
+  var BIWA_S = 34.96;
+  var BIWA_N = 35.52;
+  var BIWA_W = 135.84;
+  var BIWA_E = 136.30;
+
+  function suppressInlandRivers_(water, big, coords) {
+    var n = water.length;
+    var dist = new Uint16Array(n);
+    var INF = 65535;
+    var i, x, y, at, best;
+    for (i = 0; i < n; i++) dist[i] = water[i] ? INF : 0;
+    for (y = 0; y < big; y++) {
+      for (x = 0; x < big; x++) {
+        at = y * big + x;
+        if (!water[at]) continue;
+        best = dist[at];
+        if (x > 0 && dist[at - 1] + 1 < best) best = dist[at - 1] + 1;
+        if (y > 0 && dist[at - big] + 1 < best) best = dist[at - big] + 1;
+        if (x > 0 && y > 0 && dist[at - big - 1] + 1 < best) best = dist[at - big - 1] + 1;
+        if (x + 1 < big && y > 0 && dist[at - big + 1] + 1 < best) best = dist[at - big + 1] + 1;
+        dist[at] = best;
+      }
+    }
+    for (y = big - 1; y >= 0; y--) {
+      for (x = big - 1; x >= 0; x--) {
+        at = y * big + x;
+        if (!water[at]) continue;
+        best = dist[at];
+        if (x + 1 < big && dist[at + 1] + 1 < best) best = dist[at + 1] + 1;
+        if (y + 1 < big && dist[at + big] + 1 < best) best = dist[at + big] + 1;
+        if (x + 1 < big && y + 1 < big && dist[at + big + 1] + 1 < best) best = dist[at + big + 1] + 1;
+        if (x > 0 && y + 1 < big && dist[at + big - 1] + 1 < best) best = dist[at + big - 1] + 1;
+        dist[at] = best;
+      }
+    }
+
+    /* ズーム8＋詳細2段で、幅おおよそ700m未満は芯が残らない */
+    var zEff = coords.z + COAST_DETAIL;
+    var mpp = 156543.03 * Math.cos(35.3 * Math.PI / 180) / Math.pow(2, zEff);
+    var clear = Math.max(3, Math.round(340 / mpp));
+    var minSea = Math.max(24, Math.round(400000 / (mpp * mpp)));
+    var minBiwa = Math.max(80, Math.round(2000000 / (mpp * mpp)));
+    var lat = new Float64Array(big);
+    var lon = new Float64Array(big);
+    var world = 1 << coords.z;
+    var fy;
+    for (y = 0; y < big; y++) {
+      fy = (coords.y + (y + 0.5) / big) / world;
+      lat[y] = Math.atan(Math.exp(Math.PI * (1 - 2 * fy))) * 360 / Math.PI - 90;
+    }
+    for (x = 0; x < big; x++) {
+      lon[x] = (coords.x + (x + 0.5) / big) / world * 360 - 180;
+    }
+
+    var label = new Int32Array(n);
+    var q = new Int32Array(n);
+    var keep = [];
+    var comp = 0;
+    var head, tail, cur, cx, cy, nx, ny, ni, size, onBiwa, touch, nb;
+    var near = [-big - 1, -big, -big + 1, -1, 1, big - 1, big, big + 1];
+    for (y = 0; y < big; y++) {
+      for (x = 0; x < big; x++) {
+        at = y * big + x;
+        if (dist[at] < clear || label[at]) continue;
+        comp += 1;
+        head = 0;
+        tail = 0;
+        q[tail++] = at;
+        label[at] = comp;
+        size = 0;
+        onBiwa = false;
+        touch = false;
+        while (head < tail) {
+          cur = q[head++];
+          size += 1;
+          cy = (cur / big) | 0;
+          cx = cur - cy * big;
+          if (!cx || !cy || cx === big - 1 || cy === big - 1) touch = true;
+          if (!onBiwa && lat[cy] >= BIWA_S && lat[cy] <= BIWA_N && lon[cx] >= BIWA_W && lon[cx] <= BIWA_E) {
+            onBiwa = true;
+          }
+          for (nb = 0; nb < 8; nb++) {
+            ni = cur + near[nb];
+            if (ni < 0 || ni >= n || label[ni] || dist[ni] < clear) continue;
+            ny = (ni / big) | 0;
+            nx = ni - ny * big;
+            if (Math.abs(nx - cx) > 1 || Math.abs(ny - cy) > 1) continue;
+            label[ni] = comp;
+            q[tail++] = ni;
+          }
+        }
+        keep[comp] = (touch && size >= minSea) || (onBiwa && size >= minBiwa);
+      }
+    }
+
+    var body = new Uint8Array(n);
+    head = 0;
+    tail = 0;
+    for (i = 0; i < n; i++) {
+      if (!label[i] || !keep[label[i]]) continue;
+      body[i] = 1;
+      q[tail++] = i;
+    }
+    /* 幅のある湾は海から辿る。1px幅の川は辿らない */
+    var bay = Math.max(2, clear - 1);
+    while (head < tail) {
+      cur = q[head++];
+      cy = (cur / big) | 0;
+      cx = cur - cy * big;
+      for (nb = 0; nb < 8; nb++) {
+        ni = cur + near[nb];
+        if (ni < 0 || ni >= n || body[ni] || dist[ni] < bay) continue;
+        ny = (ni / big) | 0;
+        nx = ni - ny * big;
+        if (Math.abs(nx - cx) > 1 || Math.abs(ny - cy) > 1) continue;
+        body[ni] = 1;
+        q[tail++] = ni;
+      }
+    }
+
+    for (y = 0; y < big; y++) {
+      for (x = 0; x < big; x++) {
+        at = y * big + x;
+        if (!water[at]) { water[at] = 0; continue; }
+        if (body[at]) continue;
+        best = 0;
+        for (nb = 0; nb < 8; nb++) {
+          ni = at + near[nb];
+          if (ni < 0 || ni >= n || !body[ni]) continue;
+          ny = (ni / big) | 0;
+          nx = ni - ny * big;
+          if (Math.abs(nx - x) > 1 || Math.abs(ny - y) > 1) continue;
+          best = 1;
+          break;
+        }
+        water[at] = best;
+      }
+    }
+    for (i = 0; i < n; i++) {
+      if (body[i]) water[i] = 1;
+    }
+    /* 淡色地図は湖面に「琵琶湖」の文字や道路を描く。それは陸ではない */
+    fillBiwaInterior_(water, big, lat, lon, mpp);
+  }
+
+  function fillBiwaInterior_(water, big, lat, lon, mpp) {
+    var n = water.length;
+    var north = lat[0];
+    var south = lat[big - 1];
+    var west = lon[0];
+    var east = lon[big - 1];
+    if (south > BIWA_N || north < BIWA_S || east < BIWA_W || west > BIWA_E) return;
+
+    function inBiwa(y, x) {
+      return lat[y] >= BIWA_S && lat[y] <= BIWA_N && lon[x] >= BIWA_W && lon[x] <= BIWA_E;
+    }
+
+    var seen = new Uint8Array(n);
+    var q = new Int32Array(n);
+    var near = [-big - 1, -big, -big + 1, -1, 1, big - 1, big, big + 1];
+    var head = 0;
+    var tail = 0;
+    var y, x, at, cur, cx, cy, ni, nx, ny, nb;
+    for (y = 0; y < big; y++) {
+      for (x = 0; x < big; x++) {
+        at = y * big + x;
+        if (water[at] || inBiwa(y, x)) continue;
+        seen[at] = 1;
+        q[tail++] = at;
+      }
+    }
+    while (head < tail) {
+      cur = q[head++];
+      cy = (cur / big) | 0;
+      cx = cur - cy * big;
+      for (nb = 0; nb < 8; nb++) {
+        ni = cur + near[nb];
+        if (ni < 0 || ni >= n || seen[ni] || water[ni]) continue;
+        ny = (ni / big) | 0;
+        nx = ni - ny * big;
+        if (Math.abs(nx - cx) > 1 || Math.abs(ny - cy) > 1) continue;
+        seen[ni] = 1;
+        q[tail++] = ni;
+      }
+    }
+    for (at = 0; at < n; at++) {
+      if (!water[at] && !seen[at]) water[at] = 1;
+    }
+
+    /* 岸につながる橋や道路。半径ぶん細い陸だけ湖面に戻す */
+    var radius = Math.max(3, Math.min(6, Math.round(450 / mpp)));
+    var src = new Uint8Array(water);
+    var pass, next, hit;
+    for (pass = 0; pass < radius; pass++) {
+      next = new Uint8Array(src);
+      for (y = 0; y < big; y++) {
+        for (x = 0; x < big; x++) {
+          at = y * big + x;
+          if (src[at] || !inBiwa(y, x)) continue;
+          hit = false;
+          for (nb = 0; nb < 8; nb++) {
+            ni = at + near[nb];
+            if (ni < 0 || ni >= n || !src[ni]) continue;
+            ny = (ni / big) | 0;
+            nx = ni - ny * big;
+            if (Math.abs(nx - x) > 1 || Math.abs(ny - y) > 1) continue;
+            hit = true;
+            break;
+          }
+          if (hit) next[at] = 1;
+        }
+      }
+      src = next;
+    }
+    for (pass = 0; pass < radius; pass++) {
+      next = new Uint8Array(src);
+      for (y = 0; y < big; y++) {
+        for (x = 0; x < big; x++) {
+          at = y * big + x;
+          if (!src[at] || !inBiwa(y, x)) continue;
+          hit = false;
+          for (nb = 0; nb < 8; nb++) {
+            ni = at + near[nb];
+            if (ni < 0 || ni >= n) continue;
+            ny = (ni / big) | 0;
+            nx = ni - ny * big;
+            if (Math.abs(nx - x) > 1 || Math.abs(ny - y) > 1) continue;
+            if (!inBiwa(ny, nx)) continue;
+            if (!src[ni]) { hit = true; break; }
+          }
+          if (hit) next[at] = 0;
+        }
+      }
+      src = next;
+    }
+    for (y = 0; y < big; y++) {
+      for (x = 0; x < big; x++) {
+        if (!inBiwa(y, x)) continue;
+        water[y * big + x] = src[y * big + x];
+      }
+    }
+  }
+
+  function mosaicMask_(coords, cb) {
+    var key = coords.z + '/' + coords.x + '/' + coords.y + '@' + COAST_DETAIL;
+    var rec = maskCache_[key];
+    if (rec) {
+      if (rec.done) cb(rec.mask);
+      else rec.wait.push(cb);
+      return;
+    }
+    rec = { done: false, mask: null, wait: [cb] };
+    maskCache_[key] = rec;
+    loadMosaic_(coords, COAST_DETAIL, function (imgs) {
+      var mask = null;
+      try { mask = maskFromImages_(imgs, 1 << COAST_DETAIL); } catch (eMask) { mask = null; }
+      if (mask) {
+        try { suppressInlandRivers_(mask, Math.round(Math.sqrt(mask.length)), coords); }
+        catch (eRiver) {}
+      }
+      rec.done = true;
+      rec.mask = mask;
+      var wait = rec.wait.splice(0);
+      for (var i = 0; i < wait.length; i++) wait[i](mask);
+    });
+  }
+
+  function scaledCanvas_(water, paintCoast) {
+    var big = Math.round(Math.sqrt(water.length));
+    var src = scaledCanvas_._c;
+    if (!src) src = scaledCanvas_._c = document.createElement('canvas');
+    if (src.width !== big || src.height !== big) {
+      src.width = big;
+      src.height = big;
+    }
+    var sctx = src.getContext('2d');
+    var frame = sctx.createImageData(big, big);
+    var d = frame.data;
+    var i, p, y, x, at, rgb, oy, ox, yy, xx, edge;
+    if (!paintCoast) {
+      for (i = 0, p = 0; i < water.length; i++, p += 4) {
+        rgb = water[i] ? FLAT_WATER : FLAT_LAND;
+        d[p] = rgb[0];
+        d[p + 1] = rgb[1];
+        d[p + 2] = rgb[2];
+        d[p + 3] = 255;
+      }
+    } else {
+      for (y = 2; y < big - 2; y++) {
+        for (x = 2; x < big - 2; x++) {
+          at = y * big + x;
+          if (water[at]) continue;
+          edge = false;
+          for (oy = -2; oy <= 2 && !edge; oy++) {
+            yy = y + oy;
+            for (ox = -2; ox <= 2; ox++) {
+              xx = x + ox;
+              if (water[yy * big + xx]) { edge = true; break; }
+            }
+          }
+          if (!edge) continue;
+          p = at * 4;
+          d[p] = 255;
+          d[p + 1] = 255;
+          d[p + 2] = 255;
+          d[p + 3] = 255;
+        }
+      }
+    }
+    sctx.putImageData(frame, 0, 0);
+    return src;
+  }
+
+  /* 画素の階段ではなく、マスクの境界を一定幅の線で描く */
+  var coastPathCache_ = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+  function buildCoastPaths_(water) {
+    var big = Math.round(Math.sqrt(water.length));
+    var segs = [];
+    function W(x, y) {
+      if (x < 0 || y < 0 || x >= big || y >= big) return 0;
+      return water[y * big + x] ? 1 : 0;
+    }
+    function edgePoint(x, y, e) {
+      if (e === 0) return [x + 1, y + 0.5];
+      if (e === 1) return [x + 1.5, y + 1];
+      if (e === 2) return [x + 1, y + 1.5];
+      return [x + 0.5, y + 1];
+    }
+    var x, y, a, b, c, d, edges;
+    for (y = 0; y < big - 1; y++) {
+      for (x = 0; x < big - 1; x++) {
+        a = W(x, y);
+        b = W(x + 1, y);
+        c = W(x + 1, y + 1);
+        d = W(x, y + 1);
+        if (a === b && b === c && c === d) continue;
+        edges = [];
+        if (a !== b) edges.push(0);
+        if (b !== c) edges.push(1);
+        if (c !== d) edges.push(2);
+        if (d !== a) edges.push(3);
+        if (edges.length === 2) {
+          segs.push([edgePoint(x, y, edges[0]), edgePoint(x, y, edges[1])]);
+        } else if (edges.length === 4) {
+          if (a) {
+            segs.push([edgePoint(x, y, 0), edgePoint(x, y, 3)]);
+            segs.push([edgePoint(x, y, 1), edgePoint(x, y, 2)]);
+          } else {
+            segs.push([edgePoint(x, y, 0), edgePoint(x, y, 1)]);
+            segs.push([edgePoint(x, y, 2), edgePoint(x, y, 3)]);
+          }
+        }
+      }
+    }
+    function key(p) { return (p[0] * 2) + ',' + (p[1] * 2); }
+    var adj = new Map();
+    var s, k1, k2;
+    for (s = 0; s < segs.length; s++) {
+      k1 = key(segs[s][0]);
+      k2 = key(segs[s][1]);
+      if (!adj.has(k1)) adj.set(k1, []);
+      if (!adj.has(k2)) adj.set(k2, []);
+      adj.get(k1).push(s);
+      adj.get(k2).push(s);
+    }
+    var used = new Uint8Array(segs.length);
+    var paths = [];
+    function other(seg, k) { return key(seg[0]) === k ? seg[1] : seg[0]; }
+    function trace(startSeg, startKey) {
+      var path = [];
+      var seg = startSeg;
+      var k = startKey;
+      var guard = 0;
+      var nxt, list, ns, i, p0;
+      while (seg >= 0 && guard++ < segs.length + 2) {
+        used[seg] = 1;
+        nxt = other(segs[seg], k);
+        if (!path.length) {
+          p0 = key(segs[seg][0]) === k ? segs[seg][0] : segs[seg][1];
+          path.push(p0[0], p0[1]);
+        }
+        path.push(nxt[0], nxt[1]);
+        k = key(nxt);
+        list = adj.get(k) || [];
+        ns = -1;
+        for (i = 0; i < list.length; i++) {
+          if (!used[list[i]]) { ns = list[i]; break; }
+        }
+        seg = ns;
+      }
+      return path;
+    }
+    for (s = 0; s < segs.length; s++) {
+      if (used[s]) continue;
+      if ((adj.get(key(segs[s][0])) || []).length !== 1) continue;
+      paths.push(trace(s, key(segs[s][0])));
+    }
+    for (s = 0; s < segs.length; s++) {
+      if (used[s]) continue;
+      paths.push(trace(s, key(segs[s][0])));
+    }
+    return paths;
+  }
+
+  function pathsForCoast_(water) {
+    if (coastPathCache_) {
+      var hit = coastPathCache_.get(water);
+      if (hit) return hit;
+    }
+    var paths = buildCoastPaths_(water);
+    if (coastPathCache_) coastPathCache_.set(water, paths);
+    return paths;
+  }
+
+  function strokeCoastMask_(ctx, water, dest) {
+    var big = Math.round(Math.sqrt(water.length));
+    var paths = pathsForCoast_(water);
+    var scale = dest / big;
+    var pi, path, n, i, closed;
+    ctx.save();
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.lineWidth = 1.6 * big / 256;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (pi = 0; pi < paths.length; pi++) {
+      path = paths[pi];
+      n = path.length;
+      if (n < 4) continue;
+      closed = path[0] === path[n - 2] && path[1] === path[n - 1];
+      ctx.moveTo(path[0], path[1]);
+      for (i = 2; i < (closed ? n - 2 : n); i += 2) ctx.lineTo(path[i], path[i + 1]);
+      if (closed) ctx.closePath();
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function strokePrefBorders_(ctx, coords, ratio) {
+    var data = borderData_;
+    if (!data || !data.features || !(ratio > 0)) return;
+    var z = coords.z;
+    var crs = L.CRS.EPSG3857;
+    var ox = coords.x * 256;
+    var oy = coords.y * 256;
+    var fi, geom, lines, li, line, i, p, moved;
+    ctx.save();
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.beginPath();
+    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    for (fi = 0; fi < data.features.length; fi++) {
+      geom = data.features[fi].geometry;
+      if (!geom || geom.type !== 'MultiLineString') continue;
+      lines = geom.coordinates;
+      for (li = 0; li < lines.length; li++) {
+        line = lines[li];
+        if (!line || line.length < 2) continue;
+        moved = false;
+        for (i = 0; i < line.length; i++) {
+          p = crs.latLngToPoint(L.latLng(line[i][1], line[i][0]), z);
+          if (!moved) {
+            ctx.moveTo(p.x - ox, p.y - oy);
+            moved = true;
+          } else {
+            ctx.lineTo(p.x - ox, p.y - oy);
+          }
+        }
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  var flatLayers_ = [];
+  var coastLayers_ = [];
+  var landRatio_ = 0;
+
+  function displayRatio_() {
+    var dpr = window.devicePixelRatio || 1;
+    var scale = 1;
+    var stage = document.getElementById('stage');
+    if (stage && CFG.width) {
+      var w = stage.getBoundingClientRect().width;
+      if (w > 0) scale = w / CFG.width;
+    }
+    var r = dpr * scale;
+    if (!(r > 0)) r = 1;
+    /* 640のまま見ても海岸が階段にならないよう、最低2倍で描いて縮める */
+    if (r < 2) r = 2;
+    if (r > 3) r = 3;
+    return Math.round(r * 4) / 4;
+  }
+
+  function prepareMapTile_(tile, size) {
+    var ratio = displayRatio_();
+    landRatio_ = ratio;
+    tile.width = Math.max(1, Math.round(size.x * ratio));
+    tile.height = Math.max(1, Math.round(size.y * ratio));
+    tile.style.width = size.x + 'px';
+    tile.style.height = size.y + 'px';
+    return ratio;
+  }
+
+  function syncLandRatio_() {
+    if (!flatLayers_ || !coastLayers_) return;
+    var r = displayRatio_();
+    if (Math.abs(r - landRatio_) < 0.01) return;
+    landRatio_ = r;
+    var all = flatLayers_.concat(coastLayers_);
+    var i;
+    for (i = 0; i < all.length; i++) {
+      if (all[i] && all[i].redraw) all[i].redraw();
+    }
   }
 
   function paintFlatTile_(tile, coords, done) {
     var ctx = tile.getContext('2d');
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function () {
-      var w = tile.width;
-      var h = tile.height;
-      ctx.drawImage(img, 0, 0, w, h);
+    var size = tile.width;
+    mosaicMask_(coords, function (water) {
+      if (!water) {
+        ctx.fillStyle = '#4f8fbf';
+        ctx.fillRect(0, 0, size, size);
+        if (done) done(null, tile);
+        return;
+      }
       try {
-        var frame = ctx.getImageData(0, 0, w, h);
-        var d = frame.data;
-        var mask = new Uint8Array(w * h);
-        var y, x, i;
-        for (y = 0; y < h; y++) {
-          for (x = 0; x < w; x++) {
-            i = (y * w + x) * 4;
-            if (isWaterPixel_(d[i], d[i + 1], d[i + 2])) mask[y * w + x] = 1;
-          }
-        }
-        for (y = 0; y < h; y++) {
-          for (x = 0; x < w; x++) {
-            var count = 0;
-            var dy, dx, yy, xx;
-            for (dy = -1; dy <= 1; dy++) {
-              yy = y + dy;
-              if (yy < 0 || yy >= h) continue;
-              for (dx = -1; dx <= 1; dx++) {
-                xx = x + dx;
-                if (xx < 0 || xx >= w) continue;
-                count += mask[yy * w + xx];
-              }
-            }
-            var rgb = count >= 6 ? FLAT_WATER : FLAT_LAND;
-            i = (y * w + x) * 4;
-            d[i] = rgb[0];
-            d[i + 1] = rgb[1];
-            d[i + 2] = rgb[2];
-            d[i + 3] = 255;
-          }
-        }
-        ctx.putImageData(frame, 0, 0);
+        var src = scaledCanvas_(water, false);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(src, 0, 0, size, size);
       } catch (eFlat) {
-        ctx.fillStyle = '#8f979e';
-        ctx.fillRect(0, 0, tile.width, tile.height);
+        ctx.fillStyle = '#4f8fbf';
+        ctx.fillRect(0, 0, size, size);
       }
       if (done) done(null, tile);
-    };
-    img.onerror = function () {
-      ctx.fillStyle = '#8f979e';
-      ctx.fillRect(0, 0, tile.width, tile.height);
+    });
+  }
+
+  function paintCoastTile_(tile, coords, done) {
+    var ctx = tile.getContext('2d');
+    var size = tile.width;
+    var ratio = size / 256;
+    mosaicMask_(coords, function (water) {
+      ctx.clearRect(0, 0, size, size);
+      if (water) {
+        try { strokeCoastMask_(ctx, water, size); } catch (eCoast) {}
+      }
+      try { strokePrefBorders_(ctx, coords, ratio); } catch (eBorder) {}
       if (done) done(null, tile);
-    };
-    img.src = GSI_PALE
-      .replace('{z}', String(coords.z))
-      .replace('{x}', String(coords.x))
-      .replace('{y}', String(coords.y));
+    });
+  }
+
+  function gsiGridOpts_(extra) {
+    return L.extend({
+      maxZoom: 14,
+      maxNativeZoom: 14,
+      keepBuffer: 4,
+      updateWhenIdle: false,
+      tileSize: 256,
+      detectRetina: false
+    }, extra || {});
   }
 
   var FlatBaseLayer_ = L.GridLayer.extend({
     createTile: function (coords, done) {
       var tile = document.createElement('canvas');
       var size = this.getTileSize();
-      tile.width = size.x;
-      tile.height = size.y;
+      prepareMapTile_(tile, size);
       paintFlatTile_(tile, coords, done);
       return tile;
     }
   });
 
-  function makeFlatBaseLayer_(paneOpts) {
-    return new FlatBaseLayer_(L.extend({
-      pane: 'basemap',
-      maxZoom: 14,
-      maxNativeZoom: 14,
-      keepBuffer: 6,
-      updateWhenIdle: false,
-      tileSize: 256
-    }, paneOpts || {}));
+  var CoastLayer_ = L.GridLayer.extend({
+    createTile: function (coords, done) {
+      var tile = document.createElement('canvas');
+      var size = this.getTileSize();
+      prepareMapTile_(tile, size);
+      paintCoastTile_(tile, coords, done);
+      return tile;
+    }
+  });
+
+  function dropLandLayer_(list, layer) {
+    var i = list.indexOf(layer);
+    if (i >= 0) list.splice(i, 1);
+  }
+
+  function addLandBase_(m) {
+    var group = L.layerGroup();
+    var flat = new FlatBaseLayer_(gsiGridOpts_({ pane: 'basemap' }));
+    var coast = new CoastLayer_(gsiGridOpts_({ pane: 'borders' }));
+    flat.addTo(group);
+    coast.addTo(group);
+    flatLayers_.push(flat);
+    coastLayers_.push(coast);
+    group.on('remove', function () {
+      dropLandLayer_(flatLayers_, flat);
+      dropLandLayer_(coastLayers_, coast);
+    });
+    whenPrefBorders_(function () {
+      if (coast._map) coast.redraw();
+    });
+    group.addTo(m);
+    return group;
   }
 
   function makeRadarLayer_(frame) {
+    /* 高解像度ナウキャストの色はズーム8まで。雷はズーム6まで。
+       それより細かいタイルは透明なので、そこを敷くと雨雲が消える。 */
+    var nativeZoom = isThunder ? 6 : 8;
     return L.tileLayer(tileUrl(frame), {
       pane: 'radar',
-      opacity: 0.82,
-      maxNativeZoom: 10,
-      maxZoom: 10,
+      opacity: 0.9,
+      maxNativeZoom: nativeZoom,
+      maxZoom: 14,
       className: 'radar-layer',
       zIndex: 450,
       updateWhenIdle: false,
@@ -1299,15 +1966,14 @@
       var m = L.map(id, mapOptions_());
       addRadarPanes_(m);
       m.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });
-      makeFlatBaseLayer_({ keepBuffer: 2 }).addTo(m);
-      makeBorderLayer_().addTo(m);
+      addLandBase_(m);
       L.marker([CFG.lat, CFG.lon], {
         interactive: false,
         icon: L.divIcon({
           className: '',
           html: '<div class="site-pin"><i></i></div>',
-          iconSize: [16, 16],
-          iconAnchor: [8, 8]
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
         })
       }).addTo(m);
       m.invalidateSize({ animate: false, pan: false });
@@ -1321,13 +1987,11 @@
       map.removeLayer(baseLayer);
       baseLayer = null;
     }
-    /* 陸＝灰、海＝薄い灰。道路や注記は出さない */
-    baseLayer = makeFlatBaseLayer_().addTo(map);
+    baseLayer = addLandBase_(map);
     if (borderLayer) {
       map.removeLayer(borderLayer);
       borderLayer = null;
     }
-    borderLayer = makeBorderLayer_().addTo(map);
     initSideMaps();
     fixMapSize();
     setTimeout(fixMapSize, 100);
@@ -1397,24 +2061,36 @@
   var amedasTable = null;
   var rainEstimate = { level: 'none', minutes: null, label: '確認中', guide: '' };
 
-  function showFrame(i) {
+  function attachFrame_(i, opacity) {
     if (i < 0 || i >= frames.length) return;
     var f = frames[i];
     if (!layers[i]) layers[i] = makeRadarLayer_(f);
-    var prev = current;
-    layers[i].addTo(map);
-    layers[i].setOpacity(0.82);
-    if (prev !== -1 && prev !== i && layers[prev]) map.removeLayer(layers[prev]);
+    if (!map.hasLayer(layers[i])) layers[i].addTo(map);
+    layers[i].setOpacity(opacity);
     sideMaps.forEach(function (m, idx) {
       if (!sideLayers[idx][i]) sideLayers[idx][i] = makeRadarLayer_(f);
-      sideLayers[idx][i].addTo(m);
-      sideLayers[idx][i].setOpacity(0.82);
-      if (prev !== -1 && prev !== i && sideLayers[idx][prev]) m.removeLayer(sideLayers[idx][prev]);
+      if (!m.hasLayer(sideLayers[idx][i])) sideLayers[idx][i].addTo(m);
+      sideLayers[idx][i].setOpacity(opacity);
     });
+  }
+  function dropFrame_(i) {
+    if (i < 0 || !layers[i]) return;
+    if (map.hasLayer(layers[i])) map.removeLayer(layers[i]);
+    sideMaps.forEach(function (m, idx) {
+      if (sideLayers[idx][i] && m.hasLayer(sideLayers[idx][i])) m.removeLayer(sideLayers[idx][i]);
+    });
+  }
+  function showFrame(i) {
+    if (i < 0 || i >= frames.length) return;
+    var f = frames[i];
+    var prev = current;
+    var next = (i + 1) % frames.length;
+    /* 正面・左右を同じ関数内で透明度まで揃える。次コマは先に載せておく */
+    attachFrame_(i, 0.82);
+    if (next !== i) attachFrame_(next, 0);
+    if (prev !== -1 && prev !== i && prev !== next) dropFrame_(prev);
     current = i;
 
-    var frameClock = document.getElementById('frameClock');
-    if (frameClock) frameClock.textContent = fmtClock(f.validtime);
     /* 遅延表示は「いま使っているデータ」の鮮度だけ。止まっているナウキャストの遅れは出さない */
     var lagNote = '';
     if (radarMeta.fallback) {
@@ -1434,7 +2110,7 @@
       if (kindText) kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
     } else if (f.kind === 'fc') {
       badge.textContent = '予測'; badge.className = 'badge fc';
-      if (kindText) kindText.textContent = isThunder ? 'これから〜約1時間' : 'これから〜約3時間';
+      if (kindText) kindText.textContent = 'これから〜約1時間';
     } else {
       badge.textContent = '過去1h'; badge.className = 'badge past';
       if (kindText) kindText.textContent = '約1時間前〜';
@@ -1524,11 +2200,8 @@
   }
 
   /**
-   * 再生範囲は「いまの時計」基準:
-   * - 過去: 最大 pastMaxMin（60分）
-   * - いま: 時計に最も近いコマ
-   * - 予測: 最大 futureMaxMin（180分＝約3時間）
-   * 高解像度ナウキャストが古いときは「今後の雨」(rasrf) で未来を補完
+   * 雨: 高解像度降水ナウキャスト（hrpns）の「いま」と、約1時間先まで。過去コマは出さない。
+   * 雷: 最新の実況を「いま」とし、10分刻みで約1時間先まで。過去コマは出さない。
    */
   function buildFrames(n1, n2, rasrfList) {
     var wall = Date.now();
@@ -1577,40 +2250,23 @@
 
     if (isThunder) {
       /*
-       * thns は 10 分刻みのみ。hrpns の 5 分コマ／:05 basetime を使うと 404 →
-       * 地図に色があるコマと「活動なし」判定が食い違う。
+       * thns は 10 分刻みのみ。最新実況を「いま」にし、+10分〜+60分だけ載せる。
+       * 過去コマや hrpns の 5 分時刻を使うと 404 になり、活動なし判定と食い違う。
        */
       var thBase = latestThnsBasetime(n1);
       var thBaseMs = parseNowcMs(thBase);
-      n1.forEach(function (d) {
-        var vt = String(d.validtime || '');
-        if (!isThnsTenMinTime(vt)) return;
-        var ms = parseNowcMs(vt);
-        if (ms == null || ms < pastCut || ms > wall + 3 * 60000) return;
-        if (seen[vt]) return;
-        seen[vt] = 1;
-        list.push({
-          basetime: vt,
-          validtime: vt,
-          kind: 'past',
-          product: 'thns',
-          ms: ms
-        });
-      });
-      if (thBaseMs != null && !seen[thBase]) {
+      if (thBaseMs != null) {
         seen[thBase] = 1;
         list.push({
           basetime: thBase,
           validtime: thBase,
-          kind: 'past',
+          kind: 'now',
           product: 'thns',
           ms: thBaseMs
         });
-      }
-      if (thBaseMs != null) {
         for (var step = 10; step <= 60; step += 10) {
           var vtMs = thBaseMs + step * 60000;
-          if (vtMs > futureCut) break;
+          if (vtMs > thBaseMs + CFG.futureMaxMin * 60000) break;
           var vt = formatNowcUtc(vtMs);
           if (seen[vt]) continue;
           seen[vt] = 1;
@@ -1623,17 +2279,10 @@
           });
         }
       }
-    } else if (nowcFresh) {
-      n1.forEach(function (d) { add(d, 'past', 'hrpns'); });
-      n2.forEach(function (d) { add(d, 'fc', 'hrpns'); });
-      /* 画像がある短時間予報だけ足す。40分・50分は一覧だけでタイルが無いので add 側で落とす */
-      rasrfList.forEach(function (d) {
-        var ms = parseNowcMs(d.validtime);
-        if (ms != null && ms > wall + 55 * 60000) add(d, 'fc', 'rasrf');
-      });
     } else {
-      /* ナウキャスト停止時: いまに近い短時間予報で過去〜未来を再生 */
-      rasrfList.forEach(function (d) { add(d, 'past', 'rasrf'); });
+      /* 高解像度ナウキャストのみ。過去1時間と短時間予報（rasrf）は出さない */
+      if (latestObs) add(latestObs, 'now', 'hrpns');
+      n2.forEach(function (d) { add(d, 'fc', 'hrpns'); });
     }
 
     list.sort(function (a, b) { return a.ms - b.ms; });
@@ -1654,6 +2303,24 @@
       else if (idx === best) f.kind = 'now';
       else f.kind = 'fc';
     });
+    if (isThunder) {
+      var thNowMs = list[0].ms;
+      list = list.filter(function (f) { return f.ms >= thNowMs; });
+      list.forEach(function (f, idx) { f.kind = idx === 0 ? 'now' : 'fc'; });
+      best = 0;
+      bestAbs = Math.abs(thNowMs - wall);
+      radarMeta.source = 'thns';
+      radarMeta.modeLabel = '雷ナウキャスト';
+      radarMeta.fallback = false;
+    } else {
+      var nowMs = list[best].ms;
+      list = list.filter(function (f) { return f.ms >= nowMs; });
+      list.forEach(function (f, idx) { f.kind = idx === 0 ? 'now' : 'fc'; });
+      best = 0;
+      radarMeta.source = 'nowc';
+      radarMeta.modeLabel = '高解像度ナウキャスト';
+      radarMeta.fallback = false;
+    }
     /* 表示用の遅延は、再生中タイムラインの「いま」コマと時計の差 */
     radarMeta.lagMin = Math.round(bestAbs / 60000);
     nowIndex = best;
@@ -1837,6 +2504,7 @@
         est.sub = '正面の色の動きを確認';
       }
       applyEstimateUI(est);
+      reportApproach_(rainApproaching_(est));
       console.log('[thunder-eta]', est.pill, 'near', near, 'peak', peak, 'ok', ok.length);
     } catch (e) {
       console.warn('[thunder-eta]', e.message || e);
@@ -1847,6 +2515,7 @@
         guide: '正面の雷ナウキャストを確認',
         guideSub: '黄1・橙2・赤3・紫4'
       }));
+      reportApproach_(false);
     }
   }
 
@@ -1933,6 +2602,7 @@
         };
       }
       applyEstimateUI(est);
+      reportApproach_(rainApproaching_(est));
       console.log('[rain-eta]', est.level, 'near', nearR.toFixed(2), 'first', firstRainMin, 'show', est.minutes);
     } catch (e) {
       console.warn('[rain-eta]', e.message || e);
@@ -1943,6 +2613,7 @@
         guide: '正面の雨雲を確認',
         guideSub: '色が現場へ近づくと雨'
       });
+      reportApproach_(false);
     }
   }
 
@@ -1979,8 +2650,8 @@
     document.getElementById('nowMark').style.left = markPct + '%';
     document.getElementById('toast').classList.add('hidden');
 
-    /* 約1時間前 → いま → 約3時間先 */
-    showFrame(0);
+    /* 雨も雷も「いま」から約1時間先。過去コマはない */
+    showFrame(nowIndex);
     scheduleNext();
     updateRainEstimate(frames);
     /* 埋め込み（親サイネージ）: 2周で終了するため途中 refresh で周回カウントをリセットしない */
@@ -2118,48 +2789,57 @@
     }
   }
 
+  function enterThunderMode_() {
+    if (isThunder) return;
+    isThunder = true;
+    TILE_ELEM = 'thns';
+    CFG.futureMaxMin = 60;
+    CFG.pastMaxMin = 60;
+    playLoopsTarget = 1;
+    approachReported_ = false;
+    document.documentElement.classList.add('thunder-mode');
+    document.body.classList.add('thunder-mode');
+    applyThunderChrome_();
+    var meta = document.getElementById('metaLine');
+    if (meta) meta.textContent = '雷ナウキャスト';
+    stopPlay();
+    loadRadar().catch(function (e) { console.error(e); });
+    loadAmedas();
+  }
+  window.addEventListener('message', function (ev) {
+    var d = ev && ev.data;
+    if (!d || d.type !== 'signage-set-mode') return;
+    if (d.mode === 'thunder') enterThunderMode_();
+  });
+
   /* ========== 起動 ========== */
   async function boot() {
     var toast = document.getElementById('toast');
-    toast.classList.remove('hidden');
-    toast.innerHTML = isThunder
-      ? '<div><div class="spinner"></div>雷ナウキャストに接続しています…</div>'
-      : '<div><div class="spinner"></div>気象庁データに接続しています…</div>';
-
-    var ok = await resolveApiBase();
-    if (!ok) {
-      toast.innerHTML =
-        (isThunder ? '雷データを取得できません。<br>' : '雨雲データを取得できません。<br>')
-        + '<span style="font-size:11px;color:#9bb0c9">'
-        + '気象庁サイトへ直接接続できませんでした。<br>'
-        + 'サイネージ／PCがインターネットに繋がっているか確認してください。<br>'
-        + '（今のURL: ' + location.href + '）</span>';
-      return;
-    }
-
+    if (toast) toast.classList.add('hidden');
     ensureBaseLayer();
     try {
       await Promise.all([loadRadar(), loadAmedas()]);
       fixMapSize();
-      setTimeout(fixMapSize, 200);
-      setTimeout(fixMapSize, 800);
     } catch (e) {
       console.error(e);
-      toast.classList.remove('hidden');
-      toast.innerHTML =
-        '雨雲データを取得できませんでした。<br>'
-        + '<span style="font-size:11px;color:#9bb0c9">'
-        + String(e && e.message ? e.message : e) + '<br>'
-        + 'ネットワーク接続を確認してください</span>';
+      if (apiFromQuery && !apiBase && (await probeProxy(apiFromQuery))) {
+        apiBase = apiFromQuery;
+        try { await loadRadar(); } catch (e2) { console.error(e2); }
+      }
     }
   }
 
-  /* 表示サイズが固まってから起動（プレビューと同じ配置でサイネージ再生） */
-  ensureNativeViewport(function () {
-    waitMapBox(function () {
-      boot();
+  /* 埋め込みは待ちなし。単体表示だけ画面サイズを合わせる */
+  if (embedded) {
+    fitStage();
+    boot();
+  } else {
+    ensureNativeViewport(function () {
+      waitMapBox(function () {
+        boot();
+      });
     });
-  });
+  }
   setInterval(function () { loadAmedas(); }, CFG.amedasRefreshMs);
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {

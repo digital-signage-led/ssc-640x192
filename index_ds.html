@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CONTENT_VER: 2026.10.26.09 — このコンテンツの版管理起点（更新時は必ず上げる） -->
+<!-- CONTENT_VER: 2026.10.26.12 — このコンテンツの版管理起点（更新時は必ず上げる） -->
 <!-- 京都 舞鶴 志摩機械 自販機サイネージ（本番 3面 640×192・全面流し・カード128×192） -->
 <!-- 同階層: assets/shima_kikai_en.png / shima_kikai_ja.png（WBGTヘッダー・天気左右・下帯） -->
 <!-- 会場: 京都府舞鶴市上福井117番地（北緯35.445427 東経135.299683）志摩機械株式会社 -->
@@ -14,7 +14,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v5 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 / demoも同期 / hourCycle h23 / 端末TZ非依存 -->
-    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.09</title>
+    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.12</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- display=swap: optional だとサイネージでフォントが落ちて隙間が変わるのを防止 -->
@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.26.09';
+    var VER = '2026.10.26.12';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -132,6 +132,28 @@
             height: 192px !important;
             padding: var(--wx-card-gap, 5px) !important;
             box-sizing: border-box !important;
+        }
+        /*
+         * 正面は padding の上に width:100% のカードが被り、サイネージでは
+         * x=128 / x=512 の折り目に隙間が残らない。px の inset で固定する。
+         */
+        html.native-640 #weather-panel .face.front,
+        body.native-640 #weather-panel .face.front {
+            position: relative !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        html.native-640 #weather-panel .face.front .card-front,
+        body.native-640 #weather-panel .face.front .card-front {
+            position: absolute !important;
+            left: 5px !important;
+            right: 5px !important;
+            top: 5px !important;
+            bottom: 5px !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: none !important;
         }
         html.native-640 #weather-panel .face:not(.front) .card,
         body.native-640 #weather-panel .face:not(.front) .card {
@@ -2380,6 +2402,12 @@ html[data-demo-only="s1s4"] #scene5 {
   background: #000 !important;
   z-index: 55 !important;
 }
+#rain-panel.is-gate {
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 /* 雨雲の次: 台風情報（iframe・640×192） */
 #typhoon-panel {
   position: absolute;
@@ -2404,6 +2432,12 @@ html[data-demo-only="s1s4"] #scene5 {
   pointer-events: auto;
   background: #000 !important;
   z-index: 56 !important;
+}
+#typhoon-panel.is-gate {
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 #weather-panel:not(.is-on) .flow-card,
 #weather-panel:not(.is-on) .side-pane {
@@ -2504,7 +2538,8 @@ html.wx-no-anim #weather-panel .side-pane {
 }
 /*
  * 改修:左右カードは WEB/サイネージ同一ピクセル
- * 隙間はすべて --wx-card-gap（外周・折り目・正面上下）。折り目は側面の内側余白のみ。
+ * 隙間はすべて --wx-card-gap（外周・折り目・正面上下・正面左右）。
+ * 折り目（x=128 / x=512）は側面の内側と正面の左右の両方に出す。
  */
 #weather-panel .face:not(.front) {
   padding: var(--wx-card-gap, 5px);
@@ -2529,11 +2564,25 @@ html.wx-no-anim #weather-panel .side-pane {
   margin: 0;
 }
 /*
- * 正面の左右余白は 0。折り目の隙間は左右面の内側 padding のみ＝ --wx-card-gap。
+ * 正面の余白は padding ではなく px の inset。
+ * 古い Chromium はグリッド子の width:100% が padding を覆い、128以降の折り目が埋まる。
  */
-#weather-panel .face.front { padding: var(--wx-card-gap, 5px) 0; }
+#weather-panel .face.front {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+}
 #weather-panel .face.front .card-front {
-  width: 100%; height: 100%; background: transparent; border: none; box-shadow: none;
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 5px;
+  bottom: 5px;
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 #weather-panel .side-stack {
@@ -2753,7 +2802,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 }
 
 #frontFlow {
-  position: relative; width: 100%; height: 100%; overflow: hidden;
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  width: auto; height: auto; overflow: hidden;
 }
 /* 上下2枚 + 間隙 var(--wx-card-gap)。左に縦タイトル、右に本文（タイトルはカード左端から少し内側） */
 #weather-panel .flow-card {
@@ -2824,8 +2874,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
   font-size: 20px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 #weather-panel .wx-sub {
-  font-size: 14px; font-weight: 500; color: var(--muted); margin-top: 2px;
-  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  font-size: 12.5px; font-weight: 500; color: var(--muted); margin-top: 2px;
+  overflow: hidden; white-space: nowrap; text-overflow: clip;
 }
 #weather-panel .now-icon {
   width: 68px; height: 68px; border-radius: 50%;
@@ -3195,9 +3245,16 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
   animation: marqueeNews28 28s linear infinite;
   will-change: transform;
 }
+/* 現在の天気の下段は1行に収める。端のフェードと流しで地名が欠けない */
+#weather-stage.is-640 .wx-sub.marquee-clip {
+  mask-image: none;
+  -webkit-mask-image: none;
+}
 #weather-stage.is-640 .wx-sub.marquee-clip .marquee-track {
-  display: inline-block;
-  animation: marqueeNews22 22s linear infinite;
+  display: block;
+  width: 100%;
+  animation: none !important;
+  transform: none !important;
 }
 #weather-stage.is-640 .js-meteo-ticker.marquee-track {
   animation: none !important;
@@ -3212,13 +3269,169 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
   93.75%, 100% { transform: translateX(-50%); }
 }
 @keyframes marqueeNews22 {
-  0%, 4.545% { transform: translateX(0); }
-  95.455%, 100% { transform: translateX(-50%); }
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 @keyframes marqueeNews28 {
   0%, 3.571% { transform: translateX(0); }
   96.429%, 100% { transform: translateX(-50%); }
 }
+
+        /* ===== 地震緊急 640×192（E.Q1.0） ===== */
+        #sceneQuake.active { display: flex; z-index: 80; background: #0a0a0a; }
+        #sceneQuake .quake-stage {
+            width: 640px; height: 192px; overflow: hidden;
+            display: flex; flex-direction: column; flex-shrink: 0;
+            background: linear-gradient(180deg, #0a0a0a, #141414);
+            font-family: "Roboto", "Noto Sans JP", sans-serif;
+            color: #1a1a1a;
+        }
+        #sceneQuake .quake-alert-bar {
+            height: 48px; flex-shrink: 0; background: #c62828; color: #fff;
+            display: grid; grid-template-columns: 128px 384px 128px;
+            align-items: stretch; position: relative; z-index: 2;
+            overflow: hidden; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+            animation: quake-alert-flash 0.7s steps(2) infinite;
+        }
+        #sceneQuake .quake-alert-face {
+            min-width: 0; height: 100%; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; padding: 0 8px; gap: 8px;
+        }
+        #sceneQuake .quake-alert-face--front {
+            padding: 0 12px;
+            box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.28), inset -1px 0 0 rgba(0, 0, 0, 0.28);
+        }
+        @keyframes quake-alert-flash {
+            0%, 100% { background: #b71c1c; }
+            50% { background: #ff1744; }
+        }
+        #sceneQuake .quake-stage.is-severe .quake-alert-bar { animation-duration: 0.45s; }
+        #sceneQuake .quake-stage.is-extreme .quake-alert-bar {
+            animation: quake-alert-flash-hard 0.32s steps(2) infinite;
+        }
+        @keyframes quake-alert-flash-hard {
+            0%, 100% { background: #7f0000; }
+            50% { background: #ff1744; box-shadow: inset 0 0 24px rgba(255, 255, 255, 0.25); }
+        }
+        #sceneQuake .quake-alert-icon { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; }
+        #sceneQuake .quake-alert-icon svg { width: 26px; height: 26px; display: block; }
+        #sceneQuake .quake-alert-text {
+            min-width: 0; overflow: hidden; white-space: nowrap; text-align: center;
+            font-size: 20px; font-weight: 900; letter-spacing: 0.02em; line-height: 1;
+        }
+        #sceneQuake .quake-demo-badge {
+            flex-shrink: 0; margin: 0; padding: 2px 8px;
+            border-radius: 999px; background: #1e3a5f; border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #fff; font-size: 13px; font-weight: 900; letter-spacing: 0.08em;
+        }
+        #sceneQuake .quake-stage.is-live .quake-demo-badge { display: none; }
+        #sceneQuake .quake-detail {
+            flex: 1; min-height: 0; display: grid;
+            grid-template-columns: 112px minmax(0, 1fr) 112px;
+            gap: 12px; padding: 8px; position: relative; z-index: 1;
+        }
+        #sceneQuake .quake-card {
+            background: #f7f5f0; border-radius: 12px;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 3px 8px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            overflow: hidden; display: flex; flex-direction: column;
+            align-items: flex-start; justify-content: center; text-align: left;
+            padding: 10px 12px; min-width: 0; gap: 2px;
+        }
+        #sceneQuake .quake-card-mid {
+            align-items: flex-start; justify-content: center; text-align: left;
+            padding: 8px 14px; gap: 3px; overflow: hidden; min-height: 0;
+        }
+        #sceneQuake .quake-front-main {
+            font-size: 32px; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em;
+            color: var(--int-fg, #c62828); white-space: nowrap; overflow: hidden; width: 100%;
+        }
+        #sceneQuake .quake-front-main.is-wide { font-size: 26px; letter-spacing: -0.03em; }
+        #sceneQuake .quake-front-sub {
+            font-size: 16px; font-weight: 800; line-height: 1.25; color: #3c4043;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+        }
+        #sceneQuake .quake-front-advice {
+            width: 100%; min-width: 0; display: flex; flex-direction: column; gap: 1px; margin-top: 2px;
+        }
+        #sceneQuake .quake-advice-act,
+        #sceneQuake .quake-advice-desc {
+            width: 100%; min-width: 0; font-weight: 800; line-height: 1.25; letter-spacing: 0.01em;
+        }
+        #sceneQuake .quake-advice-act {
+            font-size: 16px; color: #1a1a1a; white-space: nowrap; overflow: hidden;
+        }
+        #sceneQuake .quake-advice-desc {
+            font-size: 14px; color: #3c4043; white-space: normal; overflow: hidden;
+        }
+        #sceneQuake .quake-side-int-lbl {
+            font-size: 20px; font-weight: 900; letter-spacing: 0.12em;
+            width: 100%; text-align: center; line-height: 1; flex-shrink: 0;
+        }
+        #sceneQuake .quake-side-int {
+            font-size: 72px; font-weight: 900; line-height: 1; letter-spacing: -0.06em;
+            width: 100%; text-align: center; font-variant-numeric: tabular-nums;
+            flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0;
+        }
+        #sceneQuake .quake-side-int .int-num,
+        #sceneQuake .quake-side-int .int-mod {
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 1em; font-weight: 900; line-height: 1; letter-spacing: -0.04em; height: 1em;
+        }
+        #sceneQuake .quake-side-int .int-mod { margin-left: -0.02em; }
+        #sceneQuake .quake-side-int.is-wide { font-size: 58px; letter-spacing: -0.04em; }
+        #sceneQuake .quake-card-side {
+            align-items: center; justify-content: flex-start; text-align: center;
+            padding: 14px 10px 12px; gap: 4px;
+            transition: background 0.35s ease, color 0.35s ease;
+            border: 2px solid rgba(0, 0, 0, 0.16); border-radius: 14px;
+        }
+        #sceneQuake .quake-card-side.i0 { background: #fff; color: #212121; }
+        #sceneQuake .quake-card-side.i1 { background: #f0f0f0; color: #212121; }
+        #sceneQuake .quake-card-side.i2 { background: #4fc3f7; color: #0d47a1; }
+        #sceneQuake .quake-card-side.i3 { background: #1565c0; color: #fff; }
+        #sceneQuake .quake-card-side.i4 { background: #fff59d; color: #212121; }
+        #sceneQuake .quake-card-side.i5l { background: #ffee58; color: #212121; }
+        #sceneQuake .quake-card-side.i5u { background: #ff9800; color: #212121; }
+        #sceneQuake .quake-card-side.i6l { background: #f44336; color: #fff; }
+        #sceneQuake .quake-card-side.i6u { background: #b71c1c; color: #fff; }
+        #sceneQuake .quake-card-side.i7 { background: #9c27b0; color: #fff; }
+        #sceneQuake .quake-side-ticker-track {
+            display: inline-flex; white-space: nowrap; gap: 36px;
+            animation: quake-side-ticker-x 18s linear infinite; will-change: transform;
+        }
+        #sceneQuake .quake-side-ticker-track span {
+            font-size: 15px; font-weight: 800; color: #1a1a1a; letter-spacing: 0.02em;
+        }
+        #sceneQuake .quake-front-ticker .quake-side-ticker-track span { font-size: 16px; }
+        @keyframes quake-side-ticker-x {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        #sceneQuake .quake-stage.is-enter .quake-alert-bar { animation: none; background: #ff1744; }
+        #sceneQuake .quake-stage.is-enter .quake-detail .quake-card {
+            animation: quake-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        #sceneQuake .quake-stage.is-enter .quake-detail .quake-card:nth-child(1) { animation-delay: 0.05s; }
+        #sceneQuake .quake-stage.is-enter .quake-detail .quake-card:nth-child(2) { animation-delay: 0.12s; }
+        #sceneQuake .quake-stage.is-enter .quake-detail .quake-card:nth-child(3) { animation-delay: 0.2s; }
+        @keyframes quake-card-in {
+            from { opacity: 0; transform: translateY(14px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        #sceneQuake .quake-detail::after {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background: radial-gradient(ellipse at 50% 0%, rgba(255, 23, 68, 0.12), transparent 55%);
+            opacity: 0;
+        }
+        #sceneQuake .quake-stage.is-severe .quake-detail::after,
+        #sceneQuake .quake-stage.is-extreme .quake-detail::after {
+            animation: quake-glow-breath 2.2s ease-in-out infinite;
+        }
+        @keyframes quake-glow-breath {
+            0%, 100% { opacity: 0.15; }
+            50% { opacity: 0.45; }
+        }
 
     </style>
 </head>
@@ -3324,6 +3537,37 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                     </div>
                 </div></div>
                 <div class="ra-line bottom"></div>
+            </div>
+        </div>
+    </div>
+    <div class="scene" id="sceneQuake" aria-label="地震緊急">
+        <div class="quake-stage" id="quakeStage">
+            <header class="quake-alert-bar">
+                <div class="quake-alert-face quake-alert-face--side" aria-hidden="true"><span class="quake-alert-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/><path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="#C62828"/></svg></span></div>
+                <div class="quake-alert-face quake-alert-face--front">
+                    <span class="quake-demo-badge">デモ</span>
+                    <span class="quake-alert-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/><path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="#C62828"/></svg></span>
+                    <span class="quake-alert-text" id="quakeAlertText">緊急地震速報</span>
+                </div>
+                <div class="quake-alert-face quake-alert-face--side" aria-hidden="true"><span class="quake-alert-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/><path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="17" r="1.3" fill="#C62828"/></svg></span></div>
+            </header>
+            <div class="quake-detail">
+                <section class="quake-card quake-card-side i1">
+                    <div class="quake-side-int-lbl">震度</div>
+                    <div class="quake-side-int js-quake-side-int">1</div>
+                </section>
+                <section class="quake-card quake-card-mid">
+                    <div class="quake-front-main" id="quakeFrontMain">震度1（デモ）</div>
+                    <div class="quake-front-sub" id="quakeFrontSub">【デモ】震源 ---- / M--</div>
+                    <div class="quake-front-advice">
+                        <div class="quake-advice-act" id="quakeAdviceAct">身の安全を確保してください</div>
+                        <div class="quake-advice-desc" id="quakeAdviceDesc"></div>
+                    </div>
+                </section>
+                <section class="quake-card quake-card-side i1">
+                    <div class="quake-side-int-lbl">震度</div>
+                    <div class="quake-side-int js-quake-side-int">1</div>
+                </section>
             </div>
         </div>
     </div>
@@ -4086,7 +4330,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.26.09';
+    const CONTENT_VER = '2026.10.26.12';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4094,12 +4338,13 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const DEMO_SIGNAGE = demoParam === '1' || demoParam === 'all' || demoParam === 'full';
     const DEMO_ALERT_ONLY = demoParam === 'alert' || query.get('only') === 'alert';  /* アラートのみ流すデモ */
     const DEMO_RAINWARN_ONLY = demoParam === 'rainwarn' || query.get('only') === 'rainwarn';
+    const DEMO_QUAKE_ONLY = query.get('only') === 'quake';
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
-    /** 大雨警報シーンは出さない */
+    /** 警報・注意報・地震は、発表中のときだけ出す */
     const SITE_CFG = window.SignageConfig || {};
     /** 表示・スケジュール時刻は常に日本標準時（端末TZに依存しない） */
     const CLOCK_TZ = 'Asia/Tokyo';
-    const NO_JMA_WARN = true;
+    const NO_JMA_WARN = false;
     /** 熱中症アラートシーンは出さない（環境省発表時も非表示） */
     const NO_HEAT_ALERT = true;
     const RAIN_HERO_OFF = query.get('rainhero') === '0';
@@ -4120,6 +4365,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (v === 'all' || v === 'full') return null;
         if (v === 'alert') return 'alert';
         if (v === 'rainwarn') return 'rainwarn';
+        if (v === 'quake') return 'quake';
         if (v === 'weather' || v === 'wx' || v === 's4wx') return 's4';
         if (v === 'rain' || v === 'radar' || v === 'nowc') return 'rain';
         if (v === 'thunder' || v === 'thns' || v === 'lts') return 'thunder';
@@ -4132,7 +4378,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const SCENE_LABEL_BY_KEY = {
         s1: 'シーン1', s2: 'シーン2', s4: 'シーン3', s5: 'シーン4', s3: 'シーン5',
         s1s4: '熱中症(WBGT)＋天気＋雨雲＋雷＋台風', alert: '熱中症アラート', rainwarn: '大雨警報',
-        rain: '雨雲レーダー', thunder: '雷ナウキャスト', typhoon: '台風情報'
+        rain: '雨雲レーダー', thunder: '雷ナウキャスト', typhoon: '台風情報', quake: '地震情報'
     };
     /* 本番既定: WBGT と天気の2本のみ（時刻なし）。only= は再生フィルタ */
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only')) || 's4';
@@ -4162,6 +4408,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let rainShowing_ = false;
     let thunderShowing_ = false;
     let typhoonShowing_ = false;
+    /* 接近していない雨雲・雷・台風は出さない。確認用の単独再生では待たない */
+    let radarGate_ = '';
     let weatherReturnTimerId_ = null;
     let weatherSafetyTimerId_ = null;
     let weatherSwapTimerId_ = null;
@@ -4193,7 +4441,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         thunderShowing_ = false;
         if (rainHoldTimerId_ != null) { clearTimeout(rainHoldTimerId_); rainHoldTimerId_ = null; }
         if (!rain) return;
-        rain.classList.remove('is-on');
+        rain.classList.remove('is-on', 'is-gate');
         rain.setAttribute('aria-hidden', 'true');
         rain.style.display = 'none';
         rain.style.visibility = 'hidden';
@@ -4208,7 +4456,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         typhoonShowing_ = false;
         if (typhoonHoldTimerId_ != null) { clearTimeout(typhoonHoldTimerId_); typhoonHoldTimerId_ = null; }
         if (!ty) return;
-        ty.classList.remove('is-on');
+        ty.classList.remove('is-on', 'is-gate');
         ty.setAttribute('aria-hidden', 'true');
         ty.style.display = 'none';
         ty.style.visibility = 'hidden';
@@ -4225,8 +4473,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026r11&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026r16&lat=' + encodeURIComponent(String(lat))
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'rain' ? '' : '&gate=1');
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4238,7 +4486,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20261026th6';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261026th9';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4249,17 +4497,49 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026ty6&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026ty9&lat=' + encodeURIComponent(String(lat))
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'typhoon' ? '' : '&gate=1');
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
         } catch (eUrl) {
             return './typhoon/index.html?' + q;
         }
     }
-    function goRainAfterWeather_() {
+    function revealRainPanel_() {
         const rain = document.getElementById('rain-panel');
         const area = document.querySelector('.content-area');
+        clearWeatherTimers_();
+        hideTyphoonOverlay_();
+        if (s4) {
+            s4.classList.remove('active');
+            s4.style.display = 'none';
+            s4.style.visibility = 'hidden';
+            s4.style.opacity = '0';
+        }
+        if (area) {
+            area.classList.add('rain-on');
+            area.classList.remove('typhoon-on');
+            area.style.background = '#000';
+            area.style.backgroundColor = '#000';
+        }
+        if (!rain) return;
+        rain.classList.remove('is-gate');
+        rain.classList.add('is-on');
+        rain.setAttribute('aria-hidden', 'false');
+        rain.style.display = 'block';
+        rain.style.visibility = 'visible';
+        rain.style.opacity = '1';
+        rain.style.background = '#000';
+    }
+    function armRainHold_(ms, doneFn) {
+        if (rainHoldTimerId_ != null) { clearTimeout(rainHoldTimerId_); rainHoldTimerId_ = null; }
+        rainHoldTimerId_ = setTimeout(function () {
+            rainHoldTimerId_ = null;
+            doneFn();
+        }, ms);
+    }
+    function goRainAfterWeather_() {
+        const rain = document.getElementById('rain-panel');
         if (!rain || !PLAY_RAIN_AFTER_WX) {
             if (PLAY_THUNDER_AFTER_RAIN) {
                 goThunderAfterRain_();
@@ -4272,25 +4552,13 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             playScene4();
             return;
         }
-        clearWeatherTimers_();
-        hideTyphoonOverlay_();
         thunderShowing_ = false;
         rainShowing_ = true;
-        if (s4) {
-            s4.classList.remove('active');
-            s4.style.display = 'none';
-            s4.style.visibility = 'hidden';
-            s4.style.opacity = '0';
-        }
-        if (area) {
-            area.classList.add('rain-on');
-            area.classList.remove('typhoon-on');
-            area.style.background = '#000';
-            area.style.backgroundColor = '#000';
-        }
+        radarGate_ = DEMO_ONLY === 'rain' ? '' : 'rain';
         try {
             rain.src = rainPanelSrc_();
         } catch (eSrc) {
+            radarGate_ = '';
             hideRainOverlay_();
             if (PLAY_THUNDER_AFTER_RAIN) {
                 goThunderAfterRain_();
@@ -4303,21 +4571,16 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             playScene4();
             return;
         }
-        rain.classList.add('is-on');
-        rain.setAttribute('aria-hidden', 'false');
-        rain.style.display = 'block';
-        rain.style.visibility = 'visible';
-        rain.style.opacity = '1';
-        rain.style.background = '#000';
-        /* 通常は rain iframe の 1周完了 postMessage で切替。取れないとき用の上限 */
-        rainHoldTimerId_ = setTimeout(function () {
-            rainHoldTimerId_ = null;
-            onRainDone_();
-        }, RAIN_HOLD_MS);
+        if (!radarGate_) {
+            revealRainPanel_();
+            armRainHold_(RAIN_HOLD_MS, onRainDone_);
+            return;
+        }
+        rain.classList.add('is-gate');
+        armRainHold_(20000, onRainDone_);
     }
     function goThunderAfterRain_() {
         const rain = document.getElementById('rain-panel');
-        const area = document.querySelector('.content-area');
         if (!rain || !PLAY_THUNDER_AFTER_RAIN) {
             if (PLAY_TYPHOON_AFTER_RAIN) {
                 goTyphoonAfterRain_();
@@ -4326,25 +4589,24 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             playScene4();
             return;
         }
-        clearWeatherTimers_();
-        hideTyphoonOverlay_();
         rainShowing_ = false;
         thunderShowing_ = true;
-        if (s4) {
-            s4.classList.remove('active');
-            s4.style.display = 'none';
-            s4.style.visibility = 'hidden';
-            s4.style.opacity = '0';
-        }
-        if (area) {
-            area.classList.add('rain-on');
-            area.classList.remove('typhoon-on');
-            area.style.background = '#000';
-            area.style.backgroundColor = '#000';
-        }
+        radarGate_ = DEMO_ONLY === 'thunder' ? '' : 'thunder';
         try {
-            rain.src = thunderPanelSrc_();
+            var thunderLive = false;
+            try {
+                thunderLive = !!(rain.contentWindow
+                    && /rain\/index\.html/.test(rain.src || '')
+                    && (rain.src || '').indexOf('about:blank') < 0
+                    && (rain.src || '').indexOf('mode=thunder') < 0);
+            } catch (eLive) { thunderLive = false; }
+            if (thunderLive) {
+                rain.contentWindow.postMessage({ type: 'signage-set-mode', mode: 'thunder' }, '*');
+            } else {
+                rain.src = thunderPanelSrc_();
+            }
         } catch (eSrc) {
+            radarGate_ = '';
             hideRainOverlay_();
             if (PLAY_TYPHOON_AFTER_RAIN) {
                 goTyphoonAfterRain_();
@@ -4353,32 +4615,57 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             playScene4();
             return;
         }
-        rain.classList.add('is-on');
-        rain.setAttribute('aria-hidden', 'false');
-        rain.style.display = 'block';
-        rain.style.visibility = 'visible';
-        rain.style.opacity = '1';
-        rain.style.background = '#000';
-        rainHoldTimerId_ = setTimeout(function () {
-            rainHoldTimerId_ = null;
-            onThunderDone_();
-        }, THUNDER_HOLD_MS);
+        if (!radarGate_) {
+            revealRainPanel_();
+            armRainHold_(THUNDER_HOLD_MS, onThunderDone_);
+            return;
+        }
+        rain.classList.remove('is-on');
+        rain.classList.add('is-gate');
+        rain.style.visibility = 'hidden';
+        rain.style.opacity = '0';
+        armRainHold_(20000, onThunderDone_);
     }
     function onRainRadarMessage_(ev) {
         var d = ev && ev.data;
         if (!d) return;
+        if (d.type === 'rain-radar-status' && d.show && radarGate_ === 'rain') {
+            radarGate_ = '';
+            revealRainPanel_();
+            armRainHold_(RAIN_HOLD_MS, onRainDone_);
+            return;
+        }
+        if (d.type === 'thunder-radar-status' && d.show && radarGate_ === 'thunder') {
+            radarGate_ = '';
+            revealRainPanel_();
+            armRainHold_(THUNDER_HOLD_MS, onThunderDone_);
+            return;
+        }
+        if (d.type === 'typhoon-status' && d.show && radarGate_ === 'typhoon') {
+            radarGate_ = '';
+            revealTyphoonPanel_();
+            if (typhoonHoldTimerId_ != null) { clearTimeout(typhoonHoldTimerId_); typhoonHoldTimerId_ = null; }
+            typhoonHoldTimerId_ = setTimeout(function () {
+                typhoonHoldTimerId_ = null;
+                onTyphoonDone_();
+            }, TYPHOON_HOLD_MS);
+            return;
+        }
         if (d.type === 'rain-radar-done') {
             if (!rainShowing_) return;
+            radarGate_ = '';
             onRainDone_();
             return;
         }
         if (d.type === 'thunder-radar-done') {
             if (!thunderShowing_) return;
+            radarGate_ = '';
             onThunderDone_();
             return;
         }
         if (d.type === 'typhoon-done') {
             if (!typhoonShowing_) return;
+            radarGate_ = '';
             onTyphoonDone_();
         }
     }
@@ -4387,14 +4674,35 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function goTyphoonAfterRain_() {
         const ty = document.getElementById('typhoon-panel');
-        const area = document.querySelector('.content-area');
         if (!ty || !PLAY_TYPHOON_AFTER_RAIN) {
+            showIssuedAlertsOrScene4_();
+            return;
+        }
+        typhoonShowing_ = true;
+        radarGate_ = DEMO_ONLY === 'typhoon' ? '' : 'typhoon';
+        try {
+            ty.src = typhoonPanelSrc_();
+        } catch (eSrc) {
+            radarGate_ = '';
+            hideTyphoonOverlay_();
             playScene4();
             return;
         }
+        if (!radarGate_) {
+            revealTyphoonPanel_();
+        } else {
+            ty.classList.add('is-gate');
+        }
+        typhoonHoldTimerId_ = setTimeout(function () {
+            typhoonHoldTimerId_ = null;
+            onTyphoonDone_();
+        }, radarGate_ ? 20000 : TYPHOON_HOLD_MS);
+    }
+    function revealTyphoonPanel_() {
+        const ty = document.getElementById('typhoon-panel');
+        const area = document.querySelector('.content-area');
         clearWeatherTimers_();
         hideRainOverlay_();
-        typhoonShowing_ = true;
         if (s4) {
             s4.classList.remove('active');
             s4.style.display = 'none';
@@ -4407,23 +4715,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             area.style.background = '#000';
             area.style.backgroundColor = '#000';
         }
-        try {
-            ty.src = typhoonPanelSrc_();
-        } catch (eSrc) {
-            hideTyphoonOverlay_();
-            playScene4();
-            return;
-        }
+        if (!ty) return;
+        ty.classList.remove('is-gate');
         ty.classList.add('is-on');
         ty.setAttribute('aria-hidden', 'false');
         ty.style.display = 'block';
         ty.style.visibility = 'visible';
         ty.style.opacity = '1';
         ty.style.background = '#000';
-        typhoonHoldTimerId_ = setTimeout(function () {
-            typhoonHoldTimerId_ = null;
-            onTyphoonDone_();
-        }, TYPHOON_HOLD_MS);
     }
     function onRainDone_() {
         if (!rainShowing_) {
@@ -4435,7 +4734,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 goTyphoonAfterRain_();
                 return;
             }
-            playScene4();
+            showIssuedAlertsOrScene4_();
             return;
         }
         /* 雷へ続くときは iframe を消さずモード切替 */
@@ -4453,7 +4752,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             goTyphoonAfterRain_();
             return;
         }
-        playScene4();
+        showIssuedAlertsOrScene4_();
     }
     function onThunderDone_() {
         if (!thunderShowing_) {
@@ -4461,7 +4760,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 goTyphoonAfterRain_();
                 return;
             }
-            playScene4();
+            showIssuedAlertsOrScene4_();
             return;
         }
         hideRainOverlay_();
@@ -4472,7 +4771,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             goTyphoonAfterRain_();
             return;
         }
-        playScene4();
+        showIssuedAlertsOrScene4_();
     }
     function onTyphoonDone_() {
         if (!typhoonShowing_) {
@@ -4480,7 +4779,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 goTyphoonAfterRain_();
                 return;
             }
-            playScene4();
+            showIssuedAlertsOrScene4_();
             return;
         }
         hideTyphoonOverlay_();
@@ -4491,7 +4790,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             goTyphoonAfterRain_();
             return;
         }
-        playScene4();
+        showIssuedAlertsOrScene4_();
     }
     function clearSceneSwapClasses_() {
         const panel = document.getElementById('weather-panel');
@@ -4710,16 +5009,28 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             playScene4();
         }
         paintV_(0);
+        var swapKick_ = 0;
+        var swapFrameAt_ = Date.now();
         function frameV_(now) {
             if (swapDone) return;
+            swapFrameAt_ = Date.now();
             const t = (typeof now === 'number') ? now : ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now());
             const u = Math.min(1, Math.max(0, (t - t0) / SCENE_SWAP_MS));
             paintV_(H * easeOutCubic(u));
             if (u < 1) {
                 swapRaf = requestAnimationFrame(frameV_);
+                if (swapKick_) clearTimeout(swapKick_);
+                swapKick_ = setTimeout(function () {
+                    swapKick_ = 0;
+                    if (swapDone) return;
+                    if (Date.now() - swapFrameAt_ < 28) return;
+                    if (swapRaf) { cancelAnimationFrame(swapRaf); swapRaf = 0; }
+                    frameV_((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now());
+                }, 40);
                 return;
             }
             swapRaf = 0;
+            if (swapKick_) { clearTimeout(swapKick_); swapKick_ = 0; }
             finishVSwap_();
         }
         swapRaf = requestAnimationFrame(frameV_);
@@ -4910,7 +5221,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         return !!(demoParam === '1' || demoParam === 'all' || demoParam === 'full');
     })();
     /* only=s4 は本番の再生フィルタ。デモ静的データは demo=1 等のときだけ */
-    const DEMO_SIGNAGE_ACTIVE = !!(DEMO_SIGNAGE || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY);
+    const DEMO_SIGNAGE_ACTIVE = !!(DEMO_SIGNAGE || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY || DEMO_QUAKE_ONLY);
     /* フルデモ警報: 色付き3段（L1〜L5）→ 白ベース3段（L2〜L5）を順に流す */
     const DEMO_RAIN_PASS_ORDER = ['hero', 'white'];
     let demoRainPassIdx_ = 0;
@@ -5495,6 +5806,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const s5 = document.getElementById('scene5');
     const sceneAlert = document.getElementById('sceneAlert');
     const sceneRainWarn = document.getElementById('sceneRainWarn');
+    const sceneQuake = document.getElementById('sceneQuake');
     const d5Conveyor = document.getElementById('d5-conveyor');
     const logoRotator = document.getElementById('logo-rotator');
 
@@ -6473,6 +6785,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             const f = rainWarnKindActive.filter(function (k) { return map[k]; });
             if (f.length) return f;
         }
+        /* 本番: 気象庁が発表中の種別だけ。解除済み・未発表は入れない */
+        if (!rainWarnForced && rainWarnKindActive.length) {
+            const live = rainWarnKindActive.filter(function (k) { return map[k]; });
+            if (live.length) return live;
+        }
         if (levelKindAllMode_(levelKey)) return order;
         if (levelKey === 'warning') {
             if (!rainWarnForced) return rainWarnKindActive.length ? rainWarnKindActive : ['rain'];
@@ -6532,7 +6849,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 syncRainWarnActiveForWhite_();
             }
         } else {
-            rainWarnActive = (level && level !== 'none' && RAIN_WARN_LEVELS[level]) ? [level] : [];
+            const issued = level && level !== 'none' && level !== 'early' && RAIN_WARN_LEVELS[level];
+            rainWarnActive = issued ? [level] : [];
         }
         if (!warnKindForced && kinds && kinds.length) {
             rainWarnKindActive = kinds.slice();
@@ -6559,39 +6877,31 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         return JMA_LEVEL_KIND_ORDER.warning.filter(function (k) { return found[k]; });
     }
+    function parseJmaActiveKindsForLevel_(warnJson, levelKey) {
+        const found = {};
+        if (!levelKey || levelKey === 'none' || levelKey === 'early') return [];
+        const areaCodes = [JMA_WARN_CITY, JMA_WARN_AREA];
+        if (warnJson && warnJson.areaTypes) {
+            warnJson.areaTypes.forEach(function (at) {
+                (at.areas || []).forEach(function (area) {
+                    if (areaCodes.indexOf(String(area.code)) < 0) return;
+                    (area.warnings || []).forEach(function (w) {
+                        const st = String(w.status || '');
+                        if (!st || st.indexOf('解除') >= 0) return;
+                        const entry = JMA_WARN_CODE_MAP[String(w.code || '')];
+                        if (!entry || entry.level !== levelKey) return;
+                        found[entry.kind] = true;
+                    });
+                });
+            });
+        }
+        return (JMA_LEVEL_KIND_ORDER[levelKey] || []).filter(function (k) { return found[k]; });
+    }
     async function updateRainWarnFromGas_() {
         if (WBGT_ONLY || NO_JMA_WARN) return;
-        if (!wbgtNormalDisplay_() && !rainWarnForced && !whiteModeForced_()) {
-            applyRainWarnLevel_('none', null);
-            return;
-        }
         if (whiteModeForced_()) return;
         if (rainWarnForced && !RAIN_WHITE_DESIGN && !(isDemoFullRainLoop_() && demoRainPassKind_() === 'white')) return;
-        const base = appendMoePointToUrl(MOE_WBGT_API_URL);
-        if (!base) { await updateRainWarnFromJmaDirect_(); return; }
-        const sep = base.indexOf('?') >= 0 ? '&' : '?';
-        const url = base + sep + 'type=rainwarn&area=' + encodeURIComponent(JMA_WARN_AREA) + '&city=' + encodeURIComponent(JMA_WARN_CITY);
-        let json = null;
-        try {
-            const res = await fetch(url, { cache: 'no-store', redirect: 'follow', mode: 'cors' });
-            if (!res.ok) throw new Error('rainwarn HTTP ' + res.status);
-            json = JSON.parse(await res.text());
-        } catch (fetchErr) {
-            try { json = await fetchMoeViaJsonp(url); }
-            catch (e2) {
-                console.warn('[大雨警報] GAS取得失敗、気象庁直取得を試行:', e2.message || e2);
-                await updateRainWarnFromJmaDirect_();
-                return;
-            }
-        }
-        if (RAIN_WHITE_DESIGN && !whiteModeForced_()) {
-            await refreshRainWhiteQueueFromJma_();
-        } else {
-            applyRainWarnLevel_(json && json.level, json && json.l3Kinds);
-        }
-        applyRainWarnMeta_(json, null);
-        console.log('[大雨警報]', (json && json.level) || 'none', json && json.label ? json.label : '',
-            RAIN_WHITE_DESIGN ? ('白ベース ' + rainWhiteQueue.length + '件') : '');
+        await updateRainWarnFromJmaDirect_();
     }
     async function refreshRainWhiteQueueFromJma_() {
         try {
@@ -6660,9 +6970,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             ]);
             const warnJson = wRes.ok ? await wRes.json() : null;
             const probJson = pRes.ok ? await pRes.json() : null;
-            const kinds = parseJmaActiveL3Kinds_(warnJson);
-            applyRainWarnLevel_(parseJmaRainWarnLevel_(warnJson, probJson), kinds, warnJson);
+            const levelKey = parseJmaRainWarnLevel_(warnJson, probJson);
+            const kinds = parseJmaActiveKindsForLevel_(warnJson, levelKey);
+            applyRainWarnLevel_(levelKey, kinds, warnJson);
             applyRainWarnMeta_(null, warnJson);
+            console.log('[警報]', levelKey || 'none', kinds.join(',') || '種別なし');
         } catch (e) {
             console.warn('[大雨警報] 気象庁直取得失敗（発表なし扱い）:', e.message || e);
             applyRainWarnLevel_('none');
@@ -6862,8 +7174,324 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             }
         }
     }
+    let quakeActive = null;
+    let quakeShownThisPass_ = false;
+    let quakeTimerId_ = null;
+    let quakeDemoTimerId_ = null;
+    let quakeEnterTimerId_ = null;
+    const QUAKE_SHOW_MS = 3 * 60 * 60 * 1000;
+    const QUAKE_SCENE_MS = 12000;
+    const QUAKE_DEMO_STEP_MS = 3500;
+    const QUAKE_INT_META = {
+        0: { cls: 'i0', label: '0', fg: '#212121', desc: '人はゆれを感じない' },
+        1: { cls: 'i1', label: '1', fg: '#212121', desc: '屋内にいる人の一部がわずかにゆれを感じる' },
+        2: { cls: 'i2', label: '2', fg: '#0D47A1', desc: '照明などのつり下げ物が、わずかにゆれる' },
+        3: { cls: 'i3', label: '3', fg: '#1565C0', desc: '棚にある食器類が音を立てることがある' },
+        4: { cls: 'i4', label: '4', fg: '#F9A825', desc: 'つり下げ物は大きくゆれ、棚にある食器類は音を立てる' },
+        5: { cls: 'i5l', label: '5弱', fg: '#F9A825', desc: '耐震性の低い建物では壁などにひびが入ることがある' },
+        '5u': { cls: 'i5u', label: '5強', fg: '#EF6C00', desc: '耐震性の低い建物では壁などに大きなひび割れが生じることがある' },
+        6: { cls: 'i6l', label: '6弱', fg: '#E53935', desc: '耐震性の低い建物では、壁などのタイルが落下することがある' },
+        '6u': { cls: 'i6u', label: '6強', fg: '#B71C1C', desc: '耐震性の低い建物では、傾くものや倒れるものが多くなる' },
+        7: { cls: 'i7', label: '7', fg: '#9C27B0', desc: '耐震性の低い建物では、傾くものや倒れるものがさらに多くなる' }
+    };
+    const QUAKE_DEMO_SCENES = [
+        { localInt: 1, epicenter: '大阪府北部', mag: 3.2 },
+        { localInt: 2, epicenter: '滋賀県北部', mag: 4.0 },
+        { localInt: 3, epicenter: '京都府南部', mag: 4.4 },
+        { localInt: 4, epicenter: '奈良県', mag: 5.0 },
+        { localInt: 5, epicenter: '大阪府北部', mag: 5.4 },
+        { localInt: '5u', epicenter: '兵庫県南東部', mag: 5.8 },
+        { localInt: 6, epicenter: '和歌山県北部', mag: 6.2 },
+        { localInt: '6u', epicenter: '和歌山県北部', mag: 6.6 },
+        { localInt: 7, epicenter: '和歌山県北部', mag: 7.0 }
+    ];
+    function quakeTimeMs_(item) {
+        if (!item) return 0;
+        const at = Date.parse(item.at || '');
+        if (isFinite(at)) return at;
+        const c = String(item.ctt || '');
+        if (c.length < 14) return 0;
+        return Date.UTC(
+            Number(c.slice(0, 4)), Number(c.slice(4, 6)) - 1, Number(c.slice(6, 8)),
+            Number(c.slice(8, 10)) - 9, Number(c.slice(10, 12)), Number(c.slice(12, 14))
+        );
+    }
+    function quakeHitsCity_(item) {
+        const city = String(JMA_WARN_CITY);
+        const blocks = (item && item.int) || [];
+        for (let i = 0; i < blocks.length; i++) {
+            const cities = blocks[i].city || [];
+            for (let j = 0; j < cities.length; j++) {
+                if (String(cities[j].code) === city) return String(cities[j].maxi || blocks[i].maxi || '');
+            }
+        }
+        return '';
+    }
+    function pickActiveQuake_(list) {
+        if (!Array.isArray(list)) return null;
+        const now = Date.now();
+        let best = null;
+        list.forEach(function (item) {
+            const ift = String(item.ift || '');
+            const ttl = String(item.ttl || '');
+            if (ift.indexOf('取消') >= 0 || ttl.indexOf('取消') >= 0) return;
+            if (ift && ift !== '発表') return;
+            const shindo = quakeHitsCity_(item);
+            if (!shindo) return;
+            const at = quakeTimeMs_(item);
+            if (!at || now - at > QUAKE_SHOW_MS || at > now + 120000) return;
+            if (!best || at > best.atMs) {
+                best = {
+                    atMs: at,
+                    ttl: ttl || '地震情報',
+                    place: String(item.anm || ''),
+                    mag: String(item.mag || ''),
+                    shindo: shindo
+                };
+            }
+        });
+        return best;
+    }
+    async function updateQuakeFromJma_() {
+        if (WBGT_ONLY) return;
+        try {
+            const res = await fetch('https://www.jma.go.jp/bosai/quake/data/list.json', { cache: 'no-store' });
+            if (!res.ok) throw new Error('quake HTTP ' + res.status);
+            quakeActive = pickActiveQuake_(await res.json());
+            console.log('[地震]', quakeActive ? (quakeActive.ttl + ' 震度' + quakeActive.shindo) : '発表なし');
+        } catch (e) {
+            console.warn('[地震] 取得失敗（発表なし扱い）:', e.message || e);
+            quakeActive = null;
+        }
+    }
+    function hasIssuedWarn_() {
+        return rainWarnActive.some(function (k) { return k && k !== 'none' && k !== 'early'; });
+    }
+    function quakeIntKey_(raw) {
+        const s = String(raw == null ? '' : raw).replace(/[０-９]/g, function (ch) {
+            return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+        }).replace(/\s/g, '').replace(/－/g, '-').replace(/＋/g, '+');
+        if (s === '5弱' || s === '5-' || s === '5−') return 5;
+        if (s === '5強' || s === '5+') return '5u';
+        if (s === '6弱' || s === '6-' || s === '6−') return 6;
+        if (s === '6強' || s === '6+') return '6u';
+        if (s === '5u' || s === '6u') return s;
+        const n = parseInt(s, 10);
+        if (String(n) === s && n >= 0 && n <= 7) return n;
+        return 1;
+    }
+    function quakeIntMeta_(key) {
+        return QUAKE_INT_META[key] || QUAKE_INT_META[Number(key)] || QUAKE_INT_META[1];
+    }
+    function quakeSevereClass_(key) {
+        if (key === 6 || key === '6u' || key === 7) return 'is-extreme';
+        if (key === 4 || key === 5 || key === '5u') return 'is-severe';
+        return '';
+    }
+    function quakeMagLabel_(mag) {
+        if (mag == null || mag === '' || mag === '--') return '--';
+        const n = Number(mag);
+        if (!isFinite(n)) return String(mag).replace(/^M/i, '');
+        return n.toFixed(1);
+    }
+    function quakeAlertPhrase_(key) {
+        if (key === 1) return '揺れに注意';
+        if (key === 2 || key === 3) return '強い揺れに警戒';
+        if (key === 4 || key === 5 || key === '5u') return '強い揺れが来ます';
+        return 'ただちに身を守って';
+    }
+    function quakeAlertIconHtml_() {
+        return '<span class="quake-alert-icon" aria-hidden="true">' +
+            '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M12 2L22 20H2L12 2Z" fill="#fff" fill-opacity=".95"/>' +
+            '<path d="M12 9v5" stroke="#C62828" stroke-width="2.4" stroke-linecap="round"/>' +
+            '<circle cx="12" cy="17" r="1.3" fill="#C62828"/>' +
+            '</svg></span>';
+    }
+    function restartQuakeTrack_(track) {
+        if (!track) return;
+        track.style.animation = 'none';
+        void track.offsetWidth;
+        track.style.animation = '';
+    }
+    function fitQuakeNowrap_(el, maxPx, minPx) {
+        if (!el) return;
+        let size = maxPx;
+        el.style.fontSize = size + 'px';
+        while (size > minPx && el.scrollWidth > el.clientWidth + 1) {
+            size -= 1;
+            el.style.fontSize = size + 'px';
+        }
+    }
+    function fitQuakeWrap_(el, maxPx, minPx, maxH) {
+        if (!el) return;
+        let size = maxPx;
+        el.style.fontSize = size + 'px';
+        while (size > minPx && el.scrollHeight > maxH + 1) {
+            size -= 1;
+            el.style.fontSize = size + 'px';
+        }
+    }
+    function refitQuakeText_() {
+        const stage = document.getElementById('quakeStage');
+        if (!stage || stage.offsetWidth < 10) return;
+        const main = document.getElementById('quakeFrontMain');
+        fitQuakeNowrap_(document.getElementById('quakeAlertText'), 20, 13);
+        fitQuakeNowrap_(main, main && main.classList.contains('is-wide') ? 26 : 32, 20);
+        fitQuakeNowrap_(document.getElementById('quakeFrontSub'), 16, 12);
+        fitQuakeNowrap_(document.getElementById('quakeAdviceAct'), 16, 12);
+        fitQuakeWrap_(document.getElementById('quakeAdviceDesc'), 14, 11, 36);
+    }
+    function setQuakeTicker_(text) {
+        const el = document.getElementById('quakeAlertText');
+        if (!el) return;
+        el.textContent = text;
+        refitQuakeText_();
+    }
+    function applyQuakeBoard_(spec) {
+        const stage = document.getElementById('quakeStage');
+        if (!stage || !spec) return;
+        const key = quakeIntKey_(spec.localInt);
+        const meta = quakeIntMeta_(key);
+        const demo = spec.demo !== false;
+        const city = spec.city || getSiteLocationLabel_() || 'この地域';
+        const severe = quakeSevereClass_(key);
+        stage.classList.remove('is-severe', 'is-extreme', 'is-live');
+        if (severe) stage.classList.add(severe);
+        if (!demo) stage.classList.add('is-live');
+        const prefix = demo ? '【デモ】' : '';
+        setQuakeTicker_(prefix + '緊急地震速報　' + quakeAlertPhrase_(key));
+        const main = document.getElementById('quakeFrontMain');
+        if (main) {
+            const text = city + ' 震度' + meta.label + (demo ? '（デモ）' : '');
+            main.textContent = text;
+            main.style.setProperty('--int-fg', meta.fg);
+            main.classList.toggle('is-wide', text.length >= 12);
+        }
+        const sub = document.getElementById('quakeFrontSub');
+        if (sub) {
+            sub.textContent = prefix + '震源 ' + (spec.epicenter || '----') + ' / M' + quakeMagLabel_(spec.mag);
+        }
+        stage.querySelectorAll('.quake-card-side').forEach(function (card) {
+            card.className = 'quake-card quake-card-side ' + meta.cls;
+        });
+        const label = String(meta.label);
+        const wide = label.length > 1;
+        const parts = label.match(/^(\d)(弱|強)$/);
+        stage.querySelectorAll('.js-quake-side-int').forEach(function (el) {
+            el.classList.toggle('is-wide', wide);
+            if (parts) {
+                el.innerHTML = '<span class="int-num">' + parts[1] + '</span><span class="int-mod">' + parts[2] + '</span>';
+            } else {
+                el.textContent = label;
+            }
+        });
+        const act = document.getElementById('quakeAdviceAct');
+        const desc = document.getElementById('quakeAdviceDesc');
+        if (act) act.textContent = (demo ? '【デモ】' : '') + '身の安全を確保してください';
+        if (desc) desc.textContent = meta.desc || '';
+        refitQuakeText_();
+        stage.classList.add('is-enter');
+        if (quakeEnterTimerId_) clearTimeout(quakeEnterTimerId_);
+        quakeEnterTimerId_ = setTimeout(function () {
+            quakeEnterTimerId_ = null;
+            stage.classList.remove('is-enter');
+        }, 520);
+    }
+    function revealQuakeStage_() {
+        hideWeatherOverlay_();
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        const area = document.querySelector('.content-area');
+        if (area) {
+            area.classList.remove('weather-on', 'rain-on', 'typhoon-on');
+            area.style.background = '#0a0a0a';
+        }
+        if (!sceneQuake) return;
+        sceneQuake.style.display = 'flex';
+        sceneQuake.classList.add('active');
+        sceneQuake.style.transform = 'translateX(0px)';
+        sceneQuake.style.visibility = 'visible';
+        sceneQuake.style.opacity = '1';
+        sceneQuake.style.zIndex = '80';
+        requestAnimationFrame(refitQuakeText_);
+    }
+    function stopQuakeDemoLoop_() {
+        if (quakeDemoTimerId_) { clearTimeout(quakeDemoTimerId_); quakeDemoTimerId_ = null; }
+    }
+    function startQuakeDemoLoop_() {
+        stopQuakeDemoLoop_();
+        let i = 0;
+        applyQuakeBoard_(QUAKE_DEMO_SCENES[0]);
+        revealQuakeStage_();
+        quakeDemoTimerId_ = setTimeout(function tick() {
+            i = (i + 1) % QUAKE_DEMO_SCENES.length;
+            applyQuakeBoard_(QUAKE_DEMO_SCENES[i]);
+            quakeDemoTimerId_ = setTimeout(tick, QUAKE_DEMO_STEP_MS);
+        }, QUAKE_DEMO_STEP_MS);
+    }
+    function showQuakeOnWarnScene_() {
+        if (quakeTimerId_) { clearTimeout(quakeTimerId_); quakeTimerId_ = null; }
+        stopQuakeDemoLoop_();
+        if (DEMO_QUAKE_ONLY) {
+            quakeShownThisPass_ = true;
+            startQuakeDemoLoop_();
+            return;
+        }
+        if (!quakeActive || !sceneQuake) {
+            quakeShownThisPass_ = true;
+            transitionToScene(s4, playScene4);
+            return;
+        }
+        const q = quakeActive;
+        applyQuakeBoard_({
+            localInt: q.shindo,
+            epicenter: q.place || '----',
+            mag: q.mag || '--',
+            city: rainWarnMeta.cityName || getSiteLocationLabel_(),
+            demo: false
+        });
+        revealQuakeStage_();
+        quakeShownThisPass_ = true;
+        quakeTimerId_ = setTimeout(function () {
+            quakeTimerId_ = null;
+            hideSceneEl(sceneQuake);
+            transitionToScene(s4, playScene4);
+        }, QUAKE_SCENE_MS);
+    }
+    function startQuakeOnlyPreview_() {
+        resetLogoRotation();
+        stopQuakeDemoLoop_();
+        const badge = document.getElementById('demo-badge');
+        if (badge) badge.hidden = true;
+        if (!DEMO_EMBED) document.title = '地震情報';
+        startQuakeDemoLoop_();
+    }
+    function showIssuedAlertsOrScene4_() {
+        if (quakeTimerId_) { clearTimeout(quakeTimerId_); quakeTimerId_ = null; }
+        quakeShownThisPass_ = false;
+        const singleMap = DEMO_ONLY === 'rain' || DEMO_ONLY === 'thunder' || DEMO_ONLY === 'typhoon' || DEMO_ONLY === 'rainwarn' || DEMO_ONLY === 'alert';
+        if ((DEMO_SIGNAGE && !DEMO_ONLY) || singleMap) {
+            playScene4();
+            return;
+        }
+        if (hasIssuedWarn_() && sceneRainWarn) {
+            prepRainWarn_(0);
+            transitionToScene(sceneRainWarn, function () { playSceneRainWarn(0); });
+            return;
+        }
+        if (quakeActive && sceneQuake) {
+            showQuakeOnWarnScene_();
+            return;
+        }
+        playScene4();
+    }
     function finishMainLoopToS1_() {
         if (DEMO_SIGNAGE && !DEMO_ONLY) { advanceDemoLevel(); return; }
+        if (quakeActive && !quakeShownThisPass_) {
+            showQuakeOnWarnScene_();
+            return;
+        }
+        quakeShownThisPass_ = false;
         transitionToScene(s4, playScene4);
     }
     function gotoAfterRainWarnOrScene1_() {
@@ -7070,7 +7698,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     async function startRainWarnOnlyDemo_() {
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
         if (sceneRainWarn) {
             sceneRainWarn.style.display = 'block';
             sceneRainWarn.classList.add('active');
@@ -8463,7 +9091,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                         applyWbgtInSeason_();
                         moeOk = applyWbgtSlotsToDom(wbgtSlots);
                         if (bootWeatherEarly_) cancelBootWeather_();
-                        if (!weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_) {
+                        if (!weatherShowing_ && !rainShowing_ && !thunderShowing_ && !typhoonShowing_ && !(sceneQuake && sceneQuake.classList.contains('active'))) {
                             try { playScene4(); } catch (eShow) {}
                         }
                     }
@@ -8504,6 +9132,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                     queueDisplayRefresh_();
                     const sWarn = performance.now();
                     await updateRainWarnFromGas_();
+                    await updateQuakeFromJma_();
                     timings['大雨警報'] = Math.round(performance.now() - sWarn);
                     jmaOk = true;
                 } catch (error) {
@@ -8562,7 +9191,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let bootFetchStarted_ = false;
     function kickBootFetch_() {
         if (bootFetchStarted_) return;
-        if (DEMO_SIGNAGE_ACTIVE || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY) return;
+        if (DEMO_SIGNAGE_ACTIVE || DEMO_ALERT_ONLY || DEMO_RAINWARN_ONLY || DEMO_QUAKE_ONLY) return;
         bootFetchStarted_ = true;
         runScheduledFetch({
             jma: true, moe: true, nowc: true, forecast: true, labels: ['起動']
@@ -9579,6 +10208,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     function sceneDisplayMode(el) {
         if (!el) return 'block';
         if (el.id === 'scene2' || el.id === 'scene4' || el.id === 'scene5' || el.id === 'sceneAlert' || el.id === 'sceneRainWarn') return 'block';
+        if (el.id === 'sceneQuake') return 'flex';
         if (el.id === 'scene1' || el.id === 'scene3') return 'block';
         return 'flex';
     }
@@ -10694,7 +11324,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         return true;
     }
     function showOnlyScene_(el, playFn) {
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
         if (!el) return;
         el.style.display = sceneDisplayMode(el);
         el.classList.add('active');
@@ -10722,15 +11352,15 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 case 's3': showOnlyScene_(s3, playScene3); break;
                 case 's5': showOnlyScene_(s5, playScene5); break;
                 case 'rain':
-                    [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+                    [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
                     goRainAfterWeather_();
                     break;
                 case 'thunder':
-                    [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+                    [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
                     goThunderAfterRain_();
                     break;
                 case 'typhoon':
-                    [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+                    [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
                     goTyphoonAfterRain_();
                     break;
                 default: showOnlyScene_(s4, playScene4); break;
@@ -10741,7 +11371,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     function startPreviewDemo_(sceneKey) {
         applyDemoLevel(DEMO_LEVEL_ORDER[1]);  /* 注意（黄）で見やすく */
         refreshSignageBg();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
         const badge = document.getElementById('demo-badge');
         const rainTag = rainPreviewLabel_();
         if (sceneKey === 's1') {
@@ -10763,7 +11393,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     function startSequence() {
         clearDemoStepTimer_();
         resetLogoRotation();
-        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn].forEach(hideSceneEl);
+        [s1, s2, s3, s4, s5, sceneAlert, sceneRainWarn, sceneQuake].forEach(hideSceneEl);
         transitionToScene(s4, playScene4);
     }
 
@@ -10794,6 +11424,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (DEMO_RAINWARN_ONLY) {
             endBootReveal_();
             setTimeout(startRainWarnOnlyDemo_, 300);
+            return;
+        }
+        if (DEMO_QUAKE_ONLY) {
+            endBootReveal_();
+            setTimeout(startQuakeOnlyPreview_, 300);
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
@@ -10892,7 +11527,7 @@ var SITE_JMA = SITE.jma || {};
 var SITE_MOE = SITE.moe || {};
 var SITE_GEO = SITE.geo || {};
 var SITE_SITE = SITE.site || {};
-const CONTENT_VERSION = "2026.10.26.09";
+const CONTENT_VERSION = "2026.10.26.10";
 const DATA_SOURCE_ATTR = SITE.footSource || "データ提供：気象庁、環境省";
 const LAT = SITE_GEO.lat != null ? SITE_GEO.lat : 35.445427;
 const LON = SITE_GEO.lon != null ? SITE_GEO.lon : 135.299683;
@@ -11593,8 +12228,29 @@ function applyTempTextColor_(sel, t) {
 
 function setAll(sel, htmlOrText, asHtml) {
   document.querySelectorAll(sel).forEach(function(el) {
-    if (asHtml) el.innerHTML = htmlOrText;
-    else el.textContent = htmlOrText;
+    if (asHtml) {
+      if (el.innerHTML === htmlOrText) return;
+      el.innerHTML = htmlOrText;
+    } else if (el.textContent !== htmlOrText) {
+      el.textContent = htmlOrText;
+    }
+  });
+}
+/** テロップは文が変わっても再生位置を保ち、同じ文なら触らない */
+function setMarqueeHtml_(sel, html) {
+  document.querySelectorAll(sel).forEach(function (el) {
+    if (el.innerHTML === html) return;
+    var t = null;
+    try {
+      var anims = el.getAnimations ? el.getAnimations() : [];
+      if (anims.length && anims[0].currentTime != null) t = anims[0].currentTime;
+    } catch (eAnim) {}
+    el.innerHTML = html;
+    if (t == null) return;
+    try {
+      var next = el.getAnimations ? el.getAnimations() : [];
+      if (next.length) next[0].currentTime = t;
+    } catch (eKeep) {}
   });
 }
 
@@ -11772,7 +12428,8 @@ function fillUI(w, todayHi, todayLo) {
   var dateTxt = (now.getMonth() + 1) + "/" + now.getDate();
   var hi = todayHi == null ? "--" + u("℃") : nu(todayHi, "℃");
   var lo = todayLo == null ? "--" + u("℃") : nu(todayLo, "℃");
-  var sub = LOCATION_CITY + " · 体感 " + nu(w.feels, "℃") + " · 湿度 " + nu(w.hum, "%") + " · " + nu(w.pressure, "hPa") + " · " + DATA_SOURCE_ATTR;
+  var cityName = String((SITE_JMA && SITE_JMA.forecastLabel) || LOCATION_CITY || "").trim();
+  var sub = cityName + " · 体感 " + nu(w.feels, "℃") + " · 湿度 " + nu(w.hum, "%") + " · " + nu(w.pressure, "hPa");
   var values = {
     windDir: windDir(w.windDeg),
     windSpd: fmtMs(w.windSpd),
@@ -11791,7 +12448,7 @@ function fillUI(w, todayHi, todayLo) {
   setAll(".js-pressure", nu(w.pressure, "hPa"), true);
   setAll(".js-hero-temp", nu(w.temp, "℃"), true);
   setAll(".js-hero-desc", w.desc || "--");
-  setAll(".js-hero-sub", sub + "　　" + sub, true);
+  setMarqueeHtml_(".js-hero-sub", sub);
   document.querySelectorAll(".js-hero-icon").forEach(function(el) {
     var url = (window.JmaWeatherIcons && lastForecastCode != null && lastForecastCode !== "") ? JmaWeatherIcons.url(lastForecastCode) : "";
     if (url) {
@@ -11979,21 +12636,33 @@ function playSidesCrossSwap_() {
 
 var sideSwitchTimers_ = Object.create(null); /* 互換（縦テロップ化後は未使用） */
 var sideTickerRaf_ = 0;
+var sideTickerWatchId_ = 0;
+var sideTickerAlive_ = false;
 var sideTickerParts_ = null; /* { left, right, paneH, travel } */
 
 function stopSideTicker_() {
+  sideTickerAlive_ = false;
   if (sideTickerRaf_) {
     cancelAnimationFrame(sideTickerRaf_);
     sideTickerRaf_ = 0;
+  }
+  if (sideTickerWatchId_) {
+    clearInterval(sideTickerWatchId_);
+    sideTickerWatchId_ = 0;
   }
   sideTickerParts_ = null;
 }
 /** 左右テロップをペイン境界で止めて静止（末尾ホールド用。半端表示を消す） */
 function freezeSideTickerHold_() {
   var parts = sideTickerParts_;
+  sideTickerAlive_ = false;
   if (sideTickerRaf_) {
     cancelAnimationFrame(sideTickerRaf_);
     sideTickerRaf_ = 0;
+  }
+  if (sideTickerWatchId_) {
+    clearInterval(sideTickerWatchId_);
+    sideTickerWatchId_ = 0;
   }
   if (!parts || !parts.left || !parts.right) return;
   var paneH = Math.max(1, parts.left.paneH || parts.right.paneH || 0);
@@ -12085,7 +12754,11 @@ function buildSideTicker_(stackName, startIndex) {
     parked[i].style.flex = "0 0 0px";
     track.appendChild(parked[i]);
   }
-  var cycleH = n * paneH;
+  /* 実測高さで周回する。n×paneH だと端数で継ぎ目が飛んでたまに引っかかる */
+  var cycleH = 0;
+  var ci;
+  for (ci = 0; ci < n; ci++) cycleH += track.children[ci].offsetHeight;
+  if (cycleH < 1) cycleH = n * paneH;
   /* 上から下：開始は -cycleH（複製側）、0 へ向かって下方向へ動かす */
   track.style.transform = "translate3d(0," + (-cycleH) + "px,0)";
   return {
@@ -12120,20 +12793,38 @@ function startSideTickerMotion_() {
   var cycleMs = SIDE_MS * n;
   sideTickerParts_ = { left: left, right: right, cycleH: cycleH };
   if (cycleH < 1) return;
-  /* 開始 Y=-cycleH → 0（トラックが下へ＝画面上は上から下） */
-  left.track.style.transform = "translate3d(0," + (-cycleH) + "px,0)";
-  right.track.style.transform = "translate3d(0," + (-cycleH) + "px,0)";
-  var t0 = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  /* 各面は自分の高さで周回。共通の進行率なので左右のテンポは揃い、継ぎ目は飛ばない */
+  left.track.style.transform = "translate3d(0," + (-left.cycleH) + "px,0)";
+  right.track.style.transform = "translate3d(0," + (-right.cycleH) + "px,0)";
+  sideTickerAlive_ = true;
+  var pos = 0;
+  var last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  var tickWall = Date.now();
   function frame(now) {
-    if (!weatherRunning_) { sideTickerRaf_ = 0; return; }
+    if (!sideTickerAlive_ || !weatherRunning_) { sideTickerRaf_ = 0; return; }
     var t = (typeof now === "number") ? now : ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now());
-    var dist = Math.max(0, (t - t0) / cycleMs) * cycleH;
-    var y = -cycleH + (dist % cycleH);
-    left.track.style.transform = "translate3d(0," + y.toFixed(2) + "px,0)";
-    right.track.style.transform = "translate3d(0," + y.toFixed(2) + "px,0)";
+    tickWall = Date.now();
+    var dt = t - last;
+    last = t;
+    if (!(dt > 0)) dt = 0;
+    /* 描画が空いたとき一気に飛ばさない。止まった時間は捨てて同じ速度で続ける */
+    if (dt > 48) dt = 48;
+    pos += dt / cycleMs;
+    if (pos >= 1) pos -= Math.floor(pos);
+    left.track.style.transform = "translate3d(0," + ((-left.cycleH) * (1 - pos)).toFixed(2) + "px,0)";
+    right.track.style.transform = "translate3d(0," + ((-right.cycleH) * (1 - pos)).toFixed(2) + "px,0)";
     sideTickerRaf_ = requestAnimationFrame(frame);
   }
   sideTickerRaf_ = requestAnimationFrame(frame);
+  sideTickerWatchId_ = setInterval(function () {
+    if (!sideTickerAlive_ || !weatherRunning_) return;
+    if (document.visibilityState === "hidden") return;
+    if (Date.now() - tickWall > 800) {
+      last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+      if (sideTickerRaf_) cancelAnimationFrame(sideTickerRaf_);
+      sideTickerRaf_ = requestAnimationFrame(frame);
+    }
+  }, 500);
 }
 
 /** 互換：index だけ更新（syncSides_ は呼ぶ側で行う。相互呼び出し禁止） */
@@ -12261,7 +12952,7 @@ const SIDE_OFFSET = 4; /* 初期位相（左右で同じ枠を同時表示しな
 const SIDE_MS = 2400; /* 左右テロップの基準テンポ／正面間隔算出用 */
 const SIDE_LR_PHASE_MS = 0; /* 互換 */
 const SIDE_STEPS_PER_FRONT = 2; /* 正面は左右基準2拍に1回 */
-const WEATHER_START_HOLD_MS = SIDE_MS; /* 天気着地後、流れ開始まで2.4秒静止（最初の静止画） */
+const WEATHER_START_HOLD_MS = 900; /* 天気着地後、流れ開始まで。最初の静止は短く */
 const SIDE_TICKER_END_HOLD_MS = SIDE_MS; /* 互換 */
 const SIDE_TICKER_SCROLL_MS = SIDE_MS * SIDE_COUNT; /* 1周分の目安（実際は WBGT まで無限ループ） */
 const SIDE_FRONT_GAP_MS = 800; /* 互換用（同期駆動では未使用） */
@@ -12384,8 +13075,11 @@ function showFinaleClockThenExit_() {
   }
   frontAnim = true;
   noteFrontSwitch_();
+  elClock.style.transition = "none";
   clearCard(elClock);
   elClock.classList.add("is-enter");
+  void elClock.offsetWidth;
+  elClock.style.transition = "";
   void elClock.offsetWidth;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -12478,12 +13172,17 @@ function startMeteoRafLoop_(oneLap) {
     half = Math.max(80, half | 0);
     var dur = Math.max(METEO_TICKER_MS, half * 12); /* 文言が長いほど遅く、読み切れる速度 */
     var speed = half / (dur / 1000);
-    var t0 = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    var last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    var dist = 0;
     function frame(now) {
       if (!weatherRunning_) { meteoRaf_ = 0; return; }
       if (topIdx !== METEO_CARD && bottomIdx !== METEO_CARD) { meteoRaf_ = 0; return; }
       var t = (typeof now === "number") ? now : ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now());
-      var dist = Math.max(0, (t - t0) / 1000) * speed;
+      var dt = t - last;
+      last = t;
+      if (!(dt > 0)) dt = 0;
+      if (dt > 48) dt = 48;
+      dist += (dt / 1000) * speed;
       if (oneLap && dist >= half) {
         document.querySelectorAll(".js-meteo-ticker").forEach(function (el) {
           el.style.transform = "translate3d(" + (-half) + "px,0,0)";
@@ -12650,9 +13349,12 @@ function frontStep() {
     clearTimeout(frontAnimTimer_);
     frontAnimTimer_ = 0;
   }
-  /* is-wait → is-enter を1フレーム確定してから is-top へ（LED/Chromium で transition 必須） */
+  /* is-wait は transition:none。一度確定してから動かさないと、たまに瞬時に切り替わる */
+  elEnter.style.transition = "none";
   clearCard(elEnter);
   elEnter.classList.add("is-enter");
+  void elEnter.offsetWidth;
+  elEnter.style.transition = "";
   void elEnter.offsetWidth;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -12809,8 +13511,11 @@ function beginMeteoTailThenExit_() {
   }
   frontAnim = true;
   noteFrontSwitch_();
+  elMeteo.style.transition = "none";
   clearCard(elMeteo);
   elMeteo.classList.add("is-enter");
+  void elMeteo.offsetWidth;
+  elMeteo.style.transition = "";
   void elMeteo.offsetWidth;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -13062,7 +13767,7 @@ window.addEventListener("pageshow", function (ev) {
 </body>
 <!--
 改修要約（即起動・永続動作 / 実務版）:
-- CONTENT_VER 2026.10.26.09（?v= で HTML 取り直し） / clock jst-network-v5
+- CONTENT_VER 2026.10.26.10（?v= で HTML 取り直し） / clock jst-network-v5
 - 再生: WBGT → 天気 → 雨雲(1周) → 雷ナウキャスト(1周) → 台風(広域→付近→各号を1周)
 - 本番 s4: 旧シーン(scene1/2/3/5)を DOM から削除。天気中は display:none で映り込み防止
 - フォント: Google Fonts + display=swap

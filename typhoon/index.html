@@ -1352,6 +1352,39 @@
     return { big: '接近なし', sub: IMPACT_NAME + 'へ直接接近なし' };
   }
 
+  function kmBetween_(lat1, lon1, lat2, lon2) {
+    var R = 6371;
+    var toRad = Math.PI / 180;
+    var dLat = (lat2 - lat1) * toRad;
+    var dLon = (lon2 - lon1) * toRad;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+      + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+
+  /* 実況か予報が現場から500km以内（暴風域・予報円が届く場合を含む） */
+  function stormApproachesSite_(storm) {
+    var site = CFG.osaka;
+    if (!site || !storm) return false;
+    var pts = forecastTimeline(storm);
+    var i;
+    for (i = 0; i < pts.length; i++) {
+      var p = pts[i];
+      var reach = Math.max(Number(p.rKm) || 0, Number(p.galeKm) || 0, Number(p.stormKm) || 0);
+      if (kmBetween_(site[0], site[1], p.lat, p.lon) - reach <= 500) return true;
+    }
+    var loc = ((storm.analysis && storm.analysis.location) || '');
+    return IMPACT_MATCH.some(function (name) { return name && loc.indexOf(name) >= 0; });
+  }
+
+  function anyStormApproaches_() {
+    var i;
+    for (i = 0; i < storms.length; i++) {
+      if (stormApproachesSite_(storms[i])) return true;
+    }
+    return false;
+  }
+
   function shortStormLabel(s) {
     var no = typhoonNo(s && s.id);
     if (no) return no + '号';
@@ -1658,28 +1691,16 @@
     }
   }
 
+  var frameFit = null;
+
   function syncSideFrames() {
-    if (!map || !sideMaps || !sideMaps.length) return;
-    var c, z;
-    try {
-      c = map.getCenter();
-      z = map.getZoom();
-    } catch (e0) { return; }
-    for (var i = 0; i < sideMaps.length; i++) {
-      try { sideMaps[i].setView(c, z, { animate: false }); } catch (e1) {}
-    }
+    if (!frameFit) return;
+    fitBoundsAll(frameFit.bounds, frameFit.maxZ, frameFit.minZ, frameFit.center, true);
   }
 
-  function fitBoundsAll(bounds, maxZ, minZ, center) {
+  function fitBoundsAll(bounds, maxZ, minZ, center, keep) {
     if (!map) return;
-    var z;
-    try {
-      z = map.getBoundsZoom(bounds, false, L.point(2, 4));
-    } catch (e0) {
-      z = map.getZoom();
-    }
-    if (maxZ != null && z > maxZ) z = maxZ;
-    if (minZ != null && z < minZ) z = minZ;
+    if (!keep) frameFit = { bounds: bounds, maxZ: maxZ, minZ: minZ, center: center || null };
     var c = center;
     if (!c) {
       try { c = L.latLngBounds(bounds).getCenter(); }
@@ -1688,7 +1709,13 @@
     var maps = [map];
     for (var i = 0; i < sideMaps.length; i++) maps.push(sideMaps[i]);
     for (var j = 0; j < maps.length; j++) {
-      try { maps[j].setView(c, z, { animate: false }); } catch (e2) {}
+      var m = maps[j];
+      var z;
+      try { z = m.getBoundsZoom(bounds, false, L.point(12, 12)); }
+      catch (e0) { z = m.getZoom(); }
+      if (maxZ != null && z > maxZ) z = maxZ;
+      if (minZ != null && z < minZ) z = minZ;
+      try { m.setView(c, z, { animate: false }); } catch (e2) {}
     }
   }
 
@@ -2362,9 +2389,9 @@
     });
     var midLat = (minLat + maxLat) / 2;
     var midLon = (minLon + maxLon) / 2;
-    /* 最低スパンを小さめにして、よりアップで見せる（約600〜900km相当） */
-    var minLatSpan = 5.5;
-    var minLonSpan = 7.0;
+    /* 予報円が画面いっぱいにならない程度の距離 */
+    var minLatSpan = 6.5;
+    var minLonSpan = 8.5;
     var latSpan = maxLat - minLat;
     var lonSpan = maxLon - minLon;
     if (latSpan < minLatSpan) {
@@ -2375,8 +2402,8 @@
       minLon = midLon - minLonSpan / 2;
       maxLon = midLon + minLonSpan / 2;
     }
-    var padLat = Math.max((maxLat - minLat) * 0.05, 0.25);
-    var padLon = Math.max((maxLon - minLon) * 0.05, 0.3);
+    var padLat = Math.max((maxLat - minLat) * 0.32, 0.8);
+    var padLon = Math.max((maxLon - minLon) * 0.32, 1.0);
     return [
       [minLat - padLat, minLon - padLon],
       [maxLat + padLat, maxLon + padLon]
@@ -2477,11 +2504,11 @@
       return;
     }
 
-    /* ○号拡大：もっとアップで予報円に寄せる */
+    /* ○号拡大：予報円の外側まで入る距離 */
     var zBounds = collectZoomBounds(focus);
     var zExtent = zoomExtent(zBounds);
     if (zExtent) {
-      fitBoundsAll(zExtent, 8, 5);
+      fitBoundsAll(zExtent, 6, 3);
       return;
     }
     fitFixedFrame(CFG.nearSW, CFG.nearNE, CFG.nearCenter, 5, 4);
@@ -2642,6 +2669,18 @@
       clearInterval(rotateTimer);
       clearTimeout(rotateTimer);
       rotateTimer = null;
+    }
+    /* 本編は現場へ接近している台風だけ出す。確認用URLは gate なしで常に出す */
+    if (embedded && qsGeo.get('gate') === '1' && !anyStormApproaches_()) {
+      notifyTyphoonPassDone_();
+      return;
+    }
+    if (embedded && qsGeo.get('gate') === '1') {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'typhoon-status', show: true }, '*');
+        }
+      } catch (eGate) {}
     }
     /* 発表なしも1画面分だけ見せて終了 */
     if (!storms.length) {
