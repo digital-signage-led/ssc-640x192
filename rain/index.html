@@ -86,48 +86,36 @@
       text-size-adjust: 100%;
     }
 
-    /* サイネージ: 窓全体を使い、下の黒帯（隙間）を作らない */
-    html.native-640, body.native-640 {
-      width: 100% !important;
-      height: 100% !important;
-      min-width: 0 !important;
-      min-height: 0 !important;
-      max-width: none !important;
-      max-height: none !important;
+    /* サイネージ本体と同じ。640×192 等倍。拡大すると実機と解像度がずれる */
+    html.native-640, body.native-640,
+    html.rain-embed, html.rain-embed body, body.rain-embed {
+      width: 640px !important;
+      height: 192px !important;
+      min-width: 640px !important;
+      min-height: 192px !important;
+      max-width: 640px !important;
+      max-height: 192px !important;
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden !important;
       background: #000 !important;
-    }
-    /* 親サイネージ内: 常に 640×192 等倍（窓リサイズしない） */
-    html.rain-embed, html.rain-embed body,
-    body.rain-embed {
-      width: 640px !important;
-      height: 192px !important;
-      max-width: 640px !important;
-      max-height: 192px !important;
-      position: relative !important;
-      left: 0 !important;
-      top: 0 !important;
-      right: auto !important;
-      bottom: auto !important;
-      overflow: hidden !important;
-      background: #000 !important;
+      -webkit-text-size-adjust: 100% !important;
+      text-size-adjust: 100% !important;
+      zoom: 1 !important;
     }
     html.rain-embed #stage,
-    body.rain-embed #stage {
+    body.rain-embed #stage,
+    html.native-640 #stage,
+    body.native-640 #stage {
       transform: none !important;
-      position: absolute !important;
-      left: 0 !important;
-      top: 0 !important;
     }
     body,
     body.native-640 {
       position: fixed !important;
       left: 0 !important;
       top: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
+      right: auto !important;
+      bottom: auto !important;
     }
     #stage,
     body.native-640 #stage {
@@ -163,24 +151,66 @@
     .face-side {
       width: 128px !important;
       flex: 0 0 128px;
-      background: #6a7078;
+      background: #0E7BC4;
       display: flex;
       flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+    }
+    .side-band {
+      width: 128px;
+      background: #0E7BC4 !important;
+      color: #fff !important;
+      display: flex;
       align-items: center;
       justify-content: center;
-    }
-    .side-radar {
-      width: 128px;
-      height: 128px;
-      flex: 0 0 128px;
-      position: relative;
       overflow: hidden;
-      background: #6a7078;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 5;
+      flex-shrink: 0;
     }
-    .side-radar .leaflet-container {
+    .side-band-top {
+      flex: 0 0 40px;
+      height: 40px;
+    }
+    .side-band-bottom {
+      flex: 0 0 24px;
+      height: 24px;
+    }
+    .side-clock {
+      display: block;
       width: 128px;
-      height: 128px;
-      background: #6a7078;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 40px;
+      height: 40px;
+      letter-spacing: 0;
+      color: #fff !important;
+      font-variant-numeric: tabular-nums;
+      font-family: "Meiryo UI", Meiryo, sans-serif;
+    }
+    .side-date {
+      max-width: 124px;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 24px;
+      height: 24px;
+      letter-spacing: 0;
+      color: #fff !important;
+      white-space: nowrap;
+      font-family: "Meiryo UI", Meiryo, sans-serif;
+    }
+    .side-radar,
+    .side-radar.leaflet-container {
+      width: 128px !important;
+      height: 128px !important;
+      flex: 0 0 128px;
+      position: relative !important;
+      overflow: hidden;
+      background: #8f979e !important;
+      z-index: 1;
     }
     #faceRight.face-side {
       /* right foot is taller */
@@ -299,7 +329,7 @@
       margin-top: 2px;
     }
 
-    /* ===== 正面：地図（暗い下地＋雨色が立つ。商用天気アプリの複製にはしない） ===== */
+    /* ===== 正面：陸も海も単色。県境だけ細い線 ===== */
     #map {
       position: absolute;
       left: 0;
@@ -307,21 +337,30 @@
       z-index: 0;
       width: 384px !important;
       height: 192px !important;
-      background: #6a7078 !important;
+      background: #8f979e !important;
     }
     #map.leaflet-container {
       width: 384px !important;
       height: 192px !important;
-      background: #6a7078 !important;
+      background: #8f979e !important;
     }
     .leaflet-basemap-pane { z-index: 200 !important; }
+    .leaflet-basemap-pane .leaflet-layer {
+      filter: none;
+    }
     .leaflet-veil-pane {
       z-index: 350 !important;
-      background: rgba(90, 96, 104, 0.78) !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: transparent !important;
       pointer-events: none !important;
     }
     .leaflet-radar-pane { z-index: 450 !important; }
     .leaflet-radar-pane img.radar-layer { mix-blend-mode: normal; }
+    .leaflet-borders-pane {
+      z-index: 455 !important;
+      pointer-events: none !important;
+    }
     .leaflet-place-pane { z-index: 460 !important; }
     .place-label {
       background: transparent !important;
@@ -331,21 +370,22 @@
       display: inline-block;
       font-size: 11px;
       font-weight: 800;
-      color: rgba(236, 244, 255, .92);
+      color: #1a2330;
       letter-spacing: .08em;
       padding: 0;
       white-space: nowrap;
       line-height: 1.1;
       text-shadow:
-        0 0 4px #000,
-        0 1px 2px #000,
-        1px 0 2px #000,
-        -1px 0 2px #000;
+        0 0 3px #fff,
+        0 1px 0 #fff,
+        -1px 0 0 #fff,
+        0 -1px 0 #fff,
+        1px 0 0 #fff;
     }
     .place-label.major > span {
       font-size: 14px;
       font-weight: 900;
-      color: #fff;
+      color: #1a2330;
       letter-spacing: .12em;
     }
     .site-pin {
@@ -611,7 +651,9 @@
   <div id="stage">
     <!-- 左面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceLeft" aria-label="左面 雨雲">
+      <div class="side-band side-band-top" aria-label="時刻"><span class="side-clock">--:--</span></div>
       <div class="side-radar" id="mapSideLeft"></div>
+      <div class="side-band side-band-bottom" aria-label="日付"><span class="side-date">--</span></div>
     </section>
 
     <!-- 正面 384×192：雨雲の動き -->
@@ -646,7 +688,9 @@
 
     <!-- 右面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceRight" aria-label="右面 雨雲">
+      <div class="side-band side-band-top" aria-label="時刻"><span class="side-clock">--:--</span></div>
       <div class="side-radar" id="mapSideRight"></div>
+      <div class="side-band side-band-bottom" aria-label="日付"><span class="side-date">--</span></div>
     </section>
   </div>
 
@@ -660,6 +704,65 @@
    * 現場サイネージ（自販機筐体 640×192 / 3面）向け。
    * 雨雲の動きを正面に示し、左面で「あと何分で雨か」の作業判断目安を出す。
    */
+
+  var SIDE_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+  var clockInkCtx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  /* 数字の太さが違うと枠の中央より右に見える。インクの中心を128の中央へ戻す */
+  function clockInkNudge(text, font) {
+    var ctx = clockInkCtx;
+    ctx.font = font;
+    var layoutW = ctx.measureText(text).width;
+    var width = Math.ceil(layoutW) + 16;
+    var canvas = ctx.canvas;
+    canvas.width = width;
+    canvas.height = 48;
+    ctx.font = font;
+    ctx.fillStyle = '#fff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 8, 24);
+    var data = ctx.getImageData(0, 0, width, 48).data;
+    var min = width;
+    var max = 0;
+    var found = false;
+    for (var i = 0; i < data.length; i += 4) {
+      if (data[i + 3] > 40) {
+        var x = (i / 4) % width;
+        if (x < min) min = x;
+        if (x > max) max = x;
+        found = true;
+      }
+    }
+    if (!found) return 0;
+    var inkMid = (min + max) / 2 - 8;
+    return Math.round((layoutW / 2 - inkMid) * 10) / 10;
+  }
+  function paintSideClock() {
+    var parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(new Date());
+    var p = {};
+    parts.forEach(function (x) { p[x.type] = x.value; });
+    var hour = p.hour === '24' ? '00' : p.hour;
+    var dateTxt = Number(p.month) + '月' + Number(p.day) + '日(' +
+      SIDE_WEEKDAYS[new Date(p.year + '-' + p.month + '-' + p.day + 'T12:00:00+09:00').getUTCDay()] + ')';
+    var clockText = hour + ':' + p.minute;
+    document.querySelectorAll('.side-clock').forEach(function (el) {
+      el.textContent = clockText;
+      el.style.transform = 'none';
+    });
+    document.querySelectorAll('.side-date').forEach(function (el) {
+      el.textContent = dateTxt;
+    });
+  }
+  paintSideClock();
+  setInterval(paintSideClock, 1000);
 
   if (typeof L === 'undefined') {
     document.getElementById('toast').innerHTML = '地図ライブラリ読込失敗<br>start.bat で開いてください';
@@ -764,25 +867,14 @@
 
   function fitStage() {
     var stage = document.getElementById('stage');
+    if (!stage) return;
     stage.style.left = '0';
     stage.style.top = '0';
     stage.style.marginLeft = '0';
     stage.style.marginTop = '0';
     stage.style.transformOrigin = '0 0';
-    if (embedded) {
+    if (native || embedded) {
       stage.style.transform = 'none';
-      return;
-    }
-    if (native) {
-      var vw = window.innerWidth || CFG.width;
-      var vh = window.innerHeight || CFG.height;
-      var sx = vw / CFG.width;
-      var sy = vh / CFG.height;
-      if (!isFinite(sx) || sx <= 0) sx = 1;
-      if (!isFinite(sy) || sy <= 0) sy = 1;
-      /* 縦横比を保ったまま窓を埋め、下の黒帯（隙間）を消す */
-      var s = Math.max(sx, sy);
-      stage.style.transform = (Math.abs(s - 1) < 0.01) ? 'none' : ('scale(' + s + ')');
       return;
     }
     var sp = Math.min(window.innerWidth / CFG.width, window.innerHeight / CFG.height);
@@ -790,22 +882,36 @@
     stage.style.transform = 'scale(' + sp + ')';
   }
 
-  /* 可能な範囲で内寸を 640×192 に近づける（iframe 内では親窓を動かさない） */
+  /* サイネージ本体と同じ 640×192 等倍。iframe 内では親窓を動かさない */
   function ensureNativeViewport(done) {
     if (!native || embedded) {
       fitStage();
       if (done) done();
       return;
     }
-    try {
-      window.moveTo(0, 0);
-      var chromeX = Math.max(0, window.outerWidth - window.innerWidth);
-      var chromeY = Math.max(0, window.outerHeight - window.innerHeight);
-      window.resizeTo(CFG.width + chromeX, CFG.height + chromeY);
-      window.moveTo(0, 0);
-    } catch (e1) {}
-    fitStage();
-    if (done) done();
+    var tries = 0;
+    function tick() {
+      tries += 1;
+      try {
+        var chromeX = Math.max(0, window.outerWidth - window.innerWidth);
+        var chromeY = Math.max(0, window.outerHeight - window.innerHeight);
+        window.resizeTo(CFG.width + chromeX, CFG.height + chromeY);
+        chromeX = Math.max(0, window.outerWidth - window.innerWidth);
+        chromeY = Math.max(0, window.outerHeight - window.innerHeight);
+        var leftPad = Math.floor(chromeX / 2);
+        window.moveTo(-leftPad, -chromeY);
+      } catch (e1) {}
+      fitStage();
+      var ok = Math.abs(window.innerWidth - CFG.width) <= 1
+        && Math.abs(window.innerHeight - CFG.height) <= 1;
+      if (!ok && tries < 12) {
+        setTimeout(tick, 60);
+        return;
+      }
+      fitStage();
+      if (done) done();
+    }
+    tick();
   }
 
   function waitMapBox(done) {
@@ -845,7 +951,7 @@
 
   /* 気象庁・地理院へブラウザから直接取得（特定PCのプロキシに依存しない） */
   var JMA_ORIGIN = 'https://www.jma.go.jp';
-  var GSI_BLANK = 'https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png';
+  var GSI_PALE = 'https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png';
   var apiBase = ''; /* 任意: ?api=http://host:8765 で旧プロキシ経由 */
 
   var apiFromQuery = (qs.get('api') || '').replace(/\/$/, '');
@@ -899,6 +1005,7 @@
   /* ========== 地図（正面 384×192） ========== */
   var map = null;
   var baseLayer = null;
+  var borderLayer = null;
 
   function fixMapSize() {
     if (!map) return;
@@ -907,6 +1014,16 @@
     el.style.height = '192px';
     map.invalidateSize({ animate: false, pan: false });
     map.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });
+    if (!sideMaps) return;
+    sideMaps.forEach(function (m) {
+      var box = m.getContainer();
+      if (box) {
+        box.style.width = '128px';
+        box.style.height = '128px';
+      }
+      m.invalidateSize({ animate: false, pan: false });
+      m.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });
+    });
   }
 
   var PLACE_LABELS = [
@@ -950,10 +1067,15 @@
     map.createPane('veil');
     map.getPane('veil').style.zIndex = 350;
     map.getPane('veil').style.pointerEvents = 'none';
-    map.getPane('veil').style.background = 'rgba(90, 96, 104, 0.78)';
+    map.getPane('veil').style.background = 'transparent';
+    map.getPane('veil').style.width = '100%';
+    map.getPane('veil').style.height = '100%';
     map.createPane('radar');
     map.getPane('radar').style.zIndex = 450;
     map.getPane('radar').style.pointerEvents = 'none';
+    map.createPane('borders');
+    map.getPane('borders').style.zIndex = 455;
+    map.getPane('borders').style.pointerEvents = 'none';
     map.createPane('places');
     map.getPane('places').style.zIndex = 460;
     map.getPane('places').style.pointerEvents = 'none';
@@ -1010,16 +1132,158 @@
     m.createPane('veil');
     m.getPane('veil').style.zIndex = 350;
     m.getPane('veil').style.pointerEvents = 'none';
-    m.getPane('veil').style.background = 'rgba(90, 96, 104, 0.78)';
+    m.getPane('veil').style.background = 'transparent';
+    m.getPane('veil').style.width = '100%';
+    m.getPane('veil').style.height = '100%';
     m.createPane('radar');
     m.getPane('radar').style.zIndex = 450;
     m.getPane('radar').style.pointerEvents = 'none';
+    m.createPane('borders');
+    m.getPane('borders').style.zIndex = 455;
+    m.getPane('borders').style.pointerEvents = 'none';
+  }
+
+  /* 県境だけ。白地図は市区町村界と海岸線が県境と並ぶので使わない */
+  var borderData_ = null;
+  var borderWait_ = [];
+  var borderLoading_ = false;
+
+  function loadPrefBorders_() {
+    if (borderData_ || borderLoading_) return;
+    borderLoading_ = true;
+    fetch('pref-borders.geojson', { cache: 'force-cache' }).then(function (res) {
+      if (!res.ok) throw new Error('border');
+      return res.json();
+    }).then(function (data) {
+      borderData_ = data;
+      borderLoading_ = false;
+      borderWait_.splice(0).forEach(function (fn) { fn(data); });
+    }).catch(function () {
+      borderLoading_ = false;
+      borderWait_.splice(0);
+    });
+  }
+
+  function whenPrefBorders_(fn) {
+    if (borderData_) { fn(borderData_); return; }
+    borderWait_.push(fn);
+    loadPrefBorders_();
+  }
+
+  function makeBorderLayer_() {
+    var group = L.layerGroup();
+    whenPrefBorders_(function (data) {
+      L.geoJSON(data, {
+        pane: 'borders',
+        interactive: false,
+        style: {
+          color: '#2c3540',
+          weight: 1.6,
+          opacity: 0.9,
+          fill: false,
+          smoothFactor: 0,
+          lineCap: 'round',
+          lineJoin: 'round'
+        }
+      }).eachLayer(function (layer) {
+        group.addLayer(layer);
+      });
+    });
+    return group;
+  }
+
+  /* 淡色地図の道路・注記を捨て、陸と海をそれぞれ1色にする */
+  var FLAT_LAND = [143, 151, 158];
+  var FLAT_WATER = [236, 240, 242];
+
+  function isWaterPixel_(r, g, b) {
+    return b > 168 && (b - r) > 30 && (b - g) > 8;
+  }
+
+  function paintFlatTile_(tile, coords, done) {
+    var ctx = tile.getContext('2d');
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function () {
+      var w = tile.width;
+      var h = tile.height;
+      ctx.drawImage(img, 0, 0, w, h);
+      try {
+        var frame = ctx.getImageData(0, 0, w, h);
+        var d = frame.data;
+        var mask = new Uint8Array(w * h);
+        var y, x, i;
+        for (y = 0; y < h; y++) {
+          for (x = 0; x < w; x++) {
+            i = (y * w + x) * 4;
+            if (isWaterPixel_(d[i], d[i + 1], d[i + 2])) mask[y * w + x] = 1;
+          }
+        }
+        for (y = 0; y < h; y++) {
+          for (x = 0; x < w; x++) {
+            var count = 0;
+            var dy, dx, yy, xx;
+            for (dy = -1; dy <= 1; dy++) {
+              yy = y + dy;
+              if (yy < 0 || yy >= h) continue;
+              for (dx = -1; dx <= 1; dx++) {
+                xx = x + dx;
+                if (xx < 0 || xx >= w) continue;
+                count += mask[yy * w + xx];
+              }
+            }
+            var rgb = count >= 6 ? FLAT_WATER : FLAT_LAND;
+            i = (y * w + x) * 4;
+            d[i] = rgb[0];
+            d[i + 1] = rgb[1];
+            d[i + 2] = rgb[2];
+            d[i + 3] = 255;
+          }
+        }
+        ctx.putImageData(frame, 0, 0);
+      } catch (eFlat) {
+        ctx.fillStyle = '#8f979e';
+        ctx.fillRect(0, 0, tile.width, tile.height);
+      }
+      if (done) done(null, tile);
+    };
+    img.onerror = function () {
+      ctx.fillStyle = '#8f979e';
+      ctx.fillRect(0, 0, tile.width, tile.height);
+      if (done) done(null, tile);
+    };
+    img.src = GSI_PALE
+      .replace('{z}', String(coords.z))
+      .replace('{x}', String(coords.x))
+      .replace('{y}', String(coords.y));
+  }
+
+  var FlatBaseLayer_ = L.GridLayer.extend({
+    createTile: function (coords, done) {
+      var tile = document.createElement('canvas');
+      var size = this.getTileSize();
+      tile.width = size.x;
+      tile.height = size.y;
+      paintFlatTile_(tile, coords, done);
+      return tile;
+    }
+  });
+
+  function makeFlatBaseLayer_(paneOpts) {
+    return new FlatBaseLayer_(L.extend({
+      pane: 'basemap',
+      maxZoom: 14,
+      maxNativeZoom: 14,
+      keepBuffer: 6,
+      updateWhenIdle: false,
+      tileSize: 256
+    }, paneOpts || {}));
   }
 
   function makeRadarLayer_(frame) {
     return L.tileLayer(tileUrl(frame), {
       pane: 'radar',
-      opacity: 0.88,
+      opacity: 0.82,
       maxNativeZoom: 10,
       maxZoom: 10,
       className: 'radar-layer',
@@ -1038,15 +1302,8 @@
       var m = L.map(id, mapOptions_());
       addRadarPanes_(m);
       m.setView([CFG.lat, CFG.lon], CFG.zoom, { animate: false });
-      L.tileLayer(GSI_BLANK, {
-        pane: 'basemap',
-        maxZoom: 14,
-        maxNativeZoom: 14,
-        opacity: 0.4,
-        keepBuffer: 2,
-        updateWhenIdle: false,
-        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=='
-      }).addTo(m);
+      makeFlatBaseLayer_({ keepBuffer: 2 }).addTo(m);
+      makeBorderLayer_().addTo(m);
       L.marker([CFG.lat, CFG.lon], {
         interactive: false,
         icon: L.divIcon({
@@ -1067,17 +1324,13 @@
       map.removeLayer(baseLayer);
       baseLayer = null;
     }
-    /* blank＝地名が少なく雨雲が見やすい。地理院へ直接 */
-    baseLayer = L.tileLayer(GSI_BLANK, {
-      pane: 'basemap',
-      maxZoom: 14,
-      maxNativeZoom: 14,
-      opacity: 0.4,
-      keepBuffer: 6,
-      updateWhenIdle: false,
-      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
-      className: 'gsi-base'
-    }).addTo(map);
+    /* 陸＝灰、海＝薄い灰。道路や注記は出さない */
+    baseLayer = makeFlatBaseLayer_().addTo(map);
+    if (borderLayer) {
+      map.removeLayer(borderLayer);
+      borderLayer = null;
+    }
+    borderLayer = makeBorderLayer_().addTo(map);
     initSideMaps();
     fixMapSize();
     setTimeout(fixMapSize, 100);
@@ -1153,12 +1406,12 @@
     if (!layers[i]) layers[i] = makeRadarLayer_(f);
     var prev = current;
     layers[i].addTo(map);
-    layers[i].setOpacity(0.88);
+    layers[i].setOpacity(0.82);
     if (prev !== -1 && prev !== i && layers[prev]) map.removeLayer(layers[prev]);
     sideMaps.forEach(function (m, idx) {
       if (!sideLayers[idx][i]) sideLayers[idx][i] = makeRadarLayer_(f);
       sideLayers[idx][i].addTo(m);
-      sideLayers[idx][i].setOpacity(0.88);
+      sideLayers[idx][i].setOpacity(0.82);
       if (prev !== -1 && prev !== i && sideLayers[idx][prev]) m.removeLayer(sideLayers[idx][prev]);
     });
     current = i;
@@ -1306,6 +1559,11 @@
     function add(d, kind, product) {
       if (!d) return;
       var vt = String(d.validtime);
+      /* 短時間予報の40分・50分は時刻一覧だけあり、タイルが無いので地図が白くなる */
+      if (product === 'rasrf') {
+        var mm = vt.slice(10, 12);
+        if (mm !== '00' && mm !== '30') return;
+      }
       if (seen[vt]) return;
       var ms = parseNowcMs(vt);
       if (ms == null) return;
@@ -1371,7 +1629,7 @@
     } else if (nowcFresh) {
       n1.forEach(function (d) { add(d, 'past', 'hrpns'); });
       n2.forEach(function (d) { add(d, 'fc', 'hrpns'); });
-      /* +1h 以降〜+3h は短時間予報で延長 */
+      /* 画像がある短時間予報だけ足す。40分・50分は一覧だけでタイルが無いので add 側で落とす */
       rasrfList.forEach(function (d) {
         var ms = parseNowcMs(d.validtime);
         if (ms != null && ms > wall + 55 * 60000) add(d, 'fc', 'rasrf');
