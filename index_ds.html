@@ -4221,8 +4221,8 @@ html.wbgt-off #weather-panel .side-half.is-wbgt { display: none !important; }
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=2&v=2026.10.26.02&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
+        const q = 'embed=1&signage=1&native640=1&loops=2&lat=' + encodeURIComponent(String(lat))
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20261026r1';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4234,7 +4234,7 @@ html.wbgt-off #weather-panel .side-half.is-wbgt { display: none !important; }
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=2026.10.26.02';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + '&v=20260828th1';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
