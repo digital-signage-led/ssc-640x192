@@ -166,9 +166,28 @@
       background: linear-gradient(180deg, #152238 0%, #0c1420 100%);
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-    #faceRight.face-side {
-      /* right foot is taller */
+    /* キューブのロゴ面（128×128）を 128×192 の中央に置く */
+    .cube-face {
+      width: 128px;
+      height: 128px;
+      flex: 0 0 128px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .cube-logo {
+      display: block;
+      width: 112px;
+      max-width: 112px;
+      height: auto;
+      max-height: 112px;
+      object-fit: contain;
+      object-position: center center;
     }
     .face-front {
       width: 384px !important;
@@ -594,21 +613,10 @@
 </head>
 <body>
   <div id="stage">
-    <!-- 左面 128×192：降雨タイミング目安 -->
+    <!-- 左面 128×192：中央にキューブと同じ 128×128 ロゴ -->
     <section class="face face-side" id="faceLeft" aria-label="左面">
-      <div class="side-head">
-        <div class="side-kicker">志摩機械</div>
-        <div class="side-title">雨の目安</div>
-      </div>
-      <div class="side-body">
-        <div class="status-pill none" id="statusPill">確認中</div>
-        <div class="eta-num" id="etaNum">—<small>分</small></div>
-        <div class="eta-label" id="etaLabel">データ取得中</div>
-        <div class="eta-sub" id="etaSub">目安（公式予報ではない）</div>
-      </div>
-      <div class="side-foot">
-        <div class="clock-lg" id="frameClock">--:--</div>
-        <div class="clock-sub" id="kindText">レーダー時刻</div>
+      <div class="cube-face">
+        <img class="cube-logo" id="cubeLogoL" alt="志摩機械株式会社" src="../assets/shima_kikai_en.png?v=2026.10.22.02" decoding="sync">
       </div>
     </section>
 
@@ -642,33 +650,10 @@
       </div>
     </section>
 
-    <!-- 右面 128×192：凡例・出典 -->
+    <!-- 右面 128×192：中央にキューブと同じ 128×128 ロゴ -->
     <section class="face face-side" id="faceRight" aria-label="右面">
-      <div class="side-head">
-        <div class="side-kicker">RAIN</div>
-        <div class="side-title">雨の強さ</div>
-      </div>
-      <div class="side-body">
-        <div class="guide-line" id="guideLine">色が現場へ近づくと雨</div>
-        <div class="guide-sub" id="guideSub">青＝弱　黄〜赤＝強い雨</div>
-        <div class="legend-mini" aria-hidden="true">
-          <div class="scale">
-            <span style="background:#b0f0ff"></span>
-            <span style="background:#3eb8ff"></span>
-            <span style="background:#1e6cff"></span>
-            <span style="background:#ffe000"></span>
-            <span style="background:#ff8c00"></span>
-            <span style="background:#a00040"></span>
-          </div>
-          <div class="labs"><span>弱</span><span>中</span><span>強</span></div>
-        </div>
-      </div>
-      <div class="side-foot">
-        <div class="amedas-foot" id="amedasFoot">
-          アメダス —.—
-          <span>10分降水量 mm</span>
-        </div>
-        <div class="src-note">出典：気象庁・地理院<br>目安（予報ではない）</div>
+      <div class="cube-face">
+        <img class="cube-logo" id="cubeLogoR" alt="志摩機械株式会社" src="../assets/shima_kikai_en.png?v=2026.10.22.02" decoding="sync">
       </div>
     </section>
   </div>
@@ -943,10 +928,18 @@
       CFG.lat = Number(site.geo.lat);
       CFG.lon = Number(site.geo.lon);
     }
-    if (ui.kicker) {
-      var kick = document.querySelector('#faceLeft .side-kicker');
-      if (kick) kick.textContent = ui.kicker;
-    }
+    var brand = window.SIGNAGE_CONFIG || {};
+    var logoSrc = String(brand.logoSrc || '../assets/shima_kikai_en.png');
+    if (logoSrc.indexOf('./') === 0) logoSrc = '.' + logoSrc;
+    var logoAlt = brand.logoAlt || '志摩機械株式会社';
+    var panelBg = brand.logoPanelBg || '#ffffff';
+    ['cubeLogoL', 'cubeLogoR'].forEach(function (id) {
+      var img = document.getElementById(id);
+      if (!img) return;
+      img.src = logoSrc;
+      img.alt = logoAlt;
+      if (img.parentNode) img.parentNode.style.background = panelBg;
+    });
     if (ui.placeLabels && ui.placeLabels.length) PLACE_LABELS = ui.placeLabels;
   })();
 
@@ -1115,7 +1108,8 @@
     if (prev !== -1 && prev !== i && layers[prev]) map.removeLayer(layers[prev]);
     current = i;
 
-    document.getElementById('frameClock').textContent = fmtClock(f.validtime);
+    var frameClock = document.getElementById('frameClock');
+    if (frameClock) frameClock.textContent = fmtClock(f.validtime);
     /* 遅延表示は「いま使っているデータ」の鮮度だけ。止まっているナウキャストの遅れは出さない */
     var lagNote = '';
     if (radarMeta.fallback) {
@@ -1132,13 +1126,13 @@
     var kindText = document.getElementById('kindText');
     if (f.kind === 'now') {
       badge.textContent = 'いま'; badge.className = 'badge now';
-      kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
+      if (kindText) kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
     } else if (f.kind === 'fc') {
       badge.textContent = '予測'; badge.className = 'badge fc';
-      kindText.textContent = isThunder ? 'これから〜約1時間' : 'これから〜約3時間';
+      if (kindText) kindText.textContent = isThunder ? 'これから〜約1時間' : 'これから〜約3時間';
     } else {
       badge.textContent = '過去1h'; badge.className = 'badge past';
-      kindText.textContent = '約1時間前〜';
+      if (kindText) kindText.textContent = '約1時間前〜';
     }
 
     var pct = frames.length <= 1 ? 0 : (i / (frames.length - 1)) * 100;
@@ -1420,26 +1414,34 @@
   function applyEstimateUI(est) {
     rainEstimate = est;
     var pill = document.getElementById('statusPill');
-    pill.className = 'status-pill ' + est.level;
-    pill.textContent = est.pill;
+    if (pill) {
+      pill.className = 'status-pill ' + est.level;
+      pill.textContent = est.pill;
+    }
 
     var eta = document.getElementById('etaNum');
-    if (est.activityLabel) {
-      eta.innerHTML = est.activityLabel;
-    } else {
-      var mins = est.minutes;
-      if (mins == null || isNaN(mins)) mins = CFG.futureMaxMin;
-      mins = Math.max(0, Math.round(mins));
-      if (mins <= 0 && est.level === 'raining') {
-        eta.innerHTML = '今';
+    if (eta) {
+      if (est.activityLabel) {
+        eta.innerHTML = est.activityLabel;
       } else {
-        eta.innerHTML = mins + '<small>分</small>';
+        var mins = est.minutes;
+        if (mins == null || isNaN(mins)) mins = CFG.futureMaxMin;
+        mins = Math.max(0, Math.round(mins));
+        if (mins <= 0 && est.level === 'raining') {
+          eta.innerHTML = '今';
+        } else {
+          eta.innerHTML = mins + '<small>分</small>';
+        }
       }
     }
-    document.getElementById('etaLabel').textContent = est.label;
-    document.getElementById('etaSub').textContent = est.sub || '目安（公式予報ではない）';
-    document.getElementById('guideLine').textContent = est.guide;
-    document.getElementById('guideSub').textContent = est.guideSub || (isThunder
+    var etaLabel = document.getElementById('etaLabel');
+    var etaSub = document.getElementById('etaSub');
+    var guideLine = document.getElementById('guideLine');
+    var guideSub = document.getElementById('guideSub');
+    if (etaLabel) etaLabel.textContent = est.label;
+    if (etaSub) etaSub.textContent = est.sub || '目安（公式予報ではない）';
+    if (guideLine) guideLine.textContent = est.guide;
+    if (guideSub) guideSub.textContent = est.guideSub || (isThunder
       ? '黄1・橙2・赤3・紫4'
       : '色が現場へ近づくと雨');
   }
@@ -1786,19 +1788,24 @@
       });
 
       var foot = document.getElementById('amedasFoot');
-      if (isThunder) {
-        foot.innerHTML = '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>';
-      } else if (nearest) {
-        foot.innerHTML = (nearest.name || 'アメダス') + '  ' + nearest.rain
-          + ' mm<span>10分降水量 · ' + fmtClock(stamp) + '</span>';
-      } else {
-        foot.innerHTML = 'アメダス —.—<span>10分降水量</span>';
+      if (foot) {
+        if (isThunder) {
+          foot.innerHTML = '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>';
+        } else if (nearest) {
+          foot.innerHTML = (nearest.name || 'アメダス') + '  ' + nearest.rain
+            + ' mm<span>10分降水量 · ' + fmtClock(stamp) + '</span>';
+        } else {
+          foot.innerHTML = 'アメダス —.—<span>10分降水量</span>';
+        }
       }
     } catch (e) {
       console.warn('[amedas]', e.message || e);
-      document.getElementById('amedasFoot').innerHTML = isThunder
-        ? '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>'
-        : 'アメダス取得待機…<span>10分降水量</span>';
+      var footErr = document.getElementById('amedasFoot');
+      if (footErr) {
+        footErr.innerHTML = isThunder
+          ? '雷ナウキャスト<span>活動度1〜4 · 気象庁</span>'
+          : 'アメダス取得待機…<span>10分降水量</span>';
+      }
     }
   }
 
