@@ -1191,7 +1191,7 @@
         interactive: false,
         style: {
           color: '#ffffff',
-          weight: 1.25,
+          weight: 1.15,
           opacity: 1,
           fill: false,
           smoothFactor: 0,
@@ -1325,7 +1325,47 @@
       if (!grow.length) break;
       for (k = 0; k < grow.length; k++) water[grow[k]] = 1;
     }
+    /* 淡色地図の海上県境は細い点線。陸ではないので海岸として描かない */
+    eraseSeaDashes_(water, big);
     return water;
+  }
+
+  function eraseSeaDashes_(water, big) {
+    var n = water.length;
+    var core = new Uint8Array(n);
+    var y, x, at, oy, ox, yy, xx, solid;
+    for (y = 1; y < big - 1; y++) {
+      for (x = 1; x < big - 1; x++) {
+        at = y * big + x;
+        if (water[at]) continue;
+        solid = true;
+        for (oy = -1; oy <= 1 && solid; oy++) {
+          yy = y + oy;
+          for (ox = -1; ox <= 1; ox++) {
+            xx = x + ox;
+            if (water[yy * big + xx]) { solid = false; break; }
+          }
+        }
+        if (solid) core[at] = 1;
+      }
+    }
+    for (y = 0; y < big; y++) {
+      for (x = 0; x < big; x++) {
+        at = y * big + x;
+        if (core[at]) { water[at] = 0; continue; }
+        solid = false;
+        for (oy = -1; oy <= 1 && !solid; oy++) {
+          yy = y + oy;
+          if (yy < 0 || yy >= big) continue;
+          for (ox = -1; ox <= 1; ox++) {
+            xx = x + ox;
+            if (xx < 0 || xx >= big) continue;
+            if (core[yy * big + xx]) { solid = true; break; }
+          }
+        }
+        water[at] = solid ? 0 : 1;
+      }
+    }
   }
 
   /* 内陸の川・池を落とす。残すのは海と、琵琶湖だけ */
@@ -1795,44 +1835,6 @@
     ctx.restore();
   }
 
-  function strokePrefBorders_(ctx, coords, ratio) {
-    var data = borderData_;
-    if (!data || !data.features || !(ratio > 0)) return;
-    var z = coords.z;
-    var crs = L.CRS.EPSG3857;
-    var ox = coords.x * 256;
-    var oy = coords.y * 256;
-    var fi, geom, lines, li, line, i, p, moved;
-    ctx.save();
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.beginPath();
-    ctx.lineWidth = 1.25;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    for (fi = 0; fi < data.features.length; fi++) {
-      geom = data.features[fi].geometry;
-      if (!geom || geom.type !== 'MultiLineString') continue;
-      lines = geom.coordinates;
-      for (li = 0; li < lines.length; li++) {
-        line = lines[li];
-        if (!line || line.length < 2) continue;
-        moved = false;
-        for (i = 0; i < line.length; i++) {
-          p = crs.latLngToPoint(L.latLng(line[i][1], line[i][0]), z);
-          if (!moved) {
-            ctx.moveTo(p.x - ox, p.y - oy);
-            moved = true;
-          } else {
-            ctx.lineTo(p.x - ox, p.y - oy);
-          }
-        }
-      }
-    }
-    ctx.stroke();
-    ctx.restore();
-  }
-
   var flatLayers_ = [];
   var coastLayers_ = [];
   var landRatio_ = 0;
@@ -1901,13 +1903,11 @@
   function paintCoastTile_(tile, coords, done) {
     var ctx = tile.getContext('2d');
     var size = tile.width;
-    var ratio = size / 256;
     mosaicMask_(coords, function (water) {
       ctx.clearRect(0, 0, size, size);
       if (water) {
         try { strokeCoastMask_(ctx, water, size); } catch (eCoast) {}
       }
-      try { strokePrefBorders_(ctx, coords, ratio); } catch (eBorder) {}
       if (done) done(null, tile);
     });
   }
@@ -1952,16 +1952,15 @@
     var group = L.layerGroup();
     var flat = new FlatBaseLayer_(gsiGridOpts_({ pane: 'basemap' }));
     var coast = new CoastLayer_(gsiGridOpts_({ pane: 'borders' }));
+    var borders = makeBorderLayer_();
     flat.addTo(group);
     coast.addTo(group);
+    borders.addTo(group);
     flatLayers_.push(flat);
     coastLayers_.push(coast);
     group.on('remove', function () {
       dropLandLayer_(flatLayers_, flat);
       dropLandLayer_(coastLayers_, coast);
-    });
-    whenPrefBorders_(function () {
-      if (coast._map) coast.redraw();
     });
     group.addTo(m);
     return group;
