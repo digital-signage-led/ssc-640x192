@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- CONTENT_VER: 2026.10.26.19 — このコンテンツの版管理起点（更新時は必ず上げる） -->
+<!-- CONTENT_VER: 2026.10.26.21 — このコンテンツの版管理起点（更新時は必ず上げる） -->
 <!-- 京都 舞鶴 志摩機械 自販機サイネージ（本番 3面 640×192・全面流し・カード128×192） -->
 <!-- 同階層: assets/shima_kikai_en.png / shima_kikai_ja.png（WBGTヘッダー・天気左右・下帯） -->
 <!-- 会場: 京都府舞鶴市上福井117番地（北緯35.445427 東経135.299683）志摩機械株式会社 -->
@@ -14,7 +14,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <!-- clock: jst-network-v5 — Asia/Tokyo 表示 / CF→timeapi→worldtimeapi→NICT / naive dateTime=+09:00 / demoも同期 / hourCycle h23 / 端末TZ非依存 -->
-    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.19</title>
+    <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.10.26.21</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- display=swap: optional だとサイネージでフォントが落ちて隙間が変わるのを防止 -->
@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.26.19';
+    var VER = '2026.10.26.21';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2676,13 +2676,13 @@ html.wx-no-anim #weather-panel .side-pane {
   opacity: 1 !important;
   visibility: visible !important;
 }
-/* 左右テロップ：表示7と同じ。白面にロゴ画像を置き、カード幅いっぱいに収める */
+/* 左右テロップのロゴ面：青地に白文字（他カードの白地・青文字と反転） */
 #weather-panel .side-pane-logo {
   align-items: center;
   justify-content: center;
   padding: 0;
   z-index: 2;
-  background: var(--surface);
+  background: #308ED8;
 }
 #weather-panel .side-logo-wrap {
   display: flex;
@@ -3871,7 +3871,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
           </div>
           <div class="side-pane side-pane-logo" data-side-kind="logo">
             <div class="side-logo-wrap">
-              <img class="side-logo-img" src="./assets/shima_kikai_en.png?v=2026.10.22.02" alt="志摩機械株式会社" decoding="async">
+              <img class="side-logo-img" src="./assets/shima_kikai_en_white.png?v=2026.10.26.20" alt="志摩機械株式会社" decoding="async">
             </div>
           </div>
         </div>
@@ -4032,7 +4032,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
           </div>
           <div class="side-pane side-pane-logo" data-side-kind="logo">
             <div class="side-logo-wrap">
-              <img class="side-logo-img" src="./assets/shima_kikai_en.png?v=2026.10.22.02" alt="志摩機械株式会社" decoding="async">
+              <img class="side-logo-img" src="./assets/shima_kikai_en_white.png?v=2026.10.26.20" alt="志摩機械株式会社" decoding="async">
             </div>
           </div>
         </div>
@@ -4297,8 +4297,10 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             });
         }
         if (wxSrc) {
+            /* 天気左右のロゴ面は青地。青文字PNGのときは白文字に替える */
+            var wxPaneSrc = String(wxSrc).replace(/shima_kikai_en\.png/, 'shima_kikai_en_white.png');
             document.querySelectorAll('#weather-panel .side-logo-img').forEach(function (el) {
-                if (el.getAttribute('src') !== wxSrc) el.src = wxSrc;
+                if (el.getAttribute('src') !== wxPaneSrc) el.src = wxPaneSrc;
                 el.alt = wxAlt;
             });
         }
@@ -4364,7 +4366,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.26.19';
+    const CONTENT_VER = '2026.10.26.21';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4848,8 +4850,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         finishLapThenRestart_();
     }
-    /* プレイヤーの1ページ。発表・熱中症の有無で中身は変わるが、終わりはこの秒で揃える */
-    const PAGE_LAP_MS = 115000;
+    /* プレイヤーの1ページ（2分10秒）。発表・熱中症の有無で中身は変わるが、終わりはここで揃える */
+    const PAGE_LAP_MS = 130000;
     let pageLapStartMs_ = 0;
     let lapHolding_ = false;
     let lapHoldTimerId_ = null;
@@ -4885,7 +4887,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             showIssuedAlertsOrScene4_();
             return;
         }
-        /* 短い一周は、次を始めずに最後の天気で止めて、1分55秒に合わせる */
+        /* 短い一周は、次を始めずに最後の天気で止めて、2分10秒に合わせる */
         lapHolding_ = true;
         showFrozenWeatherForLapHold_();
         lapHoldTimerId_ = setTimeout(function () {
@@ -8013,7 +8015,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const SCENE4_LAPS = 6; /* コマ送り回数 */
     const SCENE4_STEP_HOLD_MS = 1100; /* 瞬時移動後、次コマまでの静止 */
     const SCENE4_SIZE_EASE_MS = 420;
-    const SCENE4_HOLD_MS = 10000; /* 画面に出す時間。流しの速さは15秒/周のまま（プレイヤー2分に収める） */
+    const SCENE4_HOLD_MS = 15000;
     const SCENE4_LV_LAP_PX = FOOT_BAR_LAP_PX;
     let scene4SetWidth = SCENE4_TRACK_W;
     let scene4AnimId = null;
@@ -8614,7 +8616,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let s4FlowEpochX_ = 0;
 
     function s4FlowLapSec_() {
-        return 15; /* 速さは15秒で1周。画面を出す時間（SCENE4_HOLD）とは分ける */
+        return Math.max(1, (typeof SCENE4_HOLD_MS === 'number' ? SCENE4_HOLD_MS : 15000) / 1000);
     }
     function s4FlowSetWidth_() {
         /* CSSの固定896を優先（offsetWidthの誤差で間隔が変わらないようにする） */
@@ -11368,7 +11370,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             scheduleDemoStep_(finishScene4);
             return;
         }
-        const holdMs = SCENE4_HOLD_MS; /* WBGT 10秒 → 天気へ。流しの速さは変えない */
+        const holdMs = SCENE4_HOLD_MS; /* WBGT 15秒 → 天気へ */
         scene4HoldTimerId = setTimeout(function () {
             scene4HoldTimerId = null;
             stopLogoSpinInterval();
@@ -13237,7 +13239,7 @@ const METEO_START_PAUSE_MS = 1000; /* 流れる前に1秒静止 */
 const METEO_TICKER_MS = 14000; /* 気象観測テロップ1周（文言すべて） */
 const METEO_END_PAUSE_MS = 1000; /* すべて流し終えたあと1秒静止 → WBGT */
 const METEO_CYCLE_MS = METEO_START_PAUSE_MS + METEO_TICKER_MS + METEO_END_PAUSE_MS;
-const CLOCK_FINALE_MS = 0; /* 時刻は切替のあいだ見える。余分な静止はせず、夏＋発表でも2分に収める */
+const CLOCK_FINALE_MS = SIDE_MS * 2; /* 気象観測の直前＝2回目の時刻。0にするとすぐ切り替わる */
 const METEO_ONLY_MS =
   METEO_START_PAUSE_MS + METEO_TICKER_MS + METEO_END_PAUSE_MS + FRONT_ANIM_MS + 12000; /* 長文余裕 */
 const METEO_TAIL_MS = FRONT_ANIM_MS + CLOCK_FINALE_MS + METEO_ONLY_MS;
