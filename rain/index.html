@@ -356,6 +356,11 @@
     .leaflet-borders-pane svg {
       image-rendering: auto;
     }
+    /* タイル境界の1px隙間・暗い横筋を、隣と重ねて消す */
+    .leaflet-tile-pane .leaflet-tile {
+      width: 257px !important;
+      height: 257px !important;
+    }
     .leaflet-veil-pane {
       z-index: 350 !important;
       width: 100% !important;
@@ -1889,9 +1894,12 @@
       }
       try {
         var src = scaledCanvas_(water, false);
+        var big = src.width;
+        /* 端をそのまま縮めると、外側の透明を拾ってタイル境界が暗く筋になる */
+        var bleed = 4;
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(src, 0, 0, size, size);
+        ctx.drawImage(src, bleed, bleed, big - bleed * 2, big - bleed * 2, 0, 0, size, size);
       } catch (eFlat) {
         ctx.fillStyle = '#4f8fbf';
         ctx.fillRect(0, 0, size, size);

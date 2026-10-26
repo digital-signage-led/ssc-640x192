@@ -18,7 +18,7 @@
   "logo": {
     "src": "./assets/shima_kikai_en.png",
     "textSrc": "./assets/shima_kikai_en.png",
-    "markSrc": "./assets/shima_kikai_en_white.png",
+    "markSrc": "./assets/shima_kikai_en.png",
     "bannerSrc": "./assets/shima_kikai_en.png",
     "alt": "志摩機械株式会社",
     "panelBg": "#ffffff"
@@ -52,5 +52,5 @@
     ]
   },
   "updateSettings": { "refreshMs": 60000 },
-  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon"]
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon", "warning", "quake"]
 }

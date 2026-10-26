@@ -183,7 +183,13 @@
     { id: 'weather', label: '天気パネル', note: 'WBGT＋天気カード', href: function () {
       return base() + '?only=s4&norain=1&nothunder=1&notyphoon=1&v=' + VER + '&native640=1&embed=1' + siteQ();
     }},
-    { id: 'full', label: 'フル再生', note: 'WBGT→天気→雨雲→雷→台風', href: function () {
+    { id: 'warning', label: '警報情報', note: '発表中のみ', href: function () {
+      return base() + '?only=rainwarn&native640=1&embed=1' + siteQ();
+    }},
+    { id: 'quake', label: '地震情報', note: '発表中のみ', href: function () {
+      return base() + '?only=quake&native640=1&embed=1' + siteQ();
+    }},
+    { id: 'full', label: 'フル再生', note: 'WBGT→天気→雨雲→雷→台風→警報→地震', href: function () {
       return base() + '?only=all&v=' + VER + '&native640=1&embed=1' + siteQ();
     }}
   ];
