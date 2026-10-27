@@ -526,6 +526,7 @@ function render(state, opts = {}) {
       }
     });
     if (opts.notify) flashNotify();
+    document.documentElement.classList.add("alert-ready");
     return;
   }
 
@@ -549,6 +550,7 @@ function render(state, opts = {}) {
   });
 
   if (opts.notify) flashNotify();
+  document.documentElement.classList.add("alert-ready");
 }
 
 async function loadLiveState() {
@@ -704,7 +706,6 @@ async function boot() {
   if (els.quakeStage) initQuake(els.quakeStage);
   tickClock();
   setInterval(tickClock, 1000);
-  requestAnimationFrame(() => startMarquee());
   try {
     areaNames = await fetchAreaNames();
   } catch {
