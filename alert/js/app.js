@@ -182,6 +182,16 @@ function swapSideCardPositions() {
   }
 }
 
+let sideIntroPlayed_ = false;
+function presentSideCards(updateFn) {
+  if (!sideIntroPlayed_) {
+    sideIntroPlayed_ = true;
+    updateFn();
+    return;
+  }
+  return animateSideCards(updateFn);
+}
+
 async function animateSideCards(updateFn) {
   const cards = sideCards();
   if (!cards.length) {
@@ -504,7 +514,7 @@ function render(state, opts = {}) {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => startMarquee());
     });
-    animateSideCards(() => {
+    presentSideCards(() => {
       resetSidePositions();
       if (fail) {
         setText(els.cardLevelPill, "—");
@@ -528,7 +538,7 @@ function render(state, opts = {}) {
 
   renderChipTicker(state.items, { demo: isDemo });
 
-  animateSideCards(() => {
+  presentSideCards(() => {
     resetSidePositions();
     applySidePair(top, true, { doSwap: false });
   });
@@ -692,13 +702,14 @@ async function refreshFixed({ demo = false, notifyOnChange = true } = {}) {
 
 async function boot() {
   if (els.quakeStage) initQuake(els.quakeStage);
+  tickClock();
+  setInterval(tickClock, 1000);
+  requestAnimationFrame(() => startMarquee());
   try {
     areaNames = await fetchAreaNames();
   } catch {
     areaNames = new Map();
   }
-  tickClock();
-  setInterval(tickClock, 1000);
 
   if (forceQuake) {
     startQuakeLoop(CONFIG.quakeSceneMs || 3_500);

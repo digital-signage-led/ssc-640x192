@@ -45,6 +45,8 @@
     }
   })();
   </script>
+  <link rel="preconnect" href="https://www.jma.go.jp" crossorigin>
+  <link rel="preconnect" href="https://cyberjapandata.gsi.go.jp" crossorigin>
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <style>
     :root {
@@ -189,12 +191,12 @@
       font-family: "Meiryo UI", Meiryo, sans-serif;
     }
     .side-date {
-      max-width: 124px;
-      font-size: 15px;
+      max-width: 128px;
+      font-size: 20px;
       font-weight: 900;
       line-height: 40px;
       height: 40px;
-      letter-spacing: 0;
+      letter-spacing: -0.04em;
       color: #fff !important;
       white-space: nowrap;
       font-family: "Meiryo UI", Meiryo, sans-serif;
@@ -360,6 +362,12 @@
     .leaflet-tile-pane .leaflet-tile {
       width: 257px !important;
       height: 257px !important;
+    }
+    /* 読み込み中はタイルを一つずつ出さない。揃ってから全体を出す */
+    #stage.is-booting { visibility: hidden; }
+    .leaflet-fade-anim .leaflet-tile,
+    .leaflet-zoom-anim .leaflet-zoom-animated {
+      transition: none !important;
     }
     .leaflet-veil-pane {
       z-index: 350 !important;
@@ -651,7 +659,7 @@
   </style>
 </head>
 <body>
-  <div id="stage">
+  <div id="stage" class="is-booting">
     <!-- 左面 128×192：雨雲レーダー 128×128 -->
     <section class="face face-side" id="faceLeft" aria-label="左面 雨雲">
       <div class="side-band side-band-top" aria-label="時刻"><span class="side-clock">--:--</span></div>
@@ -672,7 +680,6 @@
       <div class="front-overlay">
         <div class="front-top">
           <div class="front-meta" id="metaLine">雨雲の動き</div>
-          <div class="badge now" id="kindBadge">いま</div>
         </div>
         <div class="tl-labels"><span>いま</span><span>+1h 予測</span></div>
         <div class="front-bottom">
@@ -1898,7 +1905,7 @@
         /* 端をそのまま縮めると、外側の透明を拾ってタイル境界が暗く筋になる */
         var bleed = 4;
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = 'low';
         ctx.drawImage(src, bleed, bleed, big - bleed * 2, big - bleed * 2, 0, 0, size, size);
       } catch (eFlat) {
         ctx.fillStyle = '#4f8fbf';
@@ -1924,7 +1931,7 @@
     return L.extend({
       maxZoom: 14,
       maxNativeZoom: 14,
-      keepBuffer: 4,
+      keepBuffer: 1,
       updateWhenIdle: false,
       tileSize: 256,
       detectRetina: false
@@ -2136,17 +2143,11 @@
     document.getElementById('metaLine').textContent =
       (isThunder ? '雷ナウキャスト  ' : '雨雲の動き  ') + fmtShort(f.validtime) + lagNote;
 
-    var badge = document.getElementById('kindBadge');
     var kindText = document.getElementById('kindText');
-    if (f.kind === 'now') {
-      badge.textContent = 'いま'; badge.className = 'badge now';
-      if (kindText) kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
-    } else if (f.kind === 'fc') {
-      badge.textContent = '予測'; badge.className = 'badge fc';
-      if (kindText) kindText.textContent = 'これから〜約1時間';
-    } else {
-      badge.textContent = '過去1h'; badge.className = 'badge past';
-      if (kindText) kindText.textContent = '約1時間前〜';
+    if (kindText) {
+      if (f.kind === 'now') kindText.textContent = radarMeta.modeLabel || (isThunder ? '雷活動度' : '現在付近');
+      else if (f.kind === 'fc') kindText.textContent = 'これから〜約1時間';
+      else kindText.textContent = '約1時間前〜';
     }
 
     var pct = frames.length <= 1 ? 0 : (i / (frames.length - 1)) * 100;
@@ -2177,16 +2178,16 @@
       showFrame(next);
       if (wrapped) {
         playLoopCount += 1;
-        /* 親サイネージ: 既定周回完了で次シーンへ */
-        if (embedded && playLoopCount >= playLoopsTarget) {
+        /* 親サイネージの中だけ、指定周回で止めて次シーンへ渡す。単体表示は繰り返す */
+        var hasParent = false;
+        try { hasParent = !!(window.parent && window.parent !== window); } catch (eParent) {}
+        if (embedded && hasParent && playLoopCount >= playLoopsTarget) {
           try {
-            if (window.parent && window.parent !== window) {
-              window.parent.postMessage({
-                type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
-                loops: playLoopCount,
-                mode: isThunder ? 'thunder' : 'rain'
-              }, '*');
-            }
+            window.parent.postMessage({
+              type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
+              loops: playLoopCount,
+              mode: isThunder ? 'thunder' : 'rain'
+            }, '*');
           } catch (eMsg) {}
           stopPlay();
           return;
@@ -2661,17 +2662,16 @@
 
   async function loadRadar() {
     var q = '?_=' + Date.now();
+    /* 表示は高解像度ナウキャストだけ。短時間予報の一覧は待たない */
     var res = await Promise.all([
       fetch(jmaUrl('/bosai/jmatile/data/nowc/targetTimes_N1.json') + q, { cache: 'no-store' }),
-      fetch(jmaUrl('/bosai/jmatile/data/nowc/targetTimes_N2.json') + q, { cache: 'no-store' }),
-      fetch(jmaUrl('/bosai/jmatile/data/rasrf/targetTimes.json') + q, { cache: 'no-store' })
+      fetch(jmaUrl('/bosai/jmatile/data/nowc/targetTimes_N2.json') + q, { cache: 'no-store' })
     ]);
     if (!res[0].ok || !res[1].ok) {
       throw new Error('targetTimes HTTP ' + res[0].status + '/' + res[1].status
         + ' @ ' + (apiBase || location.origin));
     }
-    var rasrfJson = res[2].ok ? await res[2].json() : [];
-    var next = buildFrames(await res[0].json(), await res[1].json(), rasrfJson);
+    var next = buildFrames(await res[0].json(), await res[1].json(), []);
     if (!next.length) throw new Error('frames empty（現在時刻付近のデータなし）');
 
     stopPlay();
@@ -2686,7 +2686,10 @@
     /* 雨も雷も「いま」から約1時間先。過去コマはない */
     showFrame(nowIndex);
     scheduleNext();
-    updateRainEstimate(frames);
+    /* 判定用タイルは、見えている雨雲のあとに取る */
+    var framesForEta = frames;
+    setTimeout(function () { updateRainEstimate(framesForEta); }, 800);
+    armFirstReveal_();
     /* 埋め込み（親サイネージ）: 2周で終了するため途中 refresh で周回カウントをリセットしない */
     if (!embedded) scheduleRadarRefresh();
     console.log('[radar]', isThunder ? 'thunder' : 'rain', radarMeta.source,
@@ -2845,13 +2848,76 @@
     if (d.mode === 'thunder') enterThunderMode_();
   });
 
+  /* 陸地・雨雲・左右が揃ってから、画面を一度に出す */
+  var curtainParts_ = { tiles: false, amedas: false };
+  var curtainOpen_ = false;
+  function openCurtain_() {
+    if (curtainOpen_ || !curtainParts_.tiles || !curtainParts_.amedas) return;
+    curtainOpen_ = true;
+    var stage = document.getElementById('stage');
+    if (stage) stage.classList.remove('is-booting');
+  }
+  function waitLayer_(layer, done) {
+    var finished = false;
+    function finish() {
+      if (finished) return;
+      finished = true;
+      try { layer.off('load', onLoad); } catch (eOff) {}
+      done();
+    }
+    function onLoad() { finish(); }
+    if (!layer || !layer.on) { finish(); return; }
+    layer.on('load', onLoad);
+    setTimeout(function () {
+      if (!finished && layer._loading === false) finish();
+    }, 40);
+    setTimeout(finish, 2500);
+  }
+  function armFirstReveal_() {
+    var watch = [];
+    var i;
+    for (i = 0; i < flatLayers_.length; i++) watch.push(flatLayers_[i]);
+    for (i = 0; i < coastLayers_.length; i++) watch.push(coastLayers_[i]);
+    if (layers[current]) watch.push(layers[current]);
+    sideLayers.forEach(function (set) {
+      if (set && set[current]) watch.push(set[current]);
+    });
+    if (!watch.length) {
+      curtainParts_.tiles = true;
+      openCurtain_();
+      return;
+    }
+    var left = watch.length;
+    function one() {
+      left -= 1;
+      if (left > 0) return;
+      curtainParts_.tiles = true;
+      openCurtain_();
+    }
+    watch.forEach(function (layer) { waitLayer_(layer, one); });
+  }
+
   /* ========== 起動 ========== */
   async function boot() {
     var toast = document.getElementById('toast');
     if (toast) toast.classList.add('hidden');
     ensureBaseLayer();
+    var amedasDone = false;
+    function markAmedas_() {
+      if (amedasDone) return;
+      amedasDone = true;
+      curtainParts_.amedas = true;
+      openCurtain_();
+    }
+    loadAmedas().then(markAmedas_, markAmedas_);
+    setTimeout(markAmedas_, 1600);
+    setTimeout(function () {
+      curtainParts_.tiles = true;
+      curtainParts_.amedas = true;
+      openCurtain_();
+    }, 4000);
     try {
-      await Promise.all([loadRadar(), loadAmedas()]);
+      await loadRadar();
       fixMapSize();
     } catch (e) {
       console.error(e);
@@ -2859,6 +2925,8 @@
         apiBase = apiFromQuery;
         try { await loadRadar(); } catch (e2) { console.error(e2); }
       }
+      curtainParts_.tiles = true;
+      openCurtain_();
     }
   }
 
