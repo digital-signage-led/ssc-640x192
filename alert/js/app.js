@@ -85,10 +85,11 @@ function postParent_(payload) {
 
 function considerEmbed_() {
   if (!EMBED_SIGNAGE || embedReported_) return;
-  if (!embedWarnReady_ || !embedQuakeReady_) return;
+  if (!embedWarnReady_) return;
+  /* 注意報があるときは地震の取得を待たず、カードが揃った時点で親へ出す */
+  if (!embedHasWarn_ && !embedQuakeReady_) return;
   embedReported_ = true;
   const show = embedHasWarn_ || embedHasQuake_;
-  /* 描画後に親へ知らせる。先に出すと親が黒い iframe を開く */
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       postParent_({ type: "alert-board-status", show: show });
@@ -670,22 +671,42 @@ async function pollLiveQuake_() {
   }
 }
 
+function publishWarnState_(state, { demo = false, notifyOnChange = true } = {}) {
+  const sig = signatureOf(state.items);
+  const changed = sig !== lastSignature;
+  const becameActive =
+    state.items.length > 0 && (lastSignature === "" || lastSignature === "idle");
+  const newlyIssued = changed && state.items.some((i) => i.status === "発表");
+  lastSignature = sig || "idle";
+  embedHasWarn_ = state.items.length > 0;
+  embedWarnReady_ = true;
+  render(state, {
+    notify: notifyOnChange && (becameActive || newlyIssued || demo),
+    phase: demo ? "demo" : state.items.length ? "live" : "idle",
+  });
+  considerEmbed_();
+}
+
 async function refreshFixed({ demo = false, notifyOnChange = true } = {}) {
   try {
-    const state = demo ? loadDemoState() : await loadLiveState();
-    const sig = signatureOf(state.items);
-    const changed = sig !== lastSignature;
-    const becameActive =
-      state.items.length > 0 && (lastSignature === "" || lastSignature === "idle");
-    const newlyIssued = changed && state.items.some((i) => i.status === "発表");
-    lastSignature = sig || "idle";
-    embedHasWarn_ = state.items.length > 0;
-    embedWarnReady_ = true;
-    render(state, {
-      notify: notifyOnChange && (becameActive || newlyIssued || demo),
-      phase: demo ? "demo" : state.items.length ? "live" : "idle",
-    });
-    considerEmbed_();
+    if (demo) {
+      publishWarnState_(loadDemoState(), { demo: true, notifyOnChange });
+      return;
+    }
+    /* 注意報だけ先に出す。地名一覧と氾濫は待たない */
+    const raw = await fetchWarningData(CONFIG.areaCode);
+    let weather = tagOsaka(parseActiveWarnings(raw, areaNames));
+    publishWarnState_(weather, { notifyOnChange });
+    try {
+      const floodRaw = await fetchFloodData();
+      const flood = parseFloodWarnings(floodRaw, CONFIG.targetAreaCode);
+      const merged = tagOsaka(mergeWarningStates(weather, flood));
+      if (signatureOf(merged.items) !== signatureOf(weather.items)) {
+        publishWarnState_(merged, { notifyOnChange: false });
+      }
+    } catch (err) {
+      console.warn("氾濫データ取得失敗", err);
+    }
   } catch (err) {
     console.error(err);
     embedHasWarn_ = false;
@@ -706,11 +727,9 @@ async function boot() {
   if (els.quakeStage) initQuake(els.quakeStage);
   tickClock();
   setInterval(tickClock, 1000);
-  try {
-    areaNames = await fetchAreaNames();
-  } catch {
-    areaNames = new Map();
-  }
+  fetchAreaNames().then((map) => {
+    areaNames = map;
+  }).catch(() => {});
 
   if (forceQuake) {
     startQuakeLoop(CONFIG.quakeSceneMs || 3_500);

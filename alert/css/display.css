@@ -74,10 +74,7 @@ body:not(.is-quake):has(.machine[data-active="false"]) {
   --accent: #374151;
   visibility: hidden;
 }
-/* 取得完了前は黄地のまま。取得中の文言は出さない */
-html:not(.alert-ready) body {
-  background: #ffff00 !important;
-}
+/* 取得完了前はカードを出さない（黄地の空画面にしない） */
 html:not(.alert-ready) .machine {
   visibility: hidden !important;
 }
