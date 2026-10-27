@@ -456,6 +456,31 @@ function tagOsaka(state) {
   };
 }
 
+const BOARD_KEY = "maizuru-alert-board-v1";
+function rememberBoard_(keep) {
+  try {
+    if (!keep) {
+      localStorage.removeItem(BOARD_KEY);
+      return;
+    }
+    const levelCard = document.getElementById("sideCardLevel");
+    localStorage.setItem(BOARD_KEY, JSON.stringify({
+      theme: els.machine.dataset.theme || "advisory",
+      level: els.machine.dataset.level || "2",
+      noLevel: !!(levelCard && levelCard.classList.contains("is-no-level")),
+      label: els.cardLevelLabel ? els.cardLevelLabel.textContent : "",
+      pill: els.cardLevelPill ? els.cardLevelPill.textContent : "",
+      unit: els.cardLevelUnit ? els.cardLevelUnit.textContent : "",
+      num: els.cardLevelNum ? els.cardLevelNum.textContent : "",
+      marquee: els.marqueeTextA ? els.marqueeTextA.innerHTML : "",
+      chips: els.alertList ? els.alertList.innerHTML : "",
+      updated: els.cardUpdated ? els.cardUpdated.textContent : "",
+      count: els.cardCount ? els.cardCount.textContent : "",
+      area: els.cardArea ? els.cardArea.textContent : "",
+    }));
+  } catch (eStore) {}
+}
+
 function liveQuakeOn_() {
   const stage = els.quakeStage;
   return !!(stage && stage.classList.contains("is-live") && !stage.hasAttribute("hidden"));
@@ -528,6 +553,7 @@ function render(state, opts = {}) {
     });
     if (opts.notify) flashNotify();
     document.documentElement.classList.add("alert-ready");
+    if (!fail) rememberBoard_(false);
     return;
   }
 
@@ -552,6 +578,7 @@ function render(state, opts = {}) {
 
   if (opts.notify) flashNotify();
   document.documentElement.classList.add("alert-ready");
+  rememberBoard_(active && !isDemo);
 }
 
 async function loadLiveState() {
@@ -727,6 +754,9 @@ async function boot() {
   if (els.quakeStage) initQuake(els.quakeStage);
   tickClock();
   setInterval(tickClock, 1000);
+  if (document.documentElement.classList.contains("alert-ready")) {
+    requestAnimationFrame(() => startMarquee());
+  }
   fetchAreaNames().then((map) => {
     areaNames = map;
   }).catch(() => {});

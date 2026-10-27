@@ -124,6 +124,42 @@
       </div>
     </div>
 
-    <script type="module" src="./js/app.js?v=20261027f"></script>
+    <script>
+      (function () {
+        var raw;
+        try { raw = localStorage.getItem("maizuru-alert-board-v1"); } catch (e) { return; }
+        if (!raw) return;
+        var s;
+        try { s = JSON.parse(raw); } catch (e) { return; }
+        if (!s || !s.marquee) return;
+        var machine = document.getElementById("machine");
+        if (!machine) return;
+        machine.dataset.active = "true";
+        machine.dataset.theme = s.theme || "advisory";
+        machine.dataset.level = s.level || "2";
+        machine.dataset.phase = "live";
+        var level = document.getElementById("sideCardLevel");
+        if (level) level.classList.toggle("is-no-level", !!s.noLevel);
+        function put(id, text) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = text || "";
+        }
+        put("cardLevelLabel", s.label);
+        put("cardLevelPill", s.pill);
+        put("cardLevelUnit", s.unit);
+        put("cardLevelNum", s.num);
+        put("cardUpdated", s.updated);
+        put("cardCount", s.count);
+        put("cardArea", s.area);
+        var a = document.getElementById("marqueeTextA");
+        var b = document.getElementById("marqueeTextB");
+        if (a) a.innerHTML = s.marquee;
+        if (b) b.innerHTML = s.marquee;
+        var list = document.getElementById("alertList");
+        if (list && s.chips) list.innerHTML = s.chips;
+        document.documentElement.classList.add("alert-ready");
+      })();
+    </script>
+    <script type="module" src="./js/app.js?v=20261027g"></script>
   </body>
 </html>
