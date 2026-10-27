@@ -1,5 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@500;600;700&family=Share+Tech+Mono:wght@400;700&display=swap");
-@import url("./base.css");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@500;600;700&family=Share+Tech+Mono:wght@400;700&display=block");
+@import url("./base.css?v=20261027c");
 
 /* 本番：カードUI — 警戒レベル5段階色 */
 
@@ -32,7 +32,7 @@
 body {
   background: var(--outside);
   color: var(--ink);
-  font-family: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-family: "IBM Plex Sans JP", "Yu Gothic UI", "Yu Gothic", "Meiryo", sans-serif;
 }
 
 .machine {
@@ -204,12 +204,9 @@ body:not(.is-quake):has(.machine[data-active="false"]) {
 }
 
 /* 下へ消える → 上から出現 */
-.card.is-exit {
-  animation: card-exit-down 0.38s cubic-bezier(0.4, 0, 0.7, 1) forwards;
-}
-
+.card.is-exit,
 .card.is-enter {
-  animation: card-enter-top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: none;
 }
 
 @keyframes card-exit-down {
@@ -316,7 +313,7 @@ body:not(.is-quake):has(.machine[data-active="false"]) {
 }
 
 .machine[data-active="true"] .level-pill {
-  animation: pill-breathe 2.2s ease-in-out infinite;
+  animation: none;
 }
 
 @keyframes pill-breathe {
@@ -342,13 +339,15 @@ body:not(.is-quake):has(.machine[data-active="false"]) {
 }
 
 #sideCardLevel.is-no-level .unit {
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
   color: var(--ink);
   margin-top: 8px;
   margin-bottom: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
+  white-space: pre-line;
+  word-break: keep-all;
 }
 
 .machine[data-active="true"][data-theme="advisory"] {
@@ -643,7 +642,7 @@ body:not(.is-quake):has(.machine[data-active="false"]) {
 }
 
 .meta {
-  font-family: "Share Tech Mono", monospace;
+  font-family: "Share Tech Mono", "Yu Gothic UI", monospace;
   font-size: 11px;
   color: var(--mute);
 }

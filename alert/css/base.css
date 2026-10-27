@@ -34,6 +34,8 @@ body {
   max-height: var(--h-total);
   overflow: hidden;
   background: #2c3e50;
+  /* 親画面と同じく CSS 640×192。dpr で zoom すると枠の右と下に余白が出る */
+  zoom: 1;
 }
 
 body {

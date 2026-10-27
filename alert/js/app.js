@@ -88,14 +88,19 @@ function considerEmbed_() {
   if (!embedWarnReady_ || !embedQuakeReady_) return;
   embedReported_ = true;
   const show = embedHasWarn_ || embedHasQuake_;
-  postParent_({ type: "alert-board-status", show: show });
-  if (!show) {
-    postParent_({ type: "alert-board-done", show: false });
-    return;
-  }
-  setTimeout(() => {
-    postParent_({ type: "alert-board-done", show: true });
-  }, EMBED_HOLD_MS);
+  /* 描画後に親へ知らせる。先に出すと親が黒い iframe を開く */
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      postParent_({ type: "alert-board-status", show: show });
+      if (!show) {
+        postParent_({ type: "alert-board-done", show: false });
+        return;
+      }
+      setTimeout(() => {
+        postParent_({ type: "alert-board-done", show: true });
+      }, EMBED_HOLD_MS);
+    });
+  });
 }
 
 function marqueeSpeed() {
@@ -105,6 +110,15 @@ function marqueeSpeed() {
 
 function setText(el, text) {
   if (el) el.textContent = text;
+}
+
+/* 4文字以上の種別名は左右を揃えて改行する（強風注意 → 強風 / 注意） */
+function balancedSideTitle(text) {
+  const chars = Array.from(String(text || ""));
+  const n = chars.length;
+  if (n <= 3) return chars.join("");
+  const mid = n % 2 === 0 ? n / 2 : Math.ceil(n / 2);
+  return `${chars.slice(0, mid).join("")}\n${chars.slice(mid).join("")}`;
 }
 
 function signatureOf(items) {
@@ -227,12 +241,10 @@ function applyLevelCard(item, active) {
   setText(els.cardLevelLabel, hasLevel ? "レベル" : "種別");
   setText(els.cardLevelPill, demo ? "デモ" : item.category);
   setText(els.cardLevelNum, hasLevel ? String(item.level) : "");
-  setText(
-    els.cardLevelUnit,
-    demo
-      ? `${item.short || item.name}`.replace(/（デモ）$/, "") + "（デモ）"
-      : item.short || item.name,
-  );
+  const unitRaw = demo
+    ? `${item.short || item.name}`.replace(/（デモ）$/, "") + "（デモ）"
+    : item.short || item.name;
+  setText(els.cardLevelUnit, hasLevel ? unitRaw : balancedSideTitle(unitRaw));
   const lv = alertLevelFromState(true, item.theme, item.level || 0);
   els.machine.dataset.level = String(lv);
   els.machine.dataset.theme = item.theme || "advisory";
@@ -657,11 +669,11 @@ async function refreshFixed({ demo = false, notifyOnChange = true } = {}) {
     lastSignature = sig || "idle";
     embedHasWarn_ = state.items.length > 0;
     embedWarnReady_ = true;
-    considerEmbed_();
     render(state, {
       notify: notifyOnChange && (becameActive || newlyIssued || demo),
       phase: demo ? "demo" : state.items.length ? "live" : "idle",
     });
+    considerEmbed_();
   } catch (err) {
     console.error(err);
     embedHasWarn_ = false;
@@ -678,16 +690,7 @@ async function refreshFixed({ demo = false, notifyOnChange = true } = {}) {
   }
 }
 
-function lockSignagePixels() {
-  const dpr = window.devicePixelRatio || 1;
-  document.documentElement.style.zoom = String(1 / dpr);
-}
-
 async function boot() {
-  lockSignagePixels();
-  window.addEventListener("resize", () => {
-    lockSignagePixels();
-  });
   if (els.quakeStage) initQuake(els.quakeStage);
   try {
     areaNames = await fetchAreaNames();

@@ -32,8 +32,8 @@ export const CONFIG = {
   quakeSceneMs: 2_500,
   /** コンテンツ切替時の静止（ミリ秒） */
   phaseGapMs: 1_000,
-  /** サイネージ: 物理ピクセル640×192に合わせる */
-  signagePixelLock: true,
+  /** 親画面と同じ CSS 640×192。dpr による zoom 縮小はしない */
+  signagePixelLock: false,
   /** 発表中として扱う status */
   activeStatuses: new Set(["発表", "継続", "警報から注意報", "注意報から警報"]),
   /** 流れ文字の速さ（px/秒） */

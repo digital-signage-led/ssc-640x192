@@ -3,7 +3,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@500;700;900&family=Noto+Sans+JP:wght@500;700;900&display=swap");
 
 :root {
-  --quake-font: "Roboto", "Noto Sans JP", sans-serif;
+  --quake-font: "IBM Plex Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
   --quake-warn: #c62828;
   --quake-warn-hot: #ff1744;
   --quake-yellow0: #0a0a0a;
