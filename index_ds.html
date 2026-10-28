@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.21';
+    var VER = '2026.10.28.22';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.21';
+    const CONTENT_VER = '2026.10.28.22';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5121,14 +5121,24 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         } catch (eSrc) {}
         revealAlertBoard_();
     }
+    function kickVideoSideTicker_(n) {
+        if (videoSideKind_ !== 'weather') return;
+        if (typeof startSideTickerMotion_ !== 'function') {
+            if ((n || 0) < 40) setTimeout(function () { kickVideoSideTicker_((n || 0) + 1); }, 50);
+            return;
+        }
+        try { document.documentElement.classList.remove('wx-no-anim'); } catch (eAnim) {}
+        weatherRunning_ = true;
+        startSideTickerMotion_();
+        if (!sideTickerAlive_ && (n || 0) < 40) {
+            setTimeout(function () { kickVideoSideTicker_((n || 0) + 1); }, 50);
+        }
+    }
     function showWeatherSidesForVideo_() {
         hideAlertBoard_();
         showFrozenWeatherForLapHold_();
         videoSideKind_ = 'weather';
-        try {
-            weatherRunning_ = true;
-            startSideTickerMotion_();
-        } catch (eSide) {}
+        kickVideoSideTicker_(0);
     }
     function showSidesForFrontVideo_() {
         hideRainOverlay_();
