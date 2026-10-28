@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.20';
+    var VER = '2026.10.28.21';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2460,8 +2460,21 @@ html[data-demo-only="s1s4"] #scene5 {
   pointer-events: none;
 }
 #front-spot.is-on {
-  visibility: visible;
+  visibility: visible !important;
+  display: block !important;
+  opacity: 1 !important;
+  z-index: 90 !important;
+  left: 128px !important;
+  top: 0 !important;
+  width: 384px !important;
+  height: 192px !important;
   transform: translateZ(0);
+}
+/* 正面動画のあいだ、警報・天気は左右128だけ。中央384は動画 */
+.content-area.video-on #alert-panel,
+.content-area.video-on #weather-panel {
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 128px, transparent 128px, transparent 512px, #000 512px, #000 640px);
+  mask-image: linear-gradient(90deg, #000 0, #000 128px, transparent 128px, transparent 512px, #000 512px, #000 640px);
 }
 /* 台風の次: 舞鶴の警報・地震（発表中だけ出す） */
 #alert-panel {
@@ -4079,6 +4092,28 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel is-on" title="舞鶴 警報・地震" aria-hidden="false" src="./alert/index.html?embed=1&live=1&v=20261028h"></iframe>
         <video id="front-spot" muted playsinline preload="auto" src="./rain/demo-car.mp4?v=20261028play"></video>
+        <script>
+        (function () {
+            try {
+                if (new URLSearchParams(location.search).get('video') !== '1') return;
+                var alertEl = document.getElementById('alert-panel');
+                if (alertEl) {
+                    alertEl.classList.remove('is-on', 'is-gate');
+                    alertEl.style.display = 'none';
+                }
+                var area = document.querySelector('.content-area');
+                if (area) area.classList.add('video-on');
+                var v = document.getElementById('front-spot');
+                if (!v) return;
+                v.muted = true;
+                v.defaultMuted = true;
+                v.setAttribute('playsinline', '');
+                v.classList.add('is-on');
+                var pending = v.play();
+                if (pending && pending.catch) pending.catch(function () {});
+            } catch (eEarly) {}
+        })();
+        </script>
     </div>
 </div>
 
@@ -4401,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.20';
+    const CONTENT_VER = '2026.10.28.21';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
