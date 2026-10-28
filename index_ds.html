@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.30';
+    var VER = '2026.10.28.31';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.30';
+    const CONTENT_VER = '2026.10.28.31';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5263,6 +5263,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         try { document.documentElement.classList.remove('wx-no-anim'); } catch (eAnim) {}
         weatherRunning_ = true;
         startSideTickerMotion_();
+        try { paintWeatherSideCards_(); } catch (ePaint) {}
         if (!sideTickerAlive_ && (n || 0) < 40) {
             setTimeout(function () { kickVideoSideTicker_((n || 0) + 1); }, 50);
         }
@@ -5946,6 +5947,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let pendingSignageBgMode_ = '';
     let pendingForecastSlotsRefresh_ = false;
     let lastAmedasSnapshot_ = null;
+    let sideCardPop_ = null;
+    let sideCardWeather_ = '';
     /* 改修:localStorage キャッシュ廃止（状態は JS 変数のみ） */
     const MOE_GAS_FETCH_TIMEOUT_MS = 10000; /* 改修:fetch タイムアウト 10秒 */
     const MOE_JSONP_TIMEOUT_MS = 10000;
@@ -6270,6 +6273,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             temp: amedasFieldValue(obs.temp),
             humi: amedasFieldValue(obs.humidity),
             rain: amedasFieldValue(obs.precipitation10m),
+            rain1h: amedasFieldValue(obs.precipitation1h),
             wind: amedasFieldValue(obs.wind),
             pres: amedasFieldValue(obs.normalPressure) ?? amedasFieldValue(obs.pressure),
             wdir: amedasFieldValue(obs.windDirection),
@@ -6285,6 +6289,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             temp: snap.temp != null ? [snap.temp] : null,
             humidity: snap.humi != null ? [snap.humi] : null,
             precipitation10m: snap.rain != null ? [snap.rain] : null,
+            precipitation1h: snap.rain1h != null ? [snap.rain1h] : null,
             wind: snap.wind != null ? [snap.wind] : null,
             normalPressure: snap.pres != null ? [snap.pres] : null,
             windDirection: snap.wdir != null ? [snap.wdir] : null,
@@ -10228,6 +10233,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         return areas[0];
     }
     function applyJmaDailyForecastToDom(forecastJson, todayMaxTemp, todayLiveIcon) {
+        captureSidePop_(forecastJson);
+        paintWeatherSideCards_();
         const weekly = Array.isArray(forecastJson) ? forecastJson[1] : null;
         const series = weekly && weekly.timeSeries;
         if (!Array.isArray(series)) return;
@@ -10321,6 +10328,75 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         scene2MetaLapPx = set ? Math.max(SCENE2_META_LAP_PX, set.offsetWidth) : SCENE2_META_LAP_PX;
         applyGlobalScroll_(s2MetaTrack, scene2MetaLapPx);
     }
+    function sideUnitHtml_(n, unit, digits) {
+        if (n == null || !isFinite(Number(n))) return null;
+        const num = Number(n);
+        const text = digits ? (Math.round(num * 10) / 10).toFixed(digits) : String(Math.round(num));
+        return text + '<span class="unit">' + unit + '</span>';
+    }
+    function paintSideVal_(sel, html) {
+        if (html == null || html === '') return;
+        document.querySelectorAll(sel).forEach(function (el) {
+            if (el.innerHTML !== html) el.innerHTML = html;
+        });
+    }
+    /** 起動取得の観測・予報を、動画中に流している左右カードへ入れる */
+    function paintWeatherSideCards_() {
+        const snap = lastAmedasSnapshot_;
+        if (snap) {
+            paintSideVal_('.js-temp', sideUnitHtml_(snap.temp, '℃', 0));
+            paintSideVal_('.js-feels', sideUnitHtml_(snap.temp, '℃', 0));
+            paintSideVal_('.js-hero-temp', sideUnitHtml_(snap.temp, '℃', 0));
+            paintSideVal_('.js-hum', sideUnitHtml_(snap.humi, '%', 0));
+            paintSideVal_('.js-pressure', sideUnitHtml_(snap.pres, 'hPa', 0));
+            const rain = snap.rain1h != null ? snap.rain1h : snap.rain;
+            paintSideVal_('.js-rain', sideUnitHtml_(rain, 'mm', 1));
+            if (rain != null && isFinite(Number(rain))) {
+                paintSideVal_('.js-side-rain-mm', (Math.round(Number(rain) * 10) / 10) + 'mm');
+                paintSideVal_('.js-front-rain-mm', (Math.round(Number(rain) * 10) / 10) + 'mm');
+            }
+            paintSideVal_('.js-wind-spd', sideUnitHtml_(snap.wind, 'm/s', 1));
+            paintSideVal_('.js-gust', sideUnitHtml_(snap.gust, 'm/s', 1));
+            paintSideVal_('.js-today-hi', sideUnitHtml_(snap.maxT, '℃', 0));
+            paintSideVal_('.js-today-lo', sideUnitHtml_(snap.minT, '℃', 0));
+            if (snap.wdir != null && isFinite(Number(snap.wdir))) {
+                paintSideVal_('.js-wind-dir', jmaWindDirFromCode(snap.wdir));
+            }
+        }
+        if (sideCardPop_ != null && isFinite(Number(sideCardPop_))) {
+            const popTxt = Math.round(Number(sideCardPop_)) + '%';
+            paintSideVal_('.js-side-pop', popTxt);
+            paintSideVal_('.js-front-rain-pop', popTxt);
+        }
+        if (sideCardWeather_) paintSideVal_('.js-side-weather', sideCardWeather_);
+    }
+    function captureSidePop_(forecastJson) {
+        const short = Array.isArray(forecastJson) ? forecastJson[0] : null;
+        const series = short && short.timeSeries;
+        if (!series) return;
+        for (let i = 0; i < series.length; i++) {
+            const area = pickJmaForecastArea_(series[i].areas);
+            if (!area || !area.pops) continue;
+            for (let p = 0; p < area.pops.length; p++) {
+                if (area.pops[p] === '' || area.pops[p] == null) continue;
+                const n = Number(area.pops[p]);
+                if (isFinite(n)) {
+                    sideCardPop_ = n;
+                    break;
+                }
+            }
+        }
+        for (let j = 0; j < series.length; j++) {
+            const area = pickJmaForecastArea_(series[j].areas);
+            if (!area || !area.weathers) continue;
+            for (let w = 0; w < area.weathers.length; w++) {
+                const s = String(area.weathers[w] || '').trim();
+                if (!s) continue;
+                sideCardWeather_ = s.split(/[\s　]/)[0];
+                return;
+            }
+        }
+    }
     function applyJmaAmedasToDom(obs, latest) {
         if (latest) lastAmedasObsTime = latest instanceof Date ? latest : new Date(latest);
         const icon = amedasToWeatherIcon(obs);
@@ -10359,6 +10435,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         fitScene2BodyText();
         captureAmedasSnapshot_(obs, latest);
+        paintWeatherSideCards_();
         persistSignageStateCache_();
         try { if (typeof renderS4Dashboard_ === 'function') renderS4Dashboard_(); } catch (eS4Th) {}
         return {
