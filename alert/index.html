@@ -12,7 +12,7 @@
       html, body { margin: 0; background: #000; }
       html:not(.alert-ready) .machine { visibility: hidden !important; }
     </style>
-    <link rel="stylesheet" href="./css/display.css?v=20261027f" />
+    <link rel="stylesheet" href="./css/display.css?v=20261028i" />
     <link rel="stylesheet" href="./css/quake.css?v=20261027c" />
   </head>
   <body>
@@ -35,6 +35,12 @@
             <div class="level-pill" id="cardLevelPill"></div>
             <div class="unit" id="cardLevelUnit"></div>
             <div class="level-num" id="cardLevelNum"></div>
+            <div class="side-marquee" aria-hidden="true">
+              <div class="side-marquee-track">
+                <span class="side-marquee-text"></span>
+                <span class="side-marquee-text"></span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -79,6 +85,12 @@
               <div class="stack-item">
                 <div class="label">地域</div>
                 <div class="value value--sm" id="cardArea">舞鶴市</div>
+              </div>
+            </div>
+            <div class="side-marquee" aria-hidden="true">
+              <div class="side-marquee-track">
+                <span class="side-marquee-text"></span>
+                <span class="side-marquee-text"></span>
               </div>
             </div>
           </div>
@@ -160,6 +172,6 @@
         document.documentElement.classList.add("alert-ready");
       })();
     </script>
-    <script type="module" src="./js/app.js?v=20261028h"></script>
+    <script type="module" src="./js/app.js?v=20261028i"></script>
   </body>
 </html>

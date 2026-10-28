@@ -50,7 +50,10 @@ const forceLive = params.get("live") === "1" || params.get("mode") === "live";
 const forceQuake = params.get("quake") === "1" || params.get("mode") === "quake";
 /** 自販機本編からの埋め込み。発表がなければすぐ親へ戻す */
 const EMBED_SIGNAGE = params.get("embed") === "1";
+/** 正面動画のあいだは、左右の流れを止めない */
+const KEEP_MOTION = params.get("motion") === "1";
 const EMBED_HOLD_MS = 20000;
+if (KEEP_MOTION) document.documentElement.classList.add("side-flow");
 /** デモ周回は ?playlist=1 のときだけ。既定は発表中の本番のみ */
 const usePlaylist =
   !forceDemo && !forceLive && !forceQuake && CONFIG.playlistByDefault !== false;
@@ -93,6 +96,7 @@ function considerEmbed_() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       postParent_({ type: "alert-board-status", show: show });
+      if (KEEP_MOTION) return;
       if (!show) {
         postParent_({ type: "alert-board-done", show: false });
         return;
@@ -351,6 +355,19 @@ function startMarquee() {
     const duration = Math.max(8, half / speed);
     els.marquee.style.setProperty("--marquee-duration", `${duration}s`);
     els.marquee.classList.add("is-running");
+    if (KEEP_MOTION) {
+      const text = els.marqueeTextA.textContent || "";
+      document.querySelectorAll(".side-marquee-text").forEach((el) => {
+        el.textContent = text;
+      });
+      document.querySelectorAll(".side-marquee-track").forEach((track) => {
+        const span = track.querySelector(".side-marquee-text");
+        const w = span ? span.getBoundingClientRect().width : 0;
+        const sideDur = Math.max(6, (w || 200) / speed);
+        track.style.setProperty("--marquee-duration", `${sideDur}s`);
+        track.classList.add("is-running");
+      });
+    }
   };
 
   if (document.fonts?.ready) {

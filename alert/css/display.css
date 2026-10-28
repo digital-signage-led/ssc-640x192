@@ -420,6 +420,44 @@ html:not(.alert-ready) .machine {
   animation: marquee-scroll var(--marquee-duration, 28s) linear infinite;
 }
 
+.side-marquee {
+  display: none;
+}
+
+html.side-flow .side-marquee {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 24px;
+  overflow: hidden;
+  z-index: 4;
+  background: linear-gradient(180deg, rgba(254, 226, 226, 0), #fee2e2 30%);
+}
+
+html.side-flow .side-marquee-track {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: max-content;
+  will-change: transform;
+}
+
+html.side-flow .side-marquee-track.is-running {
+  animation: marquee-scroll var(--marquee-duration, 16s) linear infinite;
+}
+
+html.side-flow .side-marquee-text {
+  display: inline-block;
+  flex-shrink: 0;
+  padding-right: 28px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 24px;
+  color: #991b1b;
+}
+
 @keyframes marquee-scroll {
   from {
     transform: translate3d(0, 0, 0);
