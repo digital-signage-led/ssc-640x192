@@ -2166,7 +2166,6 @@
   }
   function frameDelay(i) {
     if (i < 0 || i >= frames.length) return CFG.playMs;
-    if (i >= frames.length - 1) return CFG.loopPauseMs;
     var k = frames[i].kind;
     if (k === 'fc') return CFG.playMsFc;
     if (k === 'now') return CFG.playMsNow;
@@ -2862,26 +2861,44 @@
   }
   window.addEventListener('message', function (ev) {
     var d = ev && ev.data;
-    if (!d || d.type !== 'signage-set-mode') return;
+    if (!d) return;
+    if (d.type === 'signage-rain-arm') {
+      armVisiblePass_();
+      return;
+    }
+    if (d.type !== 'signage-set-mode') return;
     if (d.mode === 'thunder') enterThunderMode_();
   });
 
   /* 陸地・雨雲・左右が揃ってから、画面を一度に出す */
   var curtainParts_ = { tiles: false, amedas: false };
   var curtainOpen_ = false;
-  function openCurtain_() {
-    /* 時刻・降水量の数字が載ってから親へ渡す。地図だけ先に出して数字が遅れない */
-    if (curtainOpen_ || !curtainParts_.tiles || !curtainParts_.amedas) return;
-    curtainOpen_ = true;
-    var stage = document.getElementById('stage');
-    if (stage) stage.classList.remove('is-booting');
-    /* 見えてからの1周を最初のコマから流す。裏で進んでいた分は捨てる */
+  var holdPlay_ = qs.get('hold') === '1';
+  function armVisiblePass_() {
+    holdPlay_ = false;
     playArmed_ = true;
     playLoopCount = 0;
     passDonePosted_ = false;
     if (frames.length) {
       showFrame(nowIndex);
       scheduleNext();
+    }
+  }
+  function openCurtain_() {
+    /* 時刻・降水量の数字が載ってから親へ渡す。地図だけ先に出して数字が遅れない */
+    if (curtainOpen_ || !curtainParts_.tiles || !curtainParts_.amedas) return;
+    curtainOpen_ = true;
+    var stage = document.getElementById('stage');
+    if (stage) stage.classList.remove('is-booting');
+    /* hold=1 のあいだは親が見せるまで周回を数えない */
+    if (!holdPlay_) {
+      playArmed_ = true;
+      playLoopCount = 0;
+      passDonePosted_ = false;
+      if (frames.length) {
+        showFrame(nowIndex);
+        scheduleNext();
+      }
     }
     try {
       if (embedded && window.parent && window.parent !== window) {

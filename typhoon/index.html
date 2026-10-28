@@ -2662,6 +2662,7 @@
   }
 
   var typhoonPassDone_ = false;
+  var typhoonHold_ = qsGeo.get('hold') === '1';
   function notifyTyphoonPassDone_() {
     if (typhoonPassDone_) return;
     typhoonPassDone_ = true;
@@ -2691,6 +2692,7 @@
         }
       } catch (eGate) {}
     }
+    if (typhoonHold_) return;
     /* 発表なしも1画面分だけ見せて終了 */
     if (!storms.length) {
       if (embedded && !typhoonPassDone_) {
@@ -2731,6 +2733,14 @@
       applyStep();
     }, CFG.viewMs);
   }
+  window.addEventListener('message', function (ev) {
+    var d = ev && ev.data;
+    if (!d || d.type !== 'signage-typhoon-arm') return;
+    if (!typhoonHold_) return;
+    typhoonHold_ = false;
+    typhoonPassDone_ = false;
+    startRotate();
+  });
 
   function setVeil(on) {
     var veil = document.getElementById('veil');
