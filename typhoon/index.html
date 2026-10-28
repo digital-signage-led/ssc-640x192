@@ -495,6 +495,15 @@
       height: 128px !important;
       max-height: 128px !important;
     }
+    /* タイル境界の1px隙間（下地が横線・縦線に見える）を、上下左右に重ねて消す */
+    #map .leaflet-tile,
+    .side-map .leaflet-tile {
+      width: 258px !important;
+      height: 258px !important;
+      margin-top: -1px !important;
+      margin-left: -1px !important;
+      mix-blend-mode: normal !important;
+    }
     .leaflet-fade-anim .leaflet-tile,
     .leaflet-zoom-anim .leaflet-zoom-animated {
       transition: none !important;

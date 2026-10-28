@@ -358,11 +358,14 @@
     .leaflet-borders-pane svg {
       image-rendering: auto;
     }
-    /* タイル境界の1px隙間（下地の青が縦線・横線に見える）を、隣と重ねて消す */
+    /* タイル境界の1px隙間（下地が縦線・横線に見える）を、上下左右に重ねて消す */
     #map .leaflet-tile,
     .side-radar .leaflet-tile {
-      width: 257px !important;
-      height: 257px !important;
+      width: 258px !important;
+      height: 258px !important;
+      margin-top: -1px !important;
+      margin-left: -1px !important;
+      mix-blend-mode: normal !important;
     }
     /* 読み込み中はタイルを一つずつ出さない。揃ってから全体を出す */
     #stage.is-booting { visibility: hidden; }

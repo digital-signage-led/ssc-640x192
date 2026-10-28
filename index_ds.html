@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.18';
+    var VER = '2026.10.28.19';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4401,7 +4401,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.18';
+    const CONTENT_VER = '2026.10.28.19';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4579,7 +4579,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028car2&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028seam&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4592,7 +4592,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261028th11';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261028th12';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4603,7 +4603,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028ty10&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028ty11&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + ((DEMO_ONLY === 'typhoon' || PREVIEW_FRONT_VIDEO) ? '' : '&gate=1');
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
