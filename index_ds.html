@@ -4540,7 +4540,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261027r21&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261027r22&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;

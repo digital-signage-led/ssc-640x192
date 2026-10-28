@@ -2093,6 +2093,8 @@
   var playTimer = null;
   var playLoopCount = 0;
   var playLoopsTarget = 2; /* 埋め込み時: この周回数で親へ終了通知 */
+  /* 親の裏で読んでいるあいだは周回を数えない。見えてから1周する */
+  var playArmed_ = !embedded;
   if (qs.has('loops')) {
     var loopsQ = parseInt(qs.get('loops'), 10);
     if (isFinite(loopsQ) && loopsQ >= 1 && loopsQ <= 10) playLoopsTarget = loopsQ;
@@ -2177,20 +2179,24 @@
       }
       showFrame(next);
       if (wrapped) {
-        playLoopCount += 1;
-        /* 親サイネージの中だけ、指定周回で止めて次シーンへ渡す。単体表示は繰り返す */
-        var hasParent = false;
-        try { hasParent = !!(window.parent && window.parent !== window); } catch (eParent) {}
-        if (embedded && hasParent && playLoopCount >= playLoopsTarget) {
-          try {
-            window.parent.postMessage({
-              type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
-              loops: playLoopCount,
-              mode: isThunder ? 'thunder' : 'rain'
-            }, '*');
-          } catch (eMsg) {}
-          stopPlay();
-          return;
+        if (!playArmed_) {
+          playLoopCount = 0;
+        } else {
+          playLoopCount += 1;
+          /* 親サイネージの中だけ、見えてからの指定周回で次シーンへ渡す */
+          var hasParent = false;
+          try { hasParent = !!(window.parent && window.parent !== window); } catch (eParent) {}
+          if (embedded && hasParent && playLoopCount >= playLoopsTarget) {
+            try {
+              window.parent.postMessage({
+                type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
+                loops: playLoopCount,
+                mode: isThunder ? 'thunder' : 'rain'
+              }, '*');
+            } catch (eMsg) {}
+            stopPlay();
+            return;
+          }
         }
       }
       scheduleNext();
@@ -2857,6 +2863,13 @@
     curtainOpen_ = true;
     var stage = document.getElementById('stage');
     if (stage) stage.classList.remove('is-booting');
+    /* 見えてからの1周を最初のコマから流す。裏で進んでいた分は捨てる */
+    playArmed_ = true;
+    playLoopCount = 0;
+    if (frames.length) {
+      showFrame(nowIndex);
+      scheduleNext();
+    }
     try {
       if (embedded && window.parent && window.parent !== window) {
         window.parent.postMessage({
