@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.27';
+    var VER = '2026.10.28.29';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.27';
+    const CONTENT_VER = '2026.10.28.29';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4624,7 +4624,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028rain4&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028rain6&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (hold ? '&hold=1' : '');
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4637,7 +4637,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + (hold ? '&hold=1' : '') + '&v=20261028th14';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + (hold ? '&hold=1' : '') + '&v=20261028th15';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4734,10 +4734,12 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             doneFn();
         }, ms);
     }
+    let rainPassGen_ = 0;
     function armChildFrame_(frame) {
+        rainPassGen_ += 1;
         try {
             if (frame && frame.contentWindow) {
-                frame.contentWindow.postMessage({ type: 'signage-rain-arm' }, '*');
+                frame.contentWindow.postMessage({ type: 'signage-rain-arm', pass: rainPassGen_ }, '*');
             }
         } catch (eArm) {}
     }
@@ -4844,21 +4846,28 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (rainPrepared_) {
             radarGate_ = '';
             rainWanted_ = false;
-            armChildFrame_(rain);
             cutWeatherToRain_();
+            armChildFrame_(rain);
             preloadNextAfterRain_();
             return;
         }
         radarGate_ = DEMO_ONLY === 'rain' ? '' : 'rain';
         if (!radarGate_) {
-            armChildFrame_(rain);
             revealRainPanel_();
+            armChildFrame_(rain);
             armRainHold_(RAIN_HOLD_MS, onRainDone_);
             preloadNextAfterRain_();
             return;
         }
         rain.classList.add('is-gate');
-        armRainHold_(20000, onRainDone_);
+        armRainHold_(20000, function () {
+            const shown = rain.classList.contains('is-on') && !rain.classList.contains('is-gate');
+            if (shown) {
+                armRainHold_(RAIN_HOLD_MS, onRainDone_);
+                return;
+            }
+            onRainDone_();
+        });
     }
     function goThunderAfterRain_() {
         const rain = document.getElementById('rain-panel');
@@ -4873,8 +4882,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         rainShowing_ = false;
         thunderShowing_ = true;
         radarGate_ = DEMO_ONLY === 'thunder' ? '' : 'thunder';
-        /* 雨雲の絵を残したまま、裏で雷の有無だけ見る */
-        keepRainFrame_();
+        hideRainOverlay_();
+        thunderShowing_ = true;
         try {
             const pre = document.getElementById('radar-preload');
             if (!pre) throw new Error('no preload');
@@ -4907,8 +4916,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             if (radarGate_ === 'rain' || rainWanted_) {
                 radarGate_ = '';
                 rainWanted_ = false;
-                armChildFrame_(document.getElementById('rain-panel'));
                 cutWeatherToRain_();
+                armChildFrame_(document.getElementById('rain-panel'));
             }
             return;
         }
@@ -4941,6 +4950,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         if (d.type === 'rain-radar-done') {
             if (!rainShowing_) return;
+            /* 判定だけの途中通知では切り替えない。最後のコマまで出した一周だけ */
+            if (!d.complete) return;
+            if (d.pass != null && rainPassGen_ && d.pass !== rainPassGen_) return;
             radarGate_ = '';
             onRainDone_();
             return;

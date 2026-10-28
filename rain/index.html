@@ -2098,6 +2098,8 @@
   var playLoopCount = 0;
   var playLoopsTarget = 2; /* 埋め込み時: この周回数で親へ終了通知 */
   var passDonePosted_ = false; /* 1周完了は一度だけ親へ知らせ、その後も止めて固まらせない */
+  var playGen_ = 0; /* 古いタイマーが途中のコマで終了通知しないようにする */
+  var armedPass_ = 0;
   /* 親の裏で読んでいるあいだは周回を数えない。見えてから1周する */
   var playArmed_ = !embedded;
   if (qs.has('loops')) {
@@ -2179,6 +2181,9 @@
       window.parent.postMessage({
         type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
         loops: playLoopCount,
+        complete: true,
+        pass: armedPass_,
+        frames: frames.length,
         mode: isThunder ? 'thunder' : 'rain'
       }, '*');
     } catch (eMsg) {}
@@ -2186,9 +2191,12 @@
   function scheduleNext() {
     stopPlay();
     if (!frames.length) return;
-    var delay = frameDelay(current);
+    var gen = playGen_;
+    var from = current;
+    var delay = frameDelay(from);
     playTimer = setTimeout(function () {
-      var next = current + 1;
+      if (gen !== playGen_) return;
+      var next = from + 1;
       if (next >= frames.length) {
         var hasParent = false;
         try { hasParent = !!(window.parent && window.parent !== window); } catch (eParent) {}
@@ -2198,7 +2206,7 @@
           scheduleNext();
           return;
         }
-        /* 1周したらすぐ親へ渡す。最後のコマで止めず、親が画面を替えるまで流し続ける */
+        /* 一周したら親へ渡す。親が画面を替えるまで止めない */
         if (embedded && hasParent && (playLoopCount + 1) >= playLoopsTarget) {
           playLoopCount += 1;
           notifyPassDone_();
@@ -2863,7 +2871,7 @@
     var d = ev && ev.data;
     if (!d) return;
     if (d.type === 'signage-rain-arm') {
-      armVisiblePass_();
+      armVisiblePass_(d.pass);
       return;
     }
     if (d.type !== 'signage-set-mode') return;
@@ -2874,13 +2882,16 @@
   var curtainParts_ = { tiles: false, amedas: false };
   var curtainOpen_ = false;
   var holdPlay_ = qs.get('hold') === '1';
-  function armVisiblePass_() {
+  function armVisiblePass_(pass) {
+    stopPlay();
+    playGen_ += 1;
+    armedPass_ = pass || 0;
     holdPlay_ = false;
     playArmed_ = true;
     playLoopCount = 0;
     passDonePosted_ = false;
     if (frames.length) {
-      showFrame(nowIndex);
+      showFrame(0);
       scheduleNext();
     }
   }
