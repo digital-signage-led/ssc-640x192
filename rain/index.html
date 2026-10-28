@@ -836,9 +836,18 @@
   var embedded = !!window.__RAIN_EMBED__;
   var approachGate = qs.get('gate') === '1';
   var approachReported_ = false;
+  var lastRainClouds_ = false;
   function rainApproaching_(est) {
     if (!est) return false;
     return est.level === 'raining' || est.level === 'approaching' || est.level === 'soon';
+  }
+  function noteRainClouds_(show) {
+    lastRainClouds_ = !!show;
+    if (!embedded || isThunder) return;
+    try {
+      if (!window.parent || window.parent === window) return;
+      window.parent.postMessage({ type: 'rain-cloud-status', show: lastRainClouds_ }, '*');
+    } catch (eCloud) {}
   }
   function reportApproach_(show) {
     if (!embedded || !approachGate || approachReported_) return;
@@ -2184,6 +2193,7 @@
         complete: true,
         pass: armedPass_,
         frames: frames.length,
+        rain: !isThunder && lastRainClouds_,
         mode: isThunder ? 'thunder' : 'rain'
       }, '*');
     } catch (eMsg) {}
@@ -2662,6 +2672,7 @@
         };
       }
       applyEstimateUI(est);
+      noteRainClouds_(rainApproaching_(est));
       reportApproach_(rainApproaching_(est));
       console.log('[rain-eta]', est.level, 'near', nearR.toFixed(2), 'first', firstRainMin, 'show', est.minutes);
     } catch (e) {
@@ -2673,6 +2684,7 @@
         guide: '正面の雨雲を確認',
         guideSub: '色が現場へ近づくと雨'
       });
+      noteRainClouds_(false);
       reportApproach_(false);
     }
   }

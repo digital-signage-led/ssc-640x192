@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.31';
+    var VER = '2026.10.28.32';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.31';
+    const CONTENT_VER = '2026.10.28.32';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4522,6 +4522,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let rainWanted_ = false;
     let thunderPreloadStarted_ = false;
     let thunderDecision_ = '';
+    /* この周の雨雲レーダーが、付近の雨を見たか。雷はこれがあるときだけ出す */
+    let rainCloudsThisPass_ = false;
     let typhoonPreloadStarted_ = false;
     let typhoonDecision_ = '';
     let thunderShowing_ = false;
@@ -4624,7 +4626,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028rain6&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028rain7&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (hold ? '&hold=1' : '');
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4754,6 +4756,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const rain = document.getElementById('rain-panel');
         if (!rain) return;
         rainPreloadStarted_ = true;
+        rainCloudsThisPass_ = false;
         rain.classList.add('is-gate');
         try { rain.src = rainPanelSrc_(true); } catch (ePre) {}
     }
@@ -4804,13 +4807,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         rainShowing_ = false;
         radarGate_ = '';
         if (rainHoldTimerId_ != null) { clearTimeout(rainHoldTimerId_); rainHoldTimerId_ = null; }
-        if (PLAY_THUNDER_AFTER_RAIN && thunderDecision_ === 'show') {
+        /* 雷は雨雲があるときだけ。活動があっても、雨雲がなければ出さない */
+        if (PLAY_THUNDER_AFTER_RAIN && rainCloudsThisPass_ && thunderDecision_ === 'show') {
             hideRainOverlay_();
             showPreparedThunder_();
             return;
         }
-        /* 終わった雨雲は残さない。次が未判定のときだけ、いまの読み込みを続ける */
-        if (PLAY_THUNDER_AFTER_RAIN && !thunderDecision_) {
+        /* 終わった雨雲は残さない。雨雲があり、雷が未判定のときだけ続ける */
+        if (PLAY_THUNDER_AFTER_RAIN && rainCloudsThisPass_ && !thunderDecision_) {
             goThunderAfterRain_();
             return;
         }
@@ -4871,6 +4875,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function goThunderAfterRain_() {
         const rain = document.getElementById('rain-panel');
+        if (DEMO_ONLY !== 'thunder' && !rainCloudsThisPass_) {
+            if (PLAY_TYPHOON_AFTER_RAIN) {
+                goTyphoonAfterRain_();
+                return;
+            }
+            playScene4();
+            return;
+        }
         if (!rain || !PLAY_THUNDER_AFTER_RAIN) {
             if (PLAY_TYPHOON_AFTER_RAIN) {
                 goTyphoonAfterRain_();
@@ -4921,10 +4933,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             }
             return;
         }
+        if (d.type === 'rain-cloud-status') {
+            rainCloudsThisPass_ = !!d.show;
+            return;
+        }
         if (d.type === 'thunder-radar-status' && d.show) {
             if (!thunderShowing_) {
                 thunderDecision_ = 'show';
-                if (radarGate_ !== 'thunder') return;
+                if (radarGate_ !== 'thunder' || !rainCloudsThisPass_) return;
             }
             radarGate_ = '';
             revealThunderPreload_();
@@ -4953,6 +4969,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             /* 判定だけの途中通知では切り替えない。最後のコマまで出した一周だけ */
             if (!d.complete) return;
             if (d.pass != null && rainPassGen_ && d.pass !== rainPassGen_) return;
+            if (d.rain != null) rainCloudsThisPass_ = !!d.rain;
             radarGate_ = '';
             onRainDone_();
             return;
@@ -5393,8 +5410,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
         /*
          * 天気パネル内カード完走の次:
-         *   雨雲あり → 雨雲 → 雷 →（続けて台風）→ WBGT
-         *   雨雲なし・雷あり → 雷 →（台風）→ WBGT
+         *   雨雲あり → 雨雲 → 雷（活動があるとき）→（続けて台風）→ WBGT
+         *   雨雲なし → 雷は出さない →（台風）→ WBGT
          *   雨雲・雷なし・台風あり → 台風 → WBGT
          *   どれもなし → 縦切替で WBGT
          */
