@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.19';
+    var VER = '2026.10.28.20';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4401,7 +4401,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.19';
+    const CONTENT_VER = '2026.10.28.20';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4810,18 +4810,26 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             onTyphoonDone_();
             return;
         }
-        if (d.type === 'alert-board-status' && radarGate_ === 'alert') {
-            if (!d.show) {
-                radarGate_ = '';
-                onAlertBoardDone_();
-                return;
+        if (d.type === 'alert-board-status') {
+            alertLive_ = !!d.show;
+            if (videoSideKind_ === 'alert' && !alertLive_) {
+                videoSideKind_ = '';
+                showSidesForFrontVideo_();
             }
-            radarGate_ = '';
-            revealAlertBoard_();
-            armAlertBoardHold_(ALERT_BOARD_HOLD_MS);
+            if (radarGate_ === 'alert') {
+                if (!d.show) {
+                    radarGate_ = '';
+                    onAlertBoardDone_();
+                    return;
+                }
+                radarGate_ = '';
+                revealAlertBoard_();
+                armAlertBoardHold_(ALERT_BOARD_HOLD_MS);
+            }
             return;
         }
         if (d.type === 'alert-board-done') {
+            if (lapHolding_) return;
             if (!alertBoardShowing_ && radarGate_ !== 'alert') return;
             radarGate_ = '';
             onAlertBoardDone_();
@@ -4958,6 +4966,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     let lapHolding_ = false;
     let lapHoldTimerId_ = null;
     let frontVideoWatchId_ = null;
+    let alertLive_ = false;
+    let videoSideKind_ = '';
     function markPageLapStart_() {
         pageLapStartMs_ = Date.now();
     }
@@ -4971,7 +4981,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function playFrontVideoThen_(done) {
         if (lapHoldTimerId_ != null) return;
-        /* 正面だけ動画。左右は直前まで出していた画面を残す */
+        /* 正面だけ動画。左右は警報が出ていれば警報、なければ気象を流す */
+        showSidesForFrontVideo_();
         const area = document.querySelector('.content-area');
         const v = document.getElementById('front-spot');
         if (area) area.classList.add('video-on');
@@ -4989,6 +5000,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             }
             lapHolding_ = false;
             pageLapStartMs_ = 0;
+            videoSideKind_ = '';
+            try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
             hideFrontVideo_();
             done();
         }
@@ -5059,19 +5072,44 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             showIssuedAlertsOrScene4_();
         });
     }
+    function showAlertSidesForVideo_() {
+        const panel = document.getElementById('alert-panel');
+        hideWeatherOverlay_();
+        try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+        if (!panel) return;
+        videoSideKind_ = 'alert';
+        try {
+            var srcNow = panel.src || '';
+            if (srcNow.indexOf('alert/index.html') < 0 || srcNow.indexOf('about:blank') >= 0) {
+                panel.src = alertBoardSrc_();
+            }
+        } catch (eSrc) {}
+        revealAlertBoard_();
+    }
+    function showWeatherSidesForVideo_() {
+        hideAlertBoard_();
+        showFrozenWeatherForLapHold_();
+        videoSideKind_ = 'weather';
+        try {
+            weatherRunning_ = true;
+            startSideTickerMotion_();
+        } catch (eSide) {}
+    }
+    function showSidesForFrontVideo_() {
+        hideRainOverlay_();
+        hideRadarPreload_();
+        hideTyphoonOverlay_();
+        const useAlert = alertLive_ || hasIssuedWarn_() || !!quakeActive;
+        if (useAlert) showAlertSidesForVideo_();
+        else showWeatherSidesForVideo_();
+    }
     function loopFrontVideoPreview_() {
         playFrontVideoThen_(loopFrontVideoPreview_);
     }
     function startFrontVideoPreview_() {
-        hideAlertBoard_();
         hideWbgtSceneEl_();
         hideRainOverlay_();
-        const ty = document.getElementById('typhoon-panel');
-        typhoonShowing_ = true;
-        if (ty) {
-            try { ty.src = typhoonPanelSrc_(); } catch (eTy) {}
-            revealTyphoonPanel_();
-        }
+        hideTyphoonOverlay_();
         loopFrontVideoPreview_();
     }
     function clearSceneSwapClasses_() {
