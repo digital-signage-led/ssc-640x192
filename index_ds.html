@@ -4540,8 +4540,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261027r20&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'rain' ? '' : '&gate=1');
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261027r21&lat=' + encodeURIComponent(String(lat))
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4571,6 +4571,26 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         } catch (eUrl) {
             return './typhoon/index.html?' + q;
         }
+    }
+    function hideWeatherPanelNow_() {
+        weatherShowing_ = false;
+        const panel = document.getElementById('weather-panel');
+        const area = document.querySelector('.content-area');
+        if (area) area.classList.remove('weather-on');
+        if (!panel) return;
+        panel.classList.remove('is-on', 'is-enter-rtl', 'is-exit-down', 'is-swap-rtl-flow', 'is-swap-v-flow');
+        panel.setAttribute('aria-hidden', 'true');
+        panel.style.display = 'none';
+        panel.style.visibility = 'hidden';
+        panel.style.opacity = '0';
+        panel.style.transform = '';
+        panel.style.transition = '';
+        panel.style.zIndex = '';
+    }
+    function cutWeatherToRain_() {
+        hideWeatherPanelNow_();
+        revealRainPanel_();
+        armRainHold_(RAIN_HOLD_MS, onRainDone_);
     }
     function revealRainPanel_() {
         const rain = document.getElementById('rain-panel');
@@ -4706,10 +4726,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     function onRainRadarMessage_(ev) {
         var d = ev && ev.data;
         if (!d) return;
+        if (d.type === 'rain-radar-ready' && radarGate_ === 'rain') {
+            radarGate_ = '';
+            cutWeatherToRain_();
+            return;
+        }
         if (d.type === 'rain-radar-status' && d.show && radarGate_ === 'rain') {
             radarGate_ = '';
-            revealRainPanel_();
-            armRainHold_(RAIN_HOLD_MS, onRainDone_);
+            cutWeatherToRain_();
             return;
         }
         if (d.type === 'thunder-radar-status' && d.show && radarGate_ === 'thunder') {
@@ -4820,6 +4844,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         ty.style.background = '#000';
     }
     function onRainDone_() {
+        hideWeatherPanelNow_();
         if (!rainShowing_) {
             if (PLAY_THUNDER_AFTER_RAIN) {
                 goThunderAfterRain_();
@@ -5015,7 +5040,6 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             return;
         }
         clearWeatherTimers_();
-        weatherShowing_ = false;
         window.onWeatherLayoutCycleDone_ = null;
         const panel = document.getElementById('weather-panel');
         const area = document.querySelector('.content-area');
@@ -5032,6 +5056,12 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         } catch (e) {}
 
         if (s1) hideSceneEl(s1);
+        /* 雨雲は地図が描けるまで天気を残す。先に消すと間が空く */
+        if (PLAY_RAIN_AFTER_WX) {
+            goRainAfterWeather_();
+            return;
+        }
+        weatherShowing_ = false;
         if (area) area.classList.remove('weather-on');
 
         /*

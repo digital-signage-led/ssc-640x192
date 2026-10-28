@@ -2852,10 +2852,19 @@
   var curtainParts_ = { tiles: false, amedas: false };
   var curtainOpen_ = false;
   function openCurtain_() {
-    if (curtainOpen_ || !curtainParts_.tiles || !curtainParts_.amedas) return;
+    /* アメダスの数字は待たない。地図が載ったらすぐ親へ渡す */
+    if (curtainOpen_ || !curtainParts_.tiles) return;
     curtainOpen_ = true;
     var stage = document.getElementById('stage');
     if (stage) stage.classList.remove('is-booting');
+    try {
+      if (embedded && window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: isThunder ? 'thunder-radar-ready' : 'rain-radar-ready',
+          mode: isThunder ? 'thunder' : 'rain'
+        }, '*');
+      }
+    } catch (eReady) {}
   }
   function waitLayer_(layer, done) {
     var finished = false;
