@@ -2097,7 +2097,7 @@
   var playTimer = null;
   var playLoopCount = 0;
   var playLoopsTarget = 2; /* 埋め込み時: この周回数で親へ終了通知 */
-  var edgeHoldOnce_ = false; /* 見えた直後の1コマ目だけ1秒止める */
+  var passDonePosted_ = false; /* 1周完了は一度だけ親へ知らせ、その後も止めて固まらせない */
   /* 親の裏で読んでいるあいだは周回を数えない。見えてから1周する */
   var playArmed_ = !embedded;
   if (qs.has('loops')) {
@@ -2172,11 +2172,22 @@
     if (k === 'now') return CFG.playMsNow;
     return CFG.playMsPast;
   }
+  function notifyPassDone_() {
+    if (passDonePosted_) return;
+    passDonePosted_ = true;
+    try {
+      if (!window.parent || window.parent === window) return;
+      window.parent.postMessage({
+        type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
+        loops: playLoopCount,
+        mode: isThunder ? 'thunder' : 'rain'
+      }, '*');
+    } catch (eMsg) {}
+  }
   function scheduleNext() {
     stopPlay();
     if (!frames.length) return;
-    var delay = frameDelay(current) + (edgeHoldOnce_ ? 1000 : 0);
-    edgeHoldOnce_ = false;
+    var delay = frameDelay(current);
     playTimer = setTimeout(function () {
       var next = current + 1;
       if (next >= frames.length) {
@@ -2188,22 +2199,13 @@
           scheduleNext();
           return;
         }
-        /* 最後のコマを1秒止めてから次へ渡す。先頭へ戻して止めない */
+        /* 1周したらすぐ親へ渡す。最後のコマで止めず、親が画面を替えるまで流し続ける */
         if (embedded && hasParent && (playLoopCount + 1) >= playLoopsTarget) {
           playLoopCount += 1;
-          stopPlay();
-          setTimeout(function () {
-            try {
-              window.parent.postMessage({
-                type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
-                loops: playLoopCount,
-                mode: isThunder ? 'thunder' : 'rain'
-              }, '*');
-            } catch (eMsg) {}
-          }, 1000);
-          return;
+          notifyPassDone_();
+        } else {
+          playLoopCount += 1;
         }
-        playLoopCount += 1;
         showFrame(0);
         scheduleNext();
         return;
@@ -2539,6 +2541,7 @@
           activityLabel: '—',
           activity: 0
         });
+        reportApproach_(false);
         return;
       }
       var near = ok[0] || 0;
@@ -2702,9 +2705,8 @@
     /* 雨も雷も「いま」から約1時間先。過去コマはない */
     showFrame(nowIndex);
     scheduleNext();
-    /* 判定用タイルは、見えている雨雲のあとに取る */
-    var framesForEta = frames;
-    setTimeout(function () { updateRainEstimate(framesForEta); }, 800);
+    /* 画面を出す前に判定を始める。数字のあと出しを避ける */
+    updateRainEstimate(frames);
     armFirstReveal_();
     /* 埋め込み（親サイネージ）: 2周で終了するため途中 refresh で周回カウントをリセットしない */
     if (!embedded) scheduleRadarRefresh();
@@ -2868,17 +2870,17 @@
   var curtainParts_ = { tiles: false, amedas: false };
   var curtainOpen_ = false;
   function openCurtain_() {
-    /* アメダスの数字は待たない。地図が載ったらすぐ親へ渡す */
-    if (curtainOpen_ || !curtainParts_.tiles) return;
+    /* 時刻・降水量の数字が載ってから親へ渡す。地図だけ先に出して数字が遅れない */
+    if (curtainOpen_ || !curtainParts_.tiles || !curtainParts_.amedas) return;
     curtainOpen_ = true;
     var stage = document.getElementById('stage');
     if (stage) stage.classList.remove('is-booting');
     /* 見えてからの1周を最初のコマから流す。裏で進んでいた分は捨てる */
     playArmed_ = true;
     playLoopCount = 0;
+    passDonePosted_ = false;
     if (frames.length) {
       showFrame(nowIndex);
-      edgeHoldOnce_ = true;
       scheduleNext();
     }
     try {

@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.25';
+    var VER = '2026.10.28.26';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.25';
+    const CONTENT_VER = '2026.10.28.26';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4614,7 +4614,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028seam&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028rain3&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4627,7 +4627,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261028th12';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261028th13';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4638,8 +4638,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028ty11&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + ((DEMO_ONLY === 'typhoon' || PREVIEW_FRONT_VIDEO) ? '' : '&gate=1');
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028ty12&lat=' + encodeURIComponent(String(lat))
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + ((DEMO_ONLY === 'typhoon' || PREVIEW_FRONT_VIDEO) ? '' : '&gate=1') ;
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4648,6 +4648,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function hideWeatherPanelNow_() {
         weatherShowing_ = false;
+        try {
+            if (window.WbgtWeather && typeof window.WbgtWeather.freezeForExit === 'function') {
+                window.WbgtWeather.freezeForExit();
+            }
+        } catch (eFr) {}
         const panel = document.getElementById('weather-panel');
         const area = document.querySelector('.content-area');
         if (area) area.classList.remove('weather-on');
@@ -5253,6 +5258,12 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         window.onWeatherLayoutCycleDone_ = null;
         const panel = document.getElementById('weather-panel');
         const area = document.querySelector('.content-area');
+        if (s1) hideSceneEl(s1);
+        /* 雨雲の地図と数値が揃うまで天気は流したまま。止めて待たない */
+        if (PLAY_RAIN_AFTER_WX) {
+            goRainAfterWeather_();
+            return;
+        }
         /*
          * カード配置は触らない（syncFrontFlow_ 禁止）。
          * タイマーだけ止め、最後の見え方のまま次へ。
@@ -5264,14 +5275,6 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 window.WbgtWeather.stop();
             }
         } catch (e) {}
-
-        if (s1) hideSceneEl(s1);
-        /* 雨雲は地図が描けるまで天気を残す。先に消すと間が空く */
-        if (PLAY_RAIN_AFTER_WX) {
-            /* 止めた天気を1秒見せてから、雨雲の読み込みへ */
-            setTimeout(function () { goRainAfterWeather_(); }, 1000);
-            return;
-        }
         weatherShowing_ = false;
         if (area) area.classList.remove('weather-on');
 
