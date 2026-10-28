@@ -366,6 +366,19 @@
     }
     /* 読み込み中はタイルを一つずつ出さない。揃ってから全体を出す */
     #stage.is-booting { visibility: hidden; }
+    #stage.is-booting .front-video { visibility: visible; }
+    .front-video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 384px;
+      height: 192px;
+      object-fit: cover;
+      object-position: center;
+      z-index: 10001;
+      background: #000;
+      pointer-events: none;
+    }
     .leaflet-fade-anim .leaflet-tile,
     .leaflet-zoom-anim .leaflet-zoom-animated {
       transition: none !important;
@@ -672,6 +685,7 @@
 
     <!-- 正面 384×192：雨雲の動き -->
     <section class="face face-front" id="faceFront" aria-label="正面 雨雲">
+      <video class="front-video" muted loop playsinline preload="none"></video>
       <div id="map"></div>
       <div class="rain-scale" aria-hidden="true">
         <span class="rs-lab">弱</span>
@@ -713,6 +727,27 @@
    * 現場サイネージ（自販機筐体 640×192 / 3面）向け。
    * 雨雲の動きを正面に示し、左面で「あと何分で雨か」の作業判断目安を出す。
    */
+
+  var frontVideo = document.querySelector('.front-video');
+  var frontMode = '';
+  try {
+    var frontQs = new URLSearchParams(location.search);
+    frontMode = String(frontQs.get('mode') || frontQs.get('elem') || '').toLowerCase();
+  } catch (eFrontMode) {}
+  var frontIsThunder = frontMode === 'thunder' || frontMode === 'thns' || frontMode === 'lts' || frontMode === '雷';
+  if (frontVideo && !frontIsThunder) {
+    frontVideo.muted = true;
+    frontVideo.src = './demo-car.mp4';
+    var playFrontVideo = function () {
+      var pending = frontVideo.play();
+      if (pending && pending.catch) pending.catch(function () {});
+    };
+    playFrontVideo();
+    frontVideo.addEventListener('canplay', playFrontVideo);
+    frontVideo.addEventListener('pause', playFrontVideo);
+  } else if (frontVideo) {
+    frontVideo.remove();
+  }
 
   var SIDE_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
   var clockInkCtx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
