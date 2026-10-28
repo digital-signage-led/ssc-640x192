@@ -98,7 +98,11 @@ function considerEmbed_() {
         return;
       }
       setTimeout(() => {
-        postParent_({ type: "alert-board-done", show: true });
+        stopMarquee();
+        stopCardRotation();
+        setTimeout(() => {
+          postParent_({ type: "alert-board-done", show: true });
+        }, 1000);
       }, EMBED_HOLD_MS);
     });
   });
@@ -306,6 +310,25 @@ function startCardRotation(items) {
       applySidePair(item, true, { doSwap: true });
     });
   }, 4500);
+}
+
+let contentEdgeHeld_ = false;
+let contentEdgeTimer_ = 0;
+let contentEdgeItems_ = null;
+function startMotionAfterHold_(items) {
+  if (items) contentEdgeItems_ = items;
+  const run = () => {
+    contentEdgeHeld_ = true;
+    contentEdgeTimer_ = 0;
+    if (contentEdgeItems_) startCardRotation(contentEdgeItems_);
+    startMarquee();
+  };
+  if (contentEdgeHeld_) {
+    run();
+    return;
+  }
+  if (contentEdgeTimer_) return;
+  contentEdgeTimer_ = setTimeout(run, 1000);
 }
 
 function stopMarquee() {
@@ -537,9 +560,7 @@ function render(state, opts = {}) {
       if (els.marqueeTextA) els.marqueeTextA.innerHTML = idle;
       if (els.marqueeTextB) els.marqueeTextB.innerHTML = idle;
     }
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => startMarquee());
-    });
+    startMotionAfterHold_();
     presentSideCards(() => {
       resetSidePositions();
       if (fail) {
@@ -570,11 +591,7 @@ function render(state, opts = {}) {
     resetSidePositions();
     applySidePair(top, true, { doSwap: false });
   });
-  startCardRotation(state.items);
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => startMarquee());
-  });
+  startMotionAfterHold_(state.items);
 
   if (opts.notify) flashNotify();
   document.documentElement.classList.add("alert-ready");
@@ -755,7 +772,7 @@ async function boot() {
   tickClock();
   setInterval(tickClock, 1000);
   if (document.documentElement.classList.contains("alert-ready")) {
-    requestAnimationFrame(() => startMarquee());
+    startMotionAfterHold_();
   }
   fetchAreaNames().then((map) => {
     areaNames = map;

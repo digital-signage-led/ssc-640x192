@@ -2653,13 +2653,19 @@
   }
 
   var typhoonPassDone_ = false;
-  function notifyTyphoonPassDone_() {
+  function notifyTyphoonPassDone_(holdMs) {
     if (typhoonPassDone_) return;
     typhoonPassDone_ = true;
     if (!embedded) return;
+    var wait = holdMs === 0 ? 0 : 1000;
     try {
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'typhoon-done', loops: 1 }, '*');
+        /* 最後の見え方を1秒止めてから親へ渡す。接近なしは待たない */
+        setTimeout(function () {
+          try {
+            window.parent.postMessage({ type: 'typhoon-done', loops: 1 }, '*');
+          } catch (eLate) {}
+        }, wait);
       }
     } catch (eMsg) {}
   }
@@ -2672,7 +2678,7 @@
     }
     /* 本編は現場へ接近している台風だけ出す。確認用URLは gate なしで常に出す */
     if (embedded && qsGeo.get('gate') === '1' && !anyStormApproaches_()) {
-      notifyTyphoonPassDone_();
+      notifyTyphoonPassDone_(0);
       return;
     }
     if (embedded && qsGeo.get('gate') === '1') {
@@ -2705,15 +2711,21 @@
       });
     }
     applyStep();
-    rotateTimer = setInterval(function () {
-      viewStep += 1;
-      var playlist = buildViewPlaylist();
-      if (viewStep >= playlist.length) {
-        if (embedded) notifyTyphoonPassDone_();
-        viewStep = 0;
-      }
-      applyStep();
-    }, CFG.viewMs);
+    /* 最初の画面を1秒止めてから、次の画面へ進む */
+    rotateTimer = setTimeout(function () {
+      rotateTimer = setInterval(function () {
+        viewStep += 1;
+        var playlist = buildViewPlaylist();
+        if (viewStep >= playlist.length) {
+          if (embedded) {
+            notifyTyphoonPassDone_();
+            return;
+          }
+          viewStep = 0;
+        }
+        applyStep();
+      }, CFG.viewMs);
+    }, 1000);
   }
 
   function setVeil(on) {

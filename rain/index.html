@@ -358,8 +358,9 @@
     .leaflet-borders-pane svg {
       image-rendering: auto;
     }
-    /* タイル境界の1px隙間・暗い横筋を、隣と重ねて消す */
-    .leaflet-tile-pane .leaflet-tile {
+    /* タイル境界の1px隙間（下地の青が縦線・横線に見える）を、隣と重ねて消す */
+    #map .leaflet-tile,
+    .side-radar .leaflet-tile {
       width: 257px !important;
       height: 257px !important;
     }
@@ -2093,6 +2094,7 @@
   var playTimer = null;
   var playLoopCount = 0;
   var playLoopsTarget = 2; /* 埋め込み時: この周回数で親へ終了通知 */
+  var edgeHoldOnce_ = false; /* 見えた直後の1コマ目だけ1秒止める */
   /* 親の裏で読んでいるあいだは周回を数えない。見えてから1周する */
   var playArmed_ = !embedded;
   if (qs.has('loops')) {
@@ -2170,23 +2172,24 @@
   function scheduleNext() {
     stopPlay();
     if (!frames.length) return;
+    var delay = frameDelay(current) + (edgeHoldOnce_ ? 1000 : 0);
+    edgeHoldOnce_ = false;
     playTimer = setTimeout(function () {
       var next = current + 1;
-      var wrapped = false;
       if (next >= frames.length) {
-        next = 0;
-        wrapped = true;
-      }
-      showFrame(next);
-      if (wrapped) {
+        var hasParent = false;
+        try { hasParent = !!(window.parent && window.parent !== window); } catch (eParent) {}
         if (!playArmed_) {
           playLoopCount = 0;
-        } else {
+          showFrame(0);
+          scheduleNext();
+          return;
+        }
+        /* 最後のコマを1秒止めてから次へ渡す。先頭へ戻して止めない */
+        if (embedded && hasParent && (playLoopCount + 1) >= playLoopsTarget) {
           playLoopCount += 1;
-          /* 親サイネージの中だけ、見えてからの指定周回で次シーンへ渡す */
-          var hasParent = false;
-          try { hasParent = !!(window.parent && window.parent !== window); } catch (eParent) {}
-          if (embedded && hasParent && playLoopCount >= playLoopsTarget) {
+          stopPlay();
+          setTimeout(function () {
             try {
               window.parent.postMessage({
                 type: isThunder ? 'thunder-radar-done' : 'rain-radar-done',
@@ -2194,13 +2197,17 @@
                 mode: isThunder ? 'thunder' : 'rain'
               }, '*');
             } catch (eMsg) {}
-            stopPlay();
-            return;
-          }
+          }, 1000);
+          return;
         }
+        playLoopCount += 1;
+        showFrame(0);
+        scheduleNext();
+        return;
       }
+      showFrame(next);
       scheduleNext();
-    }, frameDelay(current));
+    }, delay);
   }
 
   function hasElement(d, name) {
@@ -2868,6 +2875,7 @@
     playLoopCount = 0;
     if (frames.length) {
       showFrame(nowIndex);
+      edgeHoldOnce_ = true;
       scheduleNext();
     }
     try {

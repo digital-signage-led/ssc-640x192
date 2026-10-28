@@ -4041,7 +4041,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <iframe id="rain-panel" class="rain-panel" title="雨雲レーダー" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
-        <iframe id="alert-panel" class="alert-panel is-on" title="舞鶴 警報・地震" aria-hidden="false" src="./alert/index.html?embed=1&live=1&v=20261027g"></iframe>
+        <iframe id="alert-panel" class="alert-panel is-on" title="舞鶴 警報・地震" aria-hidden="false" src="./alert/index.html?embed=1&live=1&v=20261028h"></iframe>
     </div>
 </div>
 
@@ -4540,7 +4540,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261027r22&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028r24&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4553,7 +4553,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261026th9';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + '&v=20261028th11';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4564,7 +4564,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261026ty9&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028ty10&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'typhoon' ? '' : '&gate=1');
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
@@ -5058,7 +5058,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (s1) hideSceneEl(s1);
         /* 雨雲は地図が描けるまで天気を残す。先に消すと間が空く */
         if (PLAY_RAIN_AFTER_WX) {
-            goRainAfterWeather_();
+            /* 止めた天気を1秒見せてから、雨雲の読み込みへ */
+            setTimeout(function () { goRainAfterWeather_(); }, 1000);
             return;
         }
         weatherShowing_ = false;
@@ -5072,6 +5073,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
          *   どれもなし → 縦切替で WBGT
          */
         if (PLAY_RAIN_AFTER_WX || PLAY_THUNDER_AFTER_RAIN || PLAY_TYPHOON_AFTER_RAIN) {
+            setTimeout(function () {
             if (panel) {
                 panel.classList.remove('is-on', 'is-enter-rtl', 'is-exit-down', 'is-swap-rtl-flow', 'is-swap-v-flow');
                 panel.setAttribute('aria-hidden', 'true');
@@ -5103,6 +5105,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             } else {
                 goTyphoonAfterRain_();
             }
+            }, 1000);
             return;
         }
 
@@ -7633,7 +7636,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         quakeDemoTimerId_ = setTimeout(startQuakeOnlyPreview_, QUAKE_POLL_MS);
     }
     function alertBoardSrc_() {
-        const q = 'embed=1&live=1&v=20261027g';
+        const q = 'embed=1&live=1&v=20261028h';
         try {
             return new URL('./alert/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -11436,9 +11439,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         compactScene4Panels();
         applyPendingSignageBgAtScene_();
         try { renderS4Dashboard_(); } catch (e) {}
-        /* 15秒区間の先頭から一定間隔で1周回るよう位置を合わせる */
+        /* 見えてから1秒止め、15秒流し、終わる前にも1秒止める */
         s4FlowX_ = 0;
-        try { ensureS4FlowScroll_(true); } catch (eFlow) {}
         fitFcBarLabelFontSize_();
         fitFcWbgtFontSize();
         if (fcLvTrack) applyScrollX_(fcLvTrack, 0);
@@ -11450,10 +11452,16 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         const holdMs = SCENE4_HOLD_MS; /* WBGT 15秒 → 天気へ */
         scene4HoldTimerId = setTimeout(function () {
-            scene4HoldTimerId = null;
-            stopLogoSpinInterval();
-            finishScene4();
-        }, holdMs);
+            try { ensureS4FlowScroll_(true); } catch (eFlow) {}
+            scene4HoldTimerId = setTimeout(function () {
+                if (s4FlowRaf_) { cancelAnimationFrame(s4FlowRaf_); s4FlowRaf_ = 0; }
+                stopLogoSpinInterval();
+                scene4HoldTimerId = setTimeout(function () {
+                    scene4HoldTimerId = null;
+                    finishScene4();
+                }, 1000);
+            }, holdMs);
+        }, 1000);
     }
 
     function playScene5() {
@@ -13356,7 +13364,7 @@ const SIDE_MS = 2400; /* 正面切替の基準。左右2拍で正面1回 */
 const SIDE_FLOW_MS = 2500; /* 左右の連続スクロール。1枠が画面を通過する時間。9枠で約22秒 */
 const SIDE_LR_PHASE_MS = 0; /* 互換 */
 const SIDE_STEPS_PER_FRONT = 2; /* 正面は左右基準2拍に1回 */
-const WEATHER_START_HOLD_MS = 0; /* 開いた瞬間から流す。青いロゴ面で止めない */
+const WEATHER_START_HOLD_MS = 1000; /* 見えてから1秒止めて、そのあと流す */
 const SIDE_TICKER_END_HOLD_MS = SIDE_MS; /* 互換 */
 const SIDE_TICKER_SCROLL_MS = SIDE_MS * SIDE_COUNT; /* 1周分の目安（実際は WBGT まで無限ループ） */
 const SIDE_FRONT_GAP_MS = 800; /* 互換用（同期駆動では未使用） */
