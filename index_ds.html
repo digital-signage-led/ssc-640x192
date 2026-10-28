@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.27.17';
+    var VER = '2026.10.28.18';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4401,7 +4401,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.27.17';
+    const CONTENT_VER = '2026.10.28.18';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4453,6 +4453,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     };
     /* 本番既定: WBGT と天気の2本のみ（時刻なし）。only= は再生フィルタ */
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only')) || 's4';
+    /** 確認用: 正面動画をすぐ出し、左右は台風のまま繰り返す */
+    const PREVIEW_FRONT_VIDEO = query.get('video') === '1';
     document.documentElement.dataset.demoOnly = DEMO_ONLY;
     /** WBGTの次に販売機天気（販売機天気パネル）を流す（only=s4 / s1s4） */
     const PLAY_WEATHER_AFTER_S4 = query.get('nowx') !== '1';
@@ -4602,7 +4604,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028ty10&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'typhoon' ? '' : '&gate=1');
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + ((DEMO_ONLY === 'typhoon' || PREVIEW_FRONT_VIDEO) ? '' : '&gate=1');
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4802,6 +4804,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             return;
         }
         if (d.type === 'typhoon-done') {
+            if (PREVIEW_FRONT_VIDEO) return;
             if (!typhoonShowing_) return;
             radarGate_ = '';
             onTyphoonDone_();
@@ -5047,13 +5050,29 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         hideTyphoonOverlay_();
     }
     function finishLapThenRestart_() {
-        if (DEMO_SIGNAGE || DEMO_ONLY) {
+        /* s4 は本番の一周。雨雲だけ等の単独確認では、最後の動画を足さない */
+        if (DEMO_SIGNAGE || (DEMO_ONLY && DEMO_ONLY !== 's4')) {
             showIssuedAlertsOrScene4_();
             return;
         }
         playFrontVideoThen_(function () {
             showIssuedAlertsOrScene4_();
         });
+    }
+    function loopFrontVideoPreview_() {
+        playFrontVideoThen_(loopFrontVideoPreview_);
+    }
+    function startFrontVideoPreview_() {
+        hideAlertBoard_();
+        hideWbgtSceneEl_();
+        hideRainOverlay_();
+        const ty = document.getElementById('typhoon-panel');
+        typhoonShowing_ = true;
+        if (ty) {
+            try { ty.src = typhoonPanelSrc_(); } catch (eTy) {}
+            revealTyphoonPanel_();
+        }
+        loopFrontVideoPreview_();
     }
     function clearSceneSwapClasses_() {
         const panel = document.getElementById('weather-panel');
@@ -11882,7 +11901,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         hideWbgtSceneEl_();
         mainLoopStarted_ = true;
         try {
-            if (PLAY_ALERT_BOARD) goAlertBoard_();
+            if (PREVIEW_FRONT_VIDEO) startFrontVideoPreview_();
+            else if (PLAY_ALERT_BOARD) goAlertBoard_();
             else goWeatherAfterWbgt_(true);
         } catch (ePlay) { console.warn(ePlay); }
         /* 色だけ画面（シーンも天気も雨雲も台風も無い）になったら WBGT に戻す */
