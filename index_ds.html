@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.22';
+    var VER = '2026.10.28.23';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.22';
+    const CONTENT_VER = '2026.10.28.23';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4462,7 +4462,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
      *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
-     * 舞鶴: 既定は 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 正面動画30秒 → 先頭へ。時刻は出さない。全シーンは ?only=all
+     * 舞鶴: 既定は 正面動画30秒 → 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 先頭の動画へ。時刻は出さない。全シーンは ?only=all
      * 発表がなければ警報・地震は出さず、すぐ熱中症へ進む
      */
     function normalizeOnlyParam_(raw) {
@@ -4995,7 +4995,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         finishLapThenRestart_();
     }
-    /* 一周の最後。正面動画はファイルの再生に合わせ、30秒で終わる */
+    /* 一周の最初。正面動画はファイルの再生に合わせ、30秒で終わる */
     const FRONT_VIDEO_MS = 30000;
     let pageLapStartMs_ = 0;
     let lapHolding_ = false;
@@ -11985,8 +11985,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         mainLoopStarted_ = true;
         try {
             if (PREVIEW_FRONT_VIDEO) startFrontVideoPreview_();
-            else if (PLAY_ALERT_BOARD) goAlertBoard_();
-            else goWeatherAfterWbgt_(true);
+            else playFrontVideoThen_(function () { showIssuedAlertsOrScene4_(); });
         } catch (ePlay) { console.warn(ePlay); }
         /* 色だけ画面（シーンも天気も雨雲も台風も無い）になったら WBGT に戻す */
         setInterval(function () {
