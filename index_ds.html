@@ -2444,6 +2444,25 @@ html[data-demo-only="s1s4"] #scene5 {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+/* 一周の最後。正面384だけ。左右128は下の天気側面を出したまま */
+#front-spot {
+  position: absolute;
+  left: 128px;
+  top: 0;
+  width: 384px;
+  height: 192px;
+  z-index: 80;
+  display: block;
+  visibility: hidden;
+  object-fit: fill;
+  object-position: center;
+  background: #000;
+  pointer-events: none;
+}
+#front-spot.is-on {
+  visibility: visible;
+  transform: translateZ(0);
+}
 /* 台風の次: 舞鶴の警報・地震（発表中だけ出す） */
 #alert-panel {
   position: absolute;
@@ -2859,6 +2878,20 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
   backface-visibility: hidden;
   z-index: 1;
   box-sizing: border-box;
+}
+#weather-panel .flow-card[data-card="8"] {
+  align-items: center;
+  justify-content: center;
+  padding: 8px 22px;
+  background: var(--surface);
+  border-color: transparent;
+}
+#weather-panel .flow-card[data-card="8"] .front-logo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
 }
 #weather-panel .flow-card.is-top { display: flex !important; transform: translate3d(0, 0, 0); opacity: 1; z-index: 3; visibility: visible; }
 #weather-panel .flow-card.is-bottom { display: flex !important; transform: translate3d(0, calc(100% + var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 2; visibility: visible; }
@@ -3877,7 +3910,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     <section class="face front">
       <div class="card-front">
         <div id="frontFlow">
-          <!-- 通常 cascade: 現在→時刻→週間→時間別→気温推移→雨→WBGT→時刻(2回目)→気象観測→WBGT。観測詳細は気象観測＋左右 -->
+          <!-- 通常 cascade: 現在→時刻→週間→時間別→ロゴ→気温推移→雨→WBGT→時刻(2回目)→気象観測→WBGT。観測詳細は気象観測＋左右 -->
           <article class="flow-card is-top" data-card="0">
             <div class="slot-title slot-title-long">現在の天気</div>
             <div class="now-body">
@@ -3908,6 +3941,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
           <article class="flow-card is-wait" data-card="3">
             <div class="slot-title slot-title-long">時間別天気</div>
             <div class="flow-body"><div class="hourly js-hourly"></div></div>
+          </article>
+          <article class="flow-card is-wait" data-card="8">
+            <img class="front-logo-img" src="./assets/shima_kikai_ja.png?v=2026.10.28.02" alt="志摩機械株式会社" decoding="async">
           </article>
           <article class="flow-card is-wait" data-card="4">
             <div class="slot-title slot-title-long">気温の推移</div>
@@ -4042,6 +4078,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel is-on" title="舞鶴 警報・地震" aria-hidden="false" src="./alert/index.html?embed=1&live=1&v=20261028h"></iframe>
+        <video id="front-spot" muted playsinline preload="auto" src="./rain/demo-car.mp4?v=20261028play"></video>
     </div>
 </div>
 
@@ -4390,7 +4427,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
      *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
-     * 舞鶴: 既定は 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 先頭へ。時刻は出さない。全シーンは ?only=all
+     * 舞鶴: 既定は 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 正面動画30秒 → 先頭へ。時刻は出さない。全シーンは ?only=all
      * 発表がなければ警報・地震は出さず、すぐ熱中症へ進む
      */
     function normalizeOnlyParam_(raw) {
@@ -4540,7 +4577,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028car1&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028car2&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_();
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4912,13 +4949,82 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         finishLapThenRestart_();
     }
-    /* プレイヤーの1ページ（2分10秒）。発表・熱中症の有無で中身は変わるが、終わりはここで揃える */
-    const PAGE_LAP_MS = 130000;
+    /* 一周の最後。正面動画はファイルの再生に合わせ、30秒で終わる */
+    const FRONT_VIDEO_MS = 30000;
     let pageLapStartMs_ = 0;
     let lapHolding_ = false;
     let lapHoldTimerId_ = null;
+    let frontVideoWatchId_ = null;
     function markPageLapStart_() {
         pageLapStartMs_ = Date.now();
+    }
+    function hideFrontVideo_() {
+        const v = document.getElementById('front-spot');
+        const area = document.querySelector('.content-area');
+        if (area) area.classList.remove('video-on');
+        if (!v) return;
+        try { v.pause(); } catch (ePause) {}
+        v.classList.remove('is-on');
+    }
+    function playFrontVideoThen_(done) {
+        if (lapHoldTimerId_ != null) return;
+        /* 正面だけ動画。左右は直前まで出していた画面を残す */
+        const area = document.querySelector('.content-area');
+        const v = document.getElementById('front-spot');
+        if (area) area.classList.add('video-on');
+        lapHolding_ = true;
+        let finished = false;
+        function finish() {
+            if (finished) return;
+            finished = true;
+            if (lapHoldTimerId_ != null) { clearTimeout(lapHoldTimerId_); lapHoldTimerId_ = null; }
+            if (frontVideoWatchId_ != null) { clearInterval(frontVideoWatchId_); frontVideoWatchId_ = null; }
+            if (v) {
+                v.removeEventListener('ended', onEnded);
+                v.removeEventListener('timeupdate', onTime);
+                v.removeEventListener('pause', onPause);
+            }
+            lapHolding_ = false;
+            pageLapStartMs_ = 0;
+            hideFrontVideo_();
+            done();
+        }
+        function onEnded() { finish(); }
+        function onTime() {
+            if (v && v.currentTime >= FRONT_VIDEO_MS / 1000) finish();
+        }
+        function kick() {
+            if (finished || !v) return;
+            if (v.currentTime >= FRONT_VIDEO_MS / 1000 || v.ended) { finish(); return; }
+            if (!v.paused) return;
+            try {
+                const pending = v.play();
+                if (pending && pending.catch) pending.catch(function () {});
+            } catch (eKick) {}
+        }
+        function onPause() { kick(); }
+        if (v) {
+            v.muted = true;
+            v.defaultMuted = true;
+            v.loop = false;
+            v.playbackRate = 1;
+            v.setAttribute('playsinline', '');
+            v.classList.add('is-on');
+            v.addEventListener('ended', onEnded);
+            v.addEventListener('timeupdate', onTime);
+            v.addEventListener('pause', onPause);
+            try { v.currentTime = 0; } catch (eSeek) {}
+            kick();
+        }
+        let lastT = -1;
+        frontVideoWatchId_ = setInterval(function () {
+            if (!v) { finish(); return; }
+            if (v.currentTime >= FRONT_VIDEO_MS / 1000) { finish(); return; }
+            if (v.currentTime <= lastT + 0.04) kick();
+            lastT = v.currentTime;
+        }, 500);
+        /* 再生が止まったまま戻らないときだけ。通常は動画の30秒で終わる */
+        lapHoldTimerId_ = setTimeout(finish, FRONT_VIDEO_MS + 2000);
     }
     function showFrozenWeatherForLapHold_() {
         const panel = document.getElementById('weather-panel');
@@ -4945,23 +5051,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             showIssuedAlertsOrScene4_();
             return;
         }
-        if (lapHoldTimerId_ != null) return;
-        const elapsed = pageLapStartMs_ ? (Date.now() - pageLapStartMs_) : PAGE_LAP_MS;
-        const remain = PAGE_LAP_MS - elapsed;
-        if (remain < 80) {
-            pageLapStartMs_ = 0;
+        playFrontVideoThen_(function () {
             showIssuedAlertsOrScene4_();
-            return;
-        }
-        /* 短い一周は、次を始めずに最後の天気で止めて、2分10秒に合わせる */
-        lapHolding_ = true;
-        showFrozenWeatherForLapHold_();
-        lapHoldTimerId_ = setTimeout(function () {
-            lapHoldTimerId_ = null;
-            lapHolding_ = false;
-            pageLapStartMs_ = 0;
-            showIssuedAlertsOrScene4_();
-        }, remain);
+        });
     }
     function clearSceneSwapClasses_() {
         const panel = document.getElementById('weather-panel');
@@ -11887,8 +11979,9 @@ const CHART_LINE = "#4285F4";
 const DOT = 5;
 const HOURLY_COUNT = 6;
 const FONT = '"Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif';
-const CARD_COUNT = 8; /* 現在/時刻/週間/時間別/気温推移/雨/WBGT/気象観測 */
+const CARD_COUNT = 9; /* 現在/時刻/週間/時間別/ロゴ/気温推移/雨/WBGT/気象観測 */
 const NORMAL_CARD_COUNT = 7; /* 正面 cascade 0〜6。気象観測(7)は末尾 */
+const LOGO_CARD = 8; /* 時間別の次に1枚追加 */
 const CLOCK_CARD = 1; /* 改修:最初の方（下段から見える） */
 const CHART_CARD = 4;
 const METEO_CARD = 7; /* 末尾で正面表示。左右テロップでも観測を流す */
@@ -12523,10 +12616,25 @@ function weatherSvg(type, temp) {
   else if (type === "snow") body = cloud + snow;
   return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" overflow="visible">' + body + "</svg>";
 }
+function jmaIconFail_(img) {
+  var host = img.closest(".wx-icon, .now-icon") || img.parentElement;
+  if (!host || host.getAttribute("data-icon-fallback") === "1") return;
+  host.setAttribute("data-icon-fallback", "1");
+  var type = img.getAttribute("data-wx") || "cloudy";
+  var temp = img.getAttribute("data-temp");
+  host.innerHTML = weatherSvg(type, temp);
+  if (host.classList.contains("now-icon")) {
+    host.style.background = "color-mix(in srgb, " + tempBandColor(temp) + " 22%, var(--surface))";
+  }
+}
 function iconHtml(icon, temp, code) {
   var url = (window.JmaWeatherIcons && code != null && code !== "") ? JmaWeatherIcons.url(code) : "";
-  if (url) return '<div class="wx-icon"><img class="jma-wx" src="' + url + '" alt=""></div>';
-  return '<div class="wx-icon">' + weatherSvg(iconType(icon), temp) + "</div>";
+  var type = iconType(icon);
+  if (url) {
+    return '<div class="wx-icon"><img class="jma-wx" src="' + url + '" alt="" data-wx="' + type +
+      '" data-temp="' + (temp == null ? "" : temp) + '" onerror="jmaIconFail_(this)"></div>';
+  }
+  return '<div class="wx-icon">' + weatherSvg(type, temp) + "</div>";
 }
 /**
  * 気温帯の色（気象庁の夏日/真夏日/猛暑日 + 気象協会の酷暑日の閾値を参考）
@@ -12806,8 +12914,11 @@ function fillUI(w, todayHi, todayLo) {
     var url = (window.JmaWeatherIcons && heroCode != null && heroCode !== "") ? JmaWeatherIcons.url(heroCode) : "";
     if (url) {
       var img = el.querySelector("img.jma-wx");
+      var heroType = iconType(w.icon);
       if (!img || img.getAttribute("src") !== url) {
-        el.innerHTML = '<img class="jma-wx" src="' + url + '" alt="">';
+        el.removeAttribute("data-icon-fallback");
+        el.innerHTML = '<img class="jma-wx" src="' + url + '" alt="" data-wx="' + heroType +
+          '" data-temp="' + (w.temp == null ? "" : w.temp) + '" onerror="jmaIconFail_(this)">';
       }
       el.style.background = "transparent";
     } else {
@@ -13372,7 +13483,7 @@ const FRONT_ANIM_MS = 900; /* 正面 cascade 完了待ち（CSS .85s に合わ�
 const WEATHER_END_PAUSE_MS = SIDE_MS; /* 最後に 2.4秒静止してから WBGT へ */
 /* 正面 cascade を通常カード数ぶん。駆動は左右ビート（2回=正面1回） */
 /* 通常 cascade: 0..6 のあと 時刻(2回目)→気象観測(完走)→WBGT */
-const FRONT_SWITCHES_BEFORE_END = NORMAL_CARD_COUNT - 2; /* 5: WBGT が上段になるまで */
+const FRONT_SWITCHES_BEFORE_END = NORMAL_CARD_COUNT - 1; /* 6: ロゴ1枚を足しても WBGT が上段になるまで */
 const METEO_START_PAUSE_MS = 1000; /* 流れる前に1秒静止 */
 const METEO_TICKER_MS = 14000; /* 気象観測テロップ1周（文言すべて） */
 const METEO_END_PAUSE_MS = 1000; /* すべて流し終えたあと1秒静止 → WBGT */
@@ -13414,9 +13525,15 @@ let meteoRaf_ = 0;
 function wbgtFrontSkipped_() {
   return document.documentElement.classList.contains("wbgt-off");
 }
+var FRONT_CYCLE = [0, 1, 2, 3, LOGO_CARD, 4, 5, 6];
+function isNormalFrontCard_(i) {
+  return (i >= 0 && i < NORMAL_CARD_COUNT) || i === LOGO_CARD;
+}
 function nextNormalCard_(idx) {
-  var n = (Number(idx) + 1) % NORMAL_CARD_COUNT;
-  if (wbgtFrontSkipped_() && n === 6) n = (n + 1) % NORMAL_CARD_COUNT;
+  var i = FRONT_CYCLE.indexOf(Number(idx));
+  if (i < 0) i = 0;
+  var n = FRONT_CYCLE[(i + 1) % FRONT_CYCLE.length];
+  if (wbgtFrontSkipped_() && n === 6) n = FRONT_CYCLE[(FRONT_CYCLE.indexOf(6) + 1) % FRONT_CYCLE.length];
   return n;
 }
 function avoidSkippedWbgtCards_() {
@@ -13425,15 +13542,15 @@ function avoidSkippedWbgtCards_() {
   if (bottomIdx === 6 || bottomIdx === topIdx) bottomIdx = nextNormalCard_(topIdx);
 }
 function clampNormalPair_() {
-  if (topIdx >= NORMAL_CARD_COUNT || topIdx < 0) topIdx = 0;
-  if (bottomIdx >= NORMAL_CARD_COUNT || bottomIdx < 0) bottomIdx = CLOCK_CARD;
+  if (!isNormalFrontCard_(topIdx)) topIdx = 0;
+  if (!isNormalFrontCard_(bottomIdx)) bottomIdx = CLOCK_CARD;
   if (topIdx === bottomIdx) bottomIdx = nextNormalCard_(topIdx);
 }
 function enterMeteoOnlyVisit_() {
   weatherMeteoVisit_ = true;
   weatherMeteoNext_ = false;
-  if (topIdx < NORMAL_CARD_COUNT) savedNormalTop_ = topIdx;
-  if (bottomIdx < NORMAL_CARD_COUNT) savedNormalBottom_ = bottomIdx;
+  if (isNormalFrontCard_(topIdx)) savedNormalTop_ = topIdx;
+  if (isNormalFrontCard_(bottomIdx)) savedNormalBottom_ = bottomIdx;
   topIdx = METEO_CARD;
   bottomIdx = CLOCK_CARD; /* 下段は時刻（気象観測を cascade しない） */
   frontAnim = false;
@@ -13487,11 +13604,14 @@ function showFinaleClockThenExit_() {
   }
   frontAnim = true;
   noteFrontSwitch_();
+  document.documentElement.classList.remove("wx-no-anim");
   elClock.style.transition = "none";
   clearCard(elClock);
   elClock.classList.add("is-enter");
   void elClock.offsetWidth;
-  elClock.style.transition = "";
+  [elClock, elTop, elBot].forEach(function (el) {
+    if (el) el.style.setProperty("transition", "transform 420ms linear");
+  });
   void elClock.offsetWidth;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -13761,12 +13881,15 @@ function frontStep() {
     clearTimeout(frontAnimTimer_);
     frontAnimTimer_ = 0;
   }
-  /* is-wait は transition:none。一度確定してから動かさないと、たまに瞬時に切り替わる */
+  /* 静止フラグが残っていると transition:none が勝ち、カードが瞬間で切り替わる */
+  document.documentElement.classList.remove("wx-no-anim");
   elEnter.style.transition = "none";
   clearCard(elEnter);
   elEnter.classList.add("is-enter");
   void elEnter.offsetWidth;
-  elEnter.style.transition = "";
+  [elEnter, elTop, elBot].forEach(function (el) {
+    if (el) el.style.setProperty("transition", "transform 420ms linear");
+  });
   void elEnter.offsetWidth;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -13774,7 +13897,7 @@ function frontStep() {
         frontAnim = false;
         return;
       }
-      /* 同じフレームで3枚を動かしスロット感を出す */
+      /* 同じフレームで3枚を動かし、上から下へ送る */
       clearCard(elEnter);
       elEnter.classList.add("is-top");
       clearCard(elTop);
@@ -13906,8 +14029,8 @@ function beginMeteoTailThenExit_() {
   if (!weatherRunning_) return;
   if (weatherMeteoVisit_) return;
   try {
-    if (topIdx < NORMAL_CARD_COUNT || topIdx === CLOCK_CARD) savedNormalTop_ = topIdx;
-    if (bottomIdx < NORMAL_CARD_COUNT || bottomIdx === CLOCK_CARD) savedNormalBottom_ = bottomIdx;
+    if (isNormalFrontCard_(topIdx) || topIdx === CLOCK_CARD) savedNormalTop_ = topIdx;
+    if (isNormalFrontCard_(bottomIdx) || bottomIdx === CLOCK_CARD) savedNormalBottom_ = bottomIdx;
   } catch (eSave) {}
   weatherMeteoVisit_ = true;
   weatherMeteoNext_ = false;
@@ -13924,11 +14047,14 @@ function beginMeteoTailThenExit_() {
   }
   frontAnim = true;
   noteFrontSwitch_();
+  document.documentElement.classList.remove("wx-no-anim");
   elMeteo.style.transition = "none";
   clearCard(elMeteo);
   elMeteo.classList.add("is-enter");
   void elMeteo.offsetWidth;
-  elMeteo.style.transition = "";
+  [elMeteo, elTop, elBot].forEach(function (el) {
+    if (el) el.style.setProperty("transition", "transform 420ms linear");
+  });
   void elMeteo.offsetWidth;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -13952,7 +14078,7 @@ function beginMeteoTailThenExit_() {
       clearCard(elBot);
       elBot.classList.add("is-wait");
     }
-    bottomIdx = topIdx === CLOCK_CARD ? CLOCK_CARD : (topIdx < NORMAL_CARD_COUNT ? topIdx : CLOCK_CARD);
+    bottomIdx = topIdx === CLOCK_CARD ? CLOCK_CARD : (isNormalFrontCard_(topIdx) ? topIdx : CLOCK_CARD);
     topIdx = METEO_CARD;
     frontAnim = false;
     try { scheduleMeteoToChart_(); } catch (eMet) { console.warn("meteo tail:", eMet); }
@@ -14106,8 +14232,8 @@ window.WbgtWeather = {
         clampNormalPair_();
       }
       /* 表示は次の prepare/syncFrontFlow_ で行う */
-      savedNormalTop_ = topIdx < NORMAL_CARD_COUNT ? topIdx : savedNormalTop_;
-      savedNormalBottom_ = bottomIdx < NORMAL_CARD_COUNT ? bottomIdx : savedNormalBottom_;
+      savedNormalTop_ = isNormalFrontCard_(topIdx) ? topIdx : savedNormalTop_;
+      savedNormalBottom_ = isNormalFrontCard_(bottomIdx) ? bottomIdx : savedNormalBottom_;
     } catch (eNext) {}
   },
   stop: function () {
