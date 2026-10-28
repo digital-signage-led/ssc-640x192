@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.10.28.24';
+    var VER = '2026.10.28.25';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4436,7 +4436,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.10.28.24';
+    const CONTENT_VER = '2026.10.28.25';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5001,6 +5001,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const FRONT_VIDEO_MS = 30000;
     let pageLapStartMs_ = 0;
     let lapHolding_ = false;
+    /* 先頭の正面動画が終わるまで、気象の本編は始めない（期間外の先走りで一周が止まる） */
+    let openingVideoPending_ = true;
+    function deferWeatherForOpeningVideo_() {
+        return PREVIEW_FRONT_VIDEO || lapHolding_ || openingVideoPending_;
+    }
     let lapHoldTimerId_ = null;
     let frontVideoWatchId_ = null;
     let alertLive_ = false;
@@ -5038,6 +5043,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             lapHolding_ = false;
             pageLapStartMs_ = 0;
             videoSideKind_ = '';
+            openingVideoPending_ = !!PREVIEW_FRONT_VIDEO;
+            /* 動画中に期間外判定で気象が始まっていると、ここで動きが死んで次へ行けない */
+            if (weatherShowing_) {
+                weatherShowing_ = false;
+                clearWeatherTimers_();
+                window.onWeatherLayoutCycleDone_ = null;
+                try { if (window.WbgtWeather && window.WbgtWeather.stop) window.WbgtWeather.stop(); } catch (eWx) {}
+            }
             try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
             hideFrontVideo_();
             done();
@@ -5441,6 +5454,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         panel.style.transform = '';
     }
     function goWeatherAfterWbgt_(forceBoot) {
+        if (deferWeatherForOpeningVideo_()) return;
         if (weatherShowing_ || alertCoversScreen_()) return;
         const off = !!wbgtOffSeason;
         const lv = off ? -1 : resolveWbgtLevelForWeather_();
@@ -9496,6 +9510,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     /** 起動直後は熱中症画面を出さない。灰色の空画面ではなく天気（青）を出す */
     function paintBootSplash_() {
+        if (deferWeatherForOpeningVideo_()) return;
         if (alertCoversScreen_()) return;
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
@@ -11608,6 +11623,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         return resolveWbgtLevelForWeather_() >= 0;
     }
     function playScene4() {
+        if (deferWeatherForOpeningVideo_()) return;
         if (alertCoversScreen_()) return;
         if (!wbgtDashReady_()) {
             if (wbgtOffSeason && wbgtFirstFetchDone_ && previewOffSeasonHold_('s4', playScene4)) return;
@@ -11935,21 +11951,25 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             logoEl.alt = logoCfg.logoAlt || '';
         }
         if (DEMO_ALERT_ONLY && !NO_HEAT_ALERT) {
+            openingVideoPending_ = false;
             endBootReveal_();
             setTimeout(startAlertOnlyDemo_, 300);
             return;
         }
         if (DEMO_RAINWARN_ONLY) {
+            openingVideoPending_ = false;
             endBootReveal_();
             setTimeout(startRainWarnOnlyDemo_, 300);
             return;
         }
         if (DEMO_QUAKE_ONLY) {
+            openingVideoPending_ = false;
             endBootReveal_();
             setTimeout(startQuakeOnlyPreview_, 300);
             return;
         }
         if (DEMO_SIGNAGE_ACTIVE) {
+            openingVideoPending_ = false;
             applySyncedUtcMs(Date.now(), 'boot-local');
             updateClock();
             startClockTicker();
