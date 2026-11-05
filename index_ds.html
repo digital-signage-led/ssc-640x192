@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.05.03';
+    var VER = '2026.11.05.04';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4452,7 +4452,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.05.03';
+    const CONTENT_VER = '2026.11.05.04';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -13904,7 +13904,52 @@ let frontSwitchCount_ = 0;
 let frontCascadeArmed_ = false;
 let sideBeatCount_ = 0;
 let frontHoldBeatsLeft_ = -1; /* >=0 で正面終了後の左右のみホールド中 */
-let frontAnimTimer_ = 0; /* cascade 完了タイマー（weatherTimers_ と分離） */
+let frontStuckWatch_ = 0;
+let frontStuckKey_ = "";
+let frontStuckSince_ = 0;
+function stopFrontStuckWatch_() {
+  if (frontStuckWatch_) { clearInterval(frontStuckWatch_); frontStuckWatch_ = 0; }
+}
+/** 同じ正面カードが動きを失ったら、気象観測で止まらず次の画面へ進む */
+function startFrontStuckWatch_() {
+  stopFrontStuckWatch_();
+  frontStuckKey_ = "";
+  frontStuckSince_ = Date.now();
+  frontStuckWatch_ = setInterval(function () {
+    var panel = document.getElementById("weather-panel");
+    if (!panel || !panel.classList.contains("is-on")) return;
+    var top = document.querySelector("#frontFlow .flow-card.is-top");
+    var key = top ? (top.getAttribute("data-card") || "") : "";
+    var now = Date.now();
+    if (key !== frontStuckKey_) {
+      frontStuckKey_ = key;
+      frontStuckSince_ = now;
+      return;
+    }
+    if (key === "7" && topIdx !== METEO_CARD && (now - frontStuckSince_) > 1500) {
+      topIdx = METEO_CARD;
+      bottomIdx = CLOCK_CARD;
+      weatherMeteoVisit_ = true;
+      weatherRunning_ = true;
+      frontAnim = false;
+      if (!meteoRaf_) {
+        try { scheduleMeteoToChart_(); } catch (eSch) {}
+      }
+    }
+    var limit = key === "7" ? 18000 : 12000;
+    if (now - frontStuckSince_ < limit) return;
+    frontStuckSince_ = now + 60000;
+    weatherRunning_ = true;
+    frontAnim = false;
+    if (key === "7") {
+      topIdx = METEO_CARD;
+      weatherMeteoVisit_ = true;
+    }
+    meteoAdvanceArmed_ = false;
+    stopMeteoRaf_();
+    finishWeatherToWbgt_();
+  }, 2000);
+}
 let weatherEndTimer_ = 0;
 let meteoAdvanceTimer_ = 0;
 let pendingMeteoHtml_ = "";
@@ -13964,7 +14009,11 @@ function enterNormalVisit_() {
 }
 
 function stopMeteoRaf_() {
-  if (meteoRaf_) { cancelAnimationFrame(meteoRaf_); meteoRaf_ = 0; }
+  if (meteoRaf_) {
+    cancelAnimationFrame(meteoRaf_);
+    clearInterval(meteoRaf_);
+    meteoRaf_ = 0;
+  }
 }
 function clearMeteoAdvance_() {
   if (meteoAdvanceTimer_) {
@@ -14064,6 +14113,7 @@ function onMeteoScrollDone_() {
   if (!weatherRunning_ || topIdx !== METEO_CARD) return;
   if (meteoAdvanceArmed_) return;
   meteoAdvanceArmed_ = true;
+  frontAnim = false;
   if (meteoAdvanceTimer_) {
     clearTimeout(meteoAdvanceTimer_);
     meteoAdvanceTimer_ = 0;
@@ -14091,20 +14141,20 @@ function startMeteoRafLoop_(oneLap) {
     var speed = half / (dur / 1000);
     var last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
     var dist = 0;
-    function frame(now) {
-      if (!weatherRunning_) { meteoRaf_ = 0; return; }
-      if (topIdx !== METEO_CARD && bottomIdx !== METEO_CARD) { meteoRaf_ = 0; return; }
-      var t = (typeof now === "number") ? now : ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now());
+    function frame() {
+      if (!weatherRunning_) { stopMeteoRaf_(); return; }
+      if (topIdx !== METEO_CARD && bottomIdx !== METEO_CARD) { stopMeteoRaf_(); return; }
+      var t = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
       var dt = t - last;
       last = t;
       if (!(dt > 0)) dt = 0;
-      if (dt > 48) dt = 48;
+      if (dt > 80) dt = 80;
       dist += (dt / 1000) * speed;
       if (oneLap && dist >= half) {
         document.querySelectorAll(".js-meteo-ticker").forEach(function (el) {
           el.style.transform = "translate3d(" + (-half) + "px,0,0)";
         });
-        meteoRaf_ = 0;
+        stopMeteoRaf_();
         onMeteoScrollDone_();
         return;
       }
@@ -14112,9 +14162,19 @@ function startMeteoRafLoop_(oneLap) {
       document.querySelectorAll(".js-meteo-ticker").forEach(function (el) {
         el.style.transform = "translate3d(" + x.toFixed(2) + "px,0,0)";
       });
-      meteoRaf_ = requestAnimationFrame(frame);
     }
-    meteoRaf_ = requestAnimationFrame(frame);
+    /* サイネージでは requestAnimationFrame が止まり、気象観測で固まる */
+    meteoRaf_ = setInterval(frame, 32);
+    if (oneLap) {
+      if (meteoAdvanceTimer_) clearTimeout(meteoAdvanceTimer_);
+      meteoAdvanceTimer_ = setTimeout(function () {
+        meteoAdvanceTimer_ = 0;
+        if (topIdx === METEO_CARD) {
+          stopMeteoRaf_();
+          onMeteoScrollDone_();
+        }
+      }, dur + 800);
+    }
   }
   /* レイアウト確定前は scrollWidth が小さく、ほぼ動かないことがある → 再計測 */
   function measureAndStart_(attempt) {
@@ -14479,6 +14539,7 @@ function beginMeteoTailThenExit_() {
   }, METEO_ONLY_MS + 20000));
 }
 function finishWeatherToWbgt_() {
+  stopFrontStuckWatch_();
   if (!weatherRunning_) return;
   frontAnim = false;
   weatherMeteoVisit_ = false;
@@ -14562,6 +14623,7 @@ window.WbgtWeather = {
         }, frontBeatMs));
       } catch (eFront) { console.warn("front cascade:", eFront); }
     }, WEATHER_START_HOLD_MS));
+    startFrontStuckWatch_();
     /* 万一面が止まったときの安全弁（気象観測中は1周完了を優先） */
     weatherTimers_.push(setTimeout(function () {
       if (!weatherRunning_) return;
@@ -14587,6 +14649,7 @@ window.WbgtWeather = {
     weatherRunning_ = false;
     frontCascadeArmed_ = false;
     frontAnim = false;
+    stopFrontStuckWatch_();
     clearMeteoAdvance_();
     clearWeatherLocalTimers_();
     try {
