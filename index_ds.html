@@ -4105,6 +4105,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel is-on" title="警報・地震" aria-hidden="false" src="about:blank"></iframe>
+        <video id="front-spot" muted playsinline preload="auto" src="./rain/demo-car.mp4?v=20261028play"></video>
         <script>
         (function () {
             try {
@@ -4384,7 +4385,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         if (wxSrc) {
             /* 天気左右のロゴ面は青地。青文字PNGのときは白文字に替える */
-            var wxPaneSrc = String(wxSrc).replace(/shima_kikai_en\.png/, 'shima_kikai_en_white.png');
+            var wxPaneSrc = String(wxSrc)
+                .replace(/shima_kikai_en\.png/, 'shima_kikai_en_white.png')
+                .replace(/nikken_logo\.png/, 'nikken_logo_white.png');
             document.querySelectorAll('#weather-panel .side-logo-img').forEach(function (el) {
                 if (el.getAttribute('src') !== wxPaneSrc) el.src = wxPaneSrc;
                 el.alt = wxAlt;
@@ -4478,7 +4481,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
      *  1 時刻＋WBGT下帯 (s1) → 2 気象観測 (s2) → 3 WBGT表示 (s4)
      *  → 4 4日予報 (s5) → 5 多言語WBGT (s3) → シーン1へ
      * ?only= は 1〜5 または s1〜s5（旧キー）両対応
-     * 舞鶴: 既定は 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 先頭へ。正面動画は出さない。時刻は出さない。全シーンは ?only=all
+     * 舞鶴（志摩機械）: 正面動画30秒 → 警報・地震（発表中だけ）→ 熱中症WBGT(s4) → 天気 → 雨雲レーダー → 雷ナウキャスト → 台風情報 → 先頭の動画へ。時刻は出さない。全シーンは ?only=all
      * 発表がなければ警報・地震は出さず、すぐ熱中症へ進む
      */
     function normalizeOnlyParam_(raw) {
@@ -4504,8 +4507,12 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     };
     /* 本番既定: WBGT と天気の2本のみ（時刻なし）。only= は再生フィルタ */
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only')) || 's4';
-    /** 正面動画は出さない */
-    const PREVIEW_FRONT_VIDEO = false;
+    /** 志摩機械だけ、一周の境で正面動画を出す。?video=1 は確認用に繰り返す */
+    function playShimaFrontVideo_() {
+        var cfg = window.SignageConfig || {};
+        return String(cfg.projectId || '') === 'TV-0002';
+    }
+    const PREVIEW_FRONT_VIDEO = playShimaFrontVideo_() && query.get('video') === '1';
     document.documentElement.dataset.demoOnly = DEMO_ONLY;
     /** WBGTの次に販売機天気（販売機天気パネル）を流す（only=s4 / s1s4） */
     const PLAY_WEATHER_AFTER_S4 = query.get('nowx') !== '1';
@@ -5147,8 +5154,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const FRONT_VIDEO_MS = 30000;
     let pageLapStartMs_ = 0;
     let lapHolding_ = false;
-    /* 正面動画は出さない。気象の本編は起動直後から進める */
-    let openingVideoPending_ = false;
+    /* 志摩機械は先頭の正面動画が終わるまで、気象の本編を始めない */
+    let openingVideoPending_ = playShimaFrontVideo_();
     function deferWeatherForOpeningVideo_() {
         return PREVIEW_FRONT_VIDEO || lapHolding_ || openingVideoPending_;
     }
@@ -5207,10 +5214,87 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         v.classList.remove('is-on');
     }
     function playFrontVideoThen_(done) {
-        openingVideoPending_ = false;
-        lapHolding_ = false;
-        hideFrontVideo_();
-        if (typeof done === 'function') done();
+        if (!playShimaFrontVideo_()) {
+            openingVideoPending_ = false;
+            lapHolding_ = false;
+            hideFrontVideo_();
+            if (typeof done === 'function') done();
+            return;
+        }
+        if (lapHoldTimerId_ != null) return;
+        /* 正面だけ動画。左右は警報が出ていれば警報、なければ気象を流す */
+        const area = document.querySelector('.content-area');
+        const v = document.getElementById('front-spot');
+        if (area) area.classList.add('video-on');
+        showSidesForFrontVideo_();
+        lapHolding_ = true;
+        let finished = false;
+        function finish() {
+            if (finished) return;
+            finished = true;
+            if (lapHoldTimerId_ != null) { clearTimeout(lapHoldTimerId_); lapHoldTimerId_ = null; }
+            if (frontVideoWatchId_ != null) { clearInterval(frontVideoWatchId_); frontVideoWatchId_ = null; }
+            if (v) {
+                v.removeEventListener('ended', onEnded);
+                v.removeEventListener('timeupdate', onTime);
+                v.removeEventListener('pause', onPause);
+            }
+            lapHolding_ = false;
+            pageLapStartMs_ = 0;
+            videoSideKind_ = '';
+            openingVideoPending_ = !!PREVIEW_FRONT_VIDEO;
+            /* 動画中に期間外判定で気象が始まっていると、ここで動きが死んで次へ行けない */
+            if (weatherShowing_) {
+                weatherShowing_ = false;
+                clearWeatherTimers_();
+                window.onWeatherLayoutCycleDone_ = null;
+                try { if (window.WbgtWeather && window.WbgtWeather.stop) window.WbgtWeather.stop(); } catch (eWx) {}
+            }
+            try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+            hideFrontVideo_();
+            if (typeof done === 'function') done();
+        }
+        frontVideoFinish_ = finish;
+        function onEnded() { finish(); }
+        function onTime() {
+            if (v && v.currentTime >= FRONT_VIDEO_MS / 1000) finish();
+        }
+        function kick() {
+            if (finished || !v) return;
+            if (v.currentTime >= FRONT_VIDEO_MS / 1000 || v.ended) { finish(); return; }
+            if (!v.paused) return;
+            try {
+                const pending = v.play();
+                if (pending && pending.catch) pending.catch(function () {});
+            } catch (eKick) {}
+        }
+        function onPause() { kick(); }
+        if (v) {
+            v.muted = true;
+            v.defaultMuted = true;
+            v.loop = false;
+            v.playbackRate = 1;
+            v.setAttribute('playsinline', '');
+            v.classList.add('is-on');
+            v.addEventListener('ended', onEnded);
+            v.addEventListener('timeupdate', onTime);
+            v.addEventListener('pause', onPause);
+            try { v.currentTime = 0; } catch (eSeek) {}
+            kick();
+        }
+        let lastT = -1;
+        frontVideoWatchId_ = setInterval(function () {
+            if (!v) { finish(); return; }
+            if (v.currentTime >= FRONT_VIDEO_MS / 1000) { finish(); return; }
+            if (v.currentTime <= lastT + 0.04) kick();
+            lastT = v.currentTime;
+            if ((videoSideKind_ === 'weather' || document.querySelector('#weather-panel.is-on')) && !sideTickerFlowing_()) {
+                videoSideKind_ = 'weather';
+                kickVideoSideTicker_(0);
+            }
+        }, 500);
+        /* 再生が止まったまま戻らないときだけ。通常は動画の30秒で終わる */
+        lapHoldTimerId_ = setTimeout(finish, FRONT_VIDEO_MS + 2000);
     }
     function showFrozenWeatherForLapHold_() {
         const panel = document.getElementById('weather-panel');
@@ -5234,7 +5318,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function finishLapThenRestart_() {
         /* s4 は本番の一周。雨雲だけ等の単独確認では、最後の動画を足さない */
-        if (DEMO_SIGNAGE || (DEMO_ONLY && DEMO_ONLY !== 's4')) {
+        if (DEMO_SIGNAGE || (DEMO_ONLY && DEMO_ONLY !== 's4') || !playShimaFrontVideo_()) {
             showIssuedAlertsOrScene4_();
             return;
         }
@@ -5291,8 +5375,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (useAlert) showAlertSidesForVideo_();
         else showWeatherSidesForVideo_();
     }
+    function loopFrontVideoPreview_() {
+        playFrontVideoThen_(loopFrontVideoPreview_);
+    }
     function startFrontVideoPreview_() {
-        showIssuedAlertsOrScene4_();
+        hideWbgtSceneEl_();
+        hideRainOverlay_();
+        hideTyphoonOverlay_();
+        loopFrontVideoPreview_();
     }
     function clearSceneSwapClasses_() {
         const panel = document.getElementById('weather-panel');
@@ -12236,7 +12326,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         hideWbgtSceneEl_();
         mainLoopStarted_ = true;
         try {
-            showIssuedAlertsOrScene4_();
+            if (!playShimaFrontVideo_()) showIssuedAlertsOrScene4_();
+            else if (PREVIEW_FRONT_VIDEO) startFrontVideoPreview_();
+            else playFrontVideoThen_(function () { showIssuedAlertsOrScene4_(); });
         } catch (ePlay) { console.warn(ePlay); }
         setInterval(function () {
             try { updateQuakeFromJma_(); } catch (eQ) {}
@@ -12985,8 +13077,9 @@ function jmaIconFail_(img) {
 }
 window.jmaIconFail_ = jmaIconFail_;
 function iconHtml(icon, temp, code) {
-  var url = (window.JmaWeatherIcons && code != null && code !== "") ? JmaWeatherIcons.url(code) : "";
   var type = iconType(icon);
+  var jmaCode = (code != null && code !== "") ? code : heroWeatherCode_(null, type === "snow" ? "雪" : (type === "rain" || type === "shower" || type === "thunder") ? "雨" : type === "clear-day" ? "晴れ" : "曇り");
+  var url = window.JmaWeatherIcons ? JmaWeatherIcons.url(jmaCode) : "";
   if (url) {
     return '<div class="wx-icon"><img class="jma-wx" src="' + url + '" alt="" data-wx="' + type +
       '" data-temp="' + (temp == null ? "" : temp) + '" onerror="jmaIconFail_(this)"></div>';
@@ -13230,14 +13323,20 @@ function fillFrontExtraCards_(w, todayHi, todayLo) {
     : (Math.round(rainMm * 10) / 10) + "mm");
 }
 
-/** 文言を「雨」などに畳んだ正面は、雲＋赤矢印＋傘の変化アイコンを出さない */
+/** 正面の短い天気文言は気象庁の基本記号。予報コードがあるときはその気象庁コード */
 function heroWeatherCode_(code, desc) {
   var d = String(desc || "");
-  if (d === "雨") return 300;
+  if (d === "雨" || d === "雷を伴う雨") return 300;
   if (d === "雪") return 400;
   if (d === "曇り") return 200;
   if (d === "晴れ") return 100;
-  return code;
+  if (d === "雷に注意") return 300;
+  if (code != null && code !== "") return code;
+  if (d.indexOf("雪") >= 0) return 400;
+  if (d.indexOf("雨") >= 0 || d.indexOf("雷") >= 0) return 300;
+  if (d.indexOf("曇") >= 0 || d.indexOf("くも") >= 0) return 200;
+  if (d.indexOf("晴") >= 0) return 100;
+  return 200;
 }
 
 function fillUI(w, todayHi, todayLo) {
@@ -13745,6 +13844,7 @@ function setSide(stackName, index) {
 /* 同一ページ: 表示制御は index 側（WbgtWeather.start/stop） */
 var weatherTimers_ = [];
 var weatherRunning_ = false;
+var frontAnimTimer_ = 0;
 function clearWeatherLocalTimers_() {
   weatherTimers_.forEach(function (id) { clearInterval(id); clearTimeout(id); });
   weatherTimers_ = [];
