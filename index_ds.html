@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.05.01';
+    var VER = '2026.11.05.02';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2975,18 +2975,21 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
   overflow: hidden; white-space: nowrap; text-overflow: clip;
 }
 #weather-panel .now-icon {
-  width: 86px; height: 86px; border-radius: 50%;
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  width: 64px; height: 64px; max-width: 100%; max-height: 100%;
+  border-radius: 0;
+  background: transparent;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  flex-shrink: 0; align-self: center;
   margin-left: 2px;
-  overflow: hidden;
+  overflow: visible;
 }
 #weather-panel .now-icon svg,
 #weather-panel .now-icon img.jma-wx {
-  width: 80px; height: 80px; display: block;
+  width: 64px; height: 64px; max-width: 100%; max-height: 100%;
+  display: block;
   margin: 0; flex: none;
   object-fit: contain;
+  object-position: center;
 }
 
 #weather-panel .flow-body {
@@ -4449,7 +4452,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.05.01';
+    const CONTENT_VER = '2026.11.05.02';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -12977,9 +12980,10 @@ function jmaIconFail_(img) {
   var temp = img.getAttribute("data-temp");
   host.innerHTML = weatherSvg(type, temp);
   if (host.classList.contains("now-icon")) {
-    host.style.background = "color-mix(in srgb, " + tempBandColor(temp) + " 22%, var(--surface))";
+    host.style.background = "transparent";
   }
 }
+window.jmaIconFail_ = jmaIconFail_;
 function iconHtml(icon, temp, code) {
   var url = (window.JmaWeatherIcons && code != null && code !== "") ? JmaWeatherIcons.url(code) : "";
   var type = iconType(icon);
@@ -13263,22 +13267,16 @@ function fillUI(w, todayHi, todayLo) {
   setAll(".js-hero-desc", readingOrKept_(".js-hero-desc", w.desc || "--"));
   setMarqueeHtml_(".js-hero-sub", sub);
   document.querySelectorAll(".js-hero-icon").forEach(function(el) {
-    var heroCode = heroWeatherCode_(lastForecastCode, w.desc);
-    var url = (window.JmaWeatherIcons && heroCode != null && heroCode !== "") ? JmaWeatherIcons.url(heroCode) : "";
-    if (url) {
-      var img = el.querySelector("img.jma-wx");
-      var heroType = iconType(w.icon);
-      if (!img || img.getAttribute("src") !== url) {
-        el.removeAttribute("data-icon-fallback");
-        el.innerHTML = '<img class="jma-wx" src="' + url + '" alt="" data-wx="' + heroType +
-          '" data-temp="' + (w.temp == null ? "" : w.temp) + '" onerror="jmaIconFail_(this)">';
-      }
-      el.style.background = "transparent";
-    } else {
-      var svg = weatherSvg(iconType(w.icon), w.temp);
-      if (el.innerHTML !== svg) el.innerHTML = svg;
-      el.style.background = "color-mix(in srgb, " + tempBandColor(w.temp) + " 22%, var(--surface))";
-    }
+    var heroType = iconType(w.icon);
+    var desc = String(w.desc || "");
+    if (desc.indexOf("雷") >= 0) heroType = "thunder";
+    else if (desc === "雪") heroType = "snow";
+    else if (desc === "雨") heroType = "rain";
+    else if (desc === "曇り") heroType = "cloudy";
+    else if (desc === "晴れ") heroType = "clear-day";
+    var svg = weatherSvg(heroType, w.temp);
+    if (el.innerHTML !== svg) el.innerHTML = svg;
+    el.style.background = "transparent";
   });
   setAll(".js-side-weather", readingOrKept_(".js-side-weather", w.desc || "--"));
   setAll(".js-rain", readingOrKept_(".js-rain", values.rain), true);
