@@ -1,4 +1,4 @@
-import { CONFIG } from "./config.js?v=20261026c";
+import { CONFIG } from "./config.js?v=20261029a";
 
 /** 販売機 地震緊急 640×192 · E.Q1.0（デモ） */
 
@@ -212,7 +212,7 @@ function setFront(s) {
   const meta = intMeta(s.localInt);
   const main = $("#quakeFrontMain", root);
   if (!main) return;
-  const text = `${LOCAL_CITY} 震度${meta.label}（デモ）`;
+  const text = `${CONFIG.displayArea || LOCAL_CITY} 震度${meta.label}（デモ）`;
   main.textContent = text;
   main.style.setProperty("--int-fg", meta.fg);
   main.classList.toggle("is-wide", text.length >= 8);
@@ -369,7 +369,11 @@ export function startQuakeLoop(sceneMs = 3500) {
 
 /** 舞鶴市（政令市のような区分割はない） */
 export function isTargetCityCode(code) {
-  return String(code || "") === String(CONFIG.quakeCityCode || "2620200");
+  const list = CONFIG.quakeCityCodes && CONFIG.quakeCityCodes.length
+    ? CONFIG.quakeCityCodes
+    : [CONFIG.quakeCityCode || "2620200"];
+  const s = String(code || "");
+  return list.some((c) => String(c) === s);
 }
 
 export function shindoKey(raw) {
@@ -412,7 +416,7 @@ function alertForRank(ttl, rank) {
   if (rank >= 6) return `${head}　ただちに身を守って`;
   if (rank >= 4) return `${head}　強い揺れに警戒`;
   if (rank >= 3) return `${head}　揺れに注意`;
-  return `${head}　${LOCAL_CITY}で揺れを観測`;
+  return `${head}　${CONFIG.displayArea || LOCAL_CITY}で揺れを観測`;
 }
 
 /**
@@ -489,7 +493,7 @@ function setFrontLive(s) {
   const meta = intMeta(s.localInt);
   const main = $("#quakeFrontMain", root);
   if (!main) return;
-  const text = `${LOCAL_CITY} 震度${meta.label}`;
+  const text = `${CONFIG.displayArea || LOCAL_CITY} 震度${meta.label}`;
   main.textContent = text;
   main.style.setProperty("--int-fg", meta.fg);
   main.classList.toggle("is-wide", text.length >= 8);

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "projectId": "TV-0003",
+  "status": "active",
+  "customer": "",
+  "rental": "",
+  "projectName": "千葉県北東部",
+  "siteName": "千葉県北東部",
+  "location": "千葉県北東部",
+  "latitude": 35.62,
+  "longitude": 140.52,
+  "resolution": "640x192",
+  "layout": "TV-640",
+  "faces": 3,
+  "timeZone": "Asia/Tokyo",
+  "footSource": "データ提供：気象庁、環境省",
+  "releasePin": "2026.10.29.01",
+  "logo": {
+    "src": "./assets/ds_logo.png",
+    "textSrc": "./assets/ds_logo_text.png",
+    "markSrc": "./assets/ds_logo.png",
+    "bannerSrc": "./assets/ds_logo_text.png",
+    "cardSrc": "./assets/ds_logo_text.png",
+    "alt": "千葉県北東部",
+    "panelBg": "#ffffff"
+  },
+  "moe": {
+    "gasUrl": "https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec",
+    "point": "45148",
+    "fallbackPoint": "",
+    "pointName": "銚子",
+    "alertArea": "千葉県",
+    "region": "03",
+    "prefecture": "45"
+  },
+  "jma": {
+    "amedasPoint": "45148",
+    "amedasSupplementPoint": "45148",
+    "forecastArea": "120000",
+    "forecastWeatherArea": "120020",
+    "forecastLabel": "千葉県北東部",
+    "warnArea": "120000",
+    "warnCity": "120020",
+    "warnCityLabel": "千葉県北東部",
+    "warnCities": [
+      "1220200",
+      "1221500",
+      "1223500",
+      "1223600",
+      "1234200",
+      "1234700",
+      "1234900",
+      "1221000",
+      "1221300",
+      "1223700",
+      "1223900",
+      "1240300",
+      "1240900",
+      "1241000",
+      "1242100",
+      "1242200",
+      "1242300",
+      "1242400",
+      "1242600",
+      "1242700"
+    ]
+  },
+  "ui": {
+    "kicker": "千葉県北東部",
+    "impactName": "千葉県北東部",
+    "impactMatch": ["千葉", "銚子", "香取", "茂原", "東金", "旭", "山武"],
+    "placeLabels": [
+      { "name": "銚子", "lat": 35.7383, "lon": 140.8567, "major": true },
+      { "name": "香取", "lat": 35.8583, "lon": 140.5017 },
+      { "name": "茂原", "lat": 35.4367, "lon": 140.2933 }
+    ]
+  },
+  "updateSettings": { "refreshMs": 60000 },
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon", "warning", "quake"]
+}

@@ -1,4 +1,4 @@
-import { CONFIG } from "./config.js?v=20261026c";
+import { CONFIG } from "./config.js?v=20261029e";
 import {
   buildDemoWarnings,
   buildMarqueeText,
@@ -18,7 +18,7 @@ import {
   runQuakeDemoCycle,
   showLiveQuake,
   startQuakeLoop,
-} from "./quake.js?v=20261026d";
+} from "./quake.js?v=20261029c";
 
 const $ = (id) => document.getElementById(id);
 
@@ -86,6 +86,18 @@ function postParent_(payload) {
   } catch (eMsg) {}
 }
 
+function postQuakeCover_() {
+  if (!EMBED_SIGNAGE || !embedQuakeReady_) return;
+  const quake = !!embedHasQuake_;
+  if (postQuakeCover_.last === quake) return;
+  postQuakeCover_.last = quake;
+  postParent_({
+    type: "alert-board-status",
+    show: !!(embedHasWarn_ || quake),
+    quake: quake,
+  });
+}
+
 function considerEmbed_() {
   if (!EMBED_SIGNAGE || embedReported_) return;
   if (!embedWarnReady_) return;
@@ -95,7 +107,7 @@ function considerEmbed_() {
   const show = embedHasWarn_ || embedHasQuake_;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      postParent_({ type: "alert-board-status", show: show });
+      postParent_({ type: "alert-board-status", show: show, quake: !!embedHasQuake_ });
       if (KEEP_MOTION) return;
       if (!show) {
         postParent_({ type: "alert-board-done", show: false });
@@ -270,12 +282,17 @@ function applyLevelCard(item, active) {
   els.machine.dataset.evac = evac.label;
 }
 
+function fitAreaLabel_(text) {
+  const el = els.cardArea;
+  if (!el) return;
+  setText(el, text);
+  const len = String(text || "").length;
+  el.style.fontSize = len > 5 ? "16px" : len > 3 ? "22px" : "26px";
+}
+
 function applyMetaCard(_item, _active) {
   tickClock();
-  setText(
-    els.cardArea,
-    isDemoPhase() ? `${CONFIG.displayArea}（デモ）` : CONFIG.displayArea,
-  );
+  fitAreaLabel_(isDemoPhase() ? `${CONFIG.displayArea}（デモ）` : CONFIG.displayArea);
 }
 
 function applySidePair(item, active, { doSwap = false } = {}) {
@@ -496,7 +513,7 @@ function tagOsaka(state) {
   };
 }
 
-const BOARD_KEY = "maizuru-alert-board-v1";
+const BOARD_KEY = "alert-board-" + (CONFIG.areaCode || "") + "-" + (CONFIG.targetAreaCode || "");
 function rememberBoard_(keep) {
   try {
     if (!keep) {
@@ -550,7 +567,7 @@ function render(state, opts = {}) {
     els.cardCount,
     isDemo ? `${state.items.length}件・デモ` : `${state.items.length}件`,
   );
-  setText(els.cardArea, isDemo ? `${CONFIG.displayArea}（デモ）` : CONFIG.displayArea);
+  fitAreaLabel_(isDemo ? `${CONFIG.displayArea}（デモ）` : CONFIG.displayArea);
   setText(els.titleTicker, isDemo ? "警報テロップ（デモ）" : "警報テロップ");
   setText(els.titleAlerts, isDemo ? "発表中の情報（デモ）" : "発表中の情報");
 
@@ -729,6 +746,7 @@ async function pollLiveQuake_() {
   } finally {
     quakePollBusy_ = false;
     considerEmbed_();
+    postQuakeCover_();
   }
 }
 

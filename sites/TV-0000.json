@@ -40,7 +40,8 @@
     "forecastLabel": "大阪市",
     "warnArea": "270000",
     "warnCity": "2710000",
-    "warnCityLabel": "大阪市"
+    "warnCityLabel": "大阪市",
+    "warnCities": ["2710000", "2712700"]
   },
   "ui": {
     "kicker": "テンプレート",
@@ -52,5 +53,5 @@
     ]
   },
   "updateSettings": { "refreshMs": 60000 },
-  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon"]
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon", "warning", "quake"]
 }

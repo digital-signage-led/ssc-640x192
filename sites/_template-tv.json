@@ -54,13 +54,14 @@
   },
   "season": { "override": null },
   "updateSettings": { "refreshMs": 60000 },
-  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon"],
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon", "warning", "quake"],
   "contents": {
     "wbgt": { "on": true },
     "weather": { "on": true },
     "rain-nowcast": { "on": true },
     "thunder": { "on": true },
     "typhoon": { "on": true },
-    "warning": { "on": true }
+    "warning": { "on": true },
+    "quake": { "on": true }
   }
 }

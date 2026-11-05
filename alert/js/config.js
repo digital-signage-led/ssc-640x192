@@ -43,4 +43,42 @@ export const CONFIG = {
   /** 発表なしテロップ */
   idleMarqueeText:
     "現在、舞鶴市では警報・注意報は発表されていません　　気象情報をご確認ください　　",
+  /** 地震の対象市区町村。未指定時は quakeCityCode のみ */
+  quakeCityCodes: ["2620200"],
+  /** 警報の対象コード（class10 と class20） */
+  targetAreaCodes: ["2620200"],
 };
+
+(function applySiteQuery() {
+  let q;
+  try {
+    q = new URLSearchParams(globalThis.location.search);
+  } catch (e) {
+    return;
+  }
+  const area = q.get("area");
+  const city = q.get("city");
+  const label = q.get("label");
+  const cities = String(q.get("cities") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (area) CONFIG.areaCode = area;
+  if (label) CONFIG.displayArea = label;
+  const codes = [];
+  if (city) codes.push(city);
+  cities.forEach((c) => {
+    if (!codes.includes(c)) codes.push(c);
+  });
+  if (codes.length) {
+    CONFIG.targetAreaCode = city || cities[0];
+    CONFIG.targetAreaCodes = codes;
+    /* city だけの案件（住之江・舞鶴）も、その市区町村の地震を出す */
+    CONFIG.quakeCityCode = codes[0];
+    CONFIG.quakeCityCodes = codes.slice();
+  }
+  CONFIG.idleMarqueeText =
+    "現在、" +
+    CONFIG.displayArea +
+    "では警報・注意報は発表されていません　　気象情報をご確認ください　　";
+})();

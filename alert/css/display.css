@@ -252,6 +252,9 @@ html:not(.alert-ready) .machine {
 
 .value--sm {
   font-size: 26px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
 .unit {

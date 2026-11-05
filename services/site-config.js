@@ -77,7 +77,8 @@
         forecastLabel: jma.forecastLabel || site.siteName || '',
         warnArea: jma.warnArea || '',
         warnCity: jma.warnCity || '',
-        warnCityLabel: jma.warnCityLabel || site.siteName || ''
+        warnCityLabel: jma.warnCityLabel || site.siteName || '',
+        warnCities: Array.isArray(jma.warnCities) ? jma.warnCities.map(String) : []
       },
       geo: { lat: Number(site.latitude), lon: Number(site.longitude) },
       timeZone: site.timeZone || 'Asia/Tokyo',
@@ -94,6 +95,7 @@
       logoCorpSrc: '',
       footLogoSrc: withVer(markSrc, ver),
       footBannerSrc: withVer(logo.bannerSrc || textSrc, ver),
+      cardSrc: logo.cardSrc ? withVer(logo.cardSrc, ver) : '',
       sideHdrLogoSrc: withVer(textSrc, ver),
       weatherLogoSrc: withVer(markSrc, ver),
       weatherLogoAlt: logo.alt || site.customer || site.siteName || ''

@@ -163,7 +163,8 @@
   var SITES = [
     { id: 'TV-0000', label: '0000' },
     { id: 'TV-0001', label: '0001' },
-    { id: 'TV-0002', label: '0002' }
+    { id: 'TV-0002', label: '0002' },
+    { id: 'TV-0003', label: '0003' }
   ];
   var siteId = 'TV-0002';
   function siteQ() { return '&site=' + encodeURIComponent(siteId); }
@@ -202,6 +203,7 @@
     if (siteId === 'TV-0000') return 'テンプレート';
     if (siteId === 'TV-0001') return '住之江';
     if (siteId === 'TV-0002') return '志摩機械';
+    if (siteId === 'TV-0003') return '千葉県北東部';
     return siteId;
   }
 

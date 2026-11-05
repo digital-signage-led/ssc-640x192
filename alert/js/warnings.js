@@ -1,4 +1,4 @@
-import { CONFIG } from "./config.js";
+import { CONFIG } from "./config.js?v=20261029a";
 import { resolveWarning, themeForLevel, evacForLevel } from "./warning-codes.js";
 
 /**
@@ -12,7 +12,11 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
     return { items: [], headline: "", reportDatetime: "", publishingOffice: "" };
   }
 
-  const target = CONFIG.targetAreaCode ? String(CONFIG.targetAreaCode) : "";
+  const targetList = (CONFIG.targetAreaCodes && CONFIG.targetAreaCodes.length)
+    ? CONFIG.targetAreaCodes.map(String)
+    : (CONFIG.targetAreaCode ? [String(CONFIG.targetAreaCode)] : []);
+  const targets = new Set(targetList);
+  const target = targetList[0] || "";
 
   /** @type {Map<string, { code: string, name: string, category: string, level: number, short: string, areas: Set<string>, status: string }>} */
   const byCode = new Map();
@@ -29,8 +33,8 @@ export function parseActiveWarnings(payload, areaNames = new Map()) {
     const class20 = Array.isArray(warning.class20Items) ? warning.class20Items : [];
     const class10 = Array.isArray(warning.class10Items) ? warning.class10Items : [];
     // 市区町村指定時は class20 のみ（街の防災情報ページと同じ）
-    const areas = target
-      ? class20.filter((a) => String(a.areaCode) === target)
+    const areas = targets.size
+      ? [...class20, ...class10].filter((a) => targets.has(String(a.areaCode)))
       : [...class20, ...class10];
 
     let hitActive = false;
@@ -143,7 +147,10 @@ export function parseFloodWarnings(payload, targetAreaCode = CONFIG.targetAreaCo
     const areas = Array.isArray(entry.class20Codes)
       ? entry.class20Codes.map(String)
       : [];
-    if (target && !areas.includes(target)) continue;
+    const floodTargets = (CONFIG.targetAreaCodes && CONFIG.targetAreaCodes.length)
+      ? CONFIG.targetAreaCodes.map(String)
+      : (target ? [target] : []);
+    if (floodTargets.length && !areas.some((c) => floodTargets.includes(c))) continue;
 
     const floodCode = String(entry.item?.code || "").padStart(2, "0");
     const warnCode = FLOOD_CODE_MAP[floodCode] || floodCode;
