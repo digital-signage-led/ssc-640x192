@@ -23,7 +23,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.05.04';
+    var VER = '2026.11.05.05';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2454,7 +2454,7 @@ html[data-demo-only="s1s4"] #scene5 {
   z-index: 80;
   display: block;
   visibility: hidden;
-  object-fit: contain;
+  object-fit: fill;
   object-position: center;
   background: #000;
   pointer-events: none;
@@ -2752,6 +2752,21 @@ html.wx-no-anim #weather-panel .side-pane {
   object-fit: contain;
   object-position: center center;
   background: transparent;
+}
+/* ニッケン: 左右カード一面にキャラクター。地は絵の白に合わせる */
+#weather-panel .side-pane-logo.is-character {
+  background: #fff;
+}
+#weather-panel .side-pane-logo.is-character .side-logo-wrap {
+  background: #fff;
+  padding: 4px;
+}
+#weather-panel .side-pane-logo.is-character .side-logo-img {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center center;
 }
 html.wbgt-off #weather-panel .side-half.is-wbgt,
 html.wbgt-off #weather-panel .side-pane.is-wbgt {
@@ -4383,7 +4398,15 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 if (cfg.logoAlt) el.alt = cfg.logoAlt;
             });
         }
-        if (wxSrc) {
+        if (cfg.sideCardSrc) {
+            document.querySelectorAll('#weather-panel .side-pane-logo').forEach(function (pane) {
+                pane.classList.add('is-character');
+            });
+            document.querySelectorAll('#weather-panel .side-logo-img').forEach(function (el) {
+                if (el.getAttribute('src') !== cfg.sideCardSrc) el.src = cfg.sideCardSrc;
+                el.alt = wxAlt;
+            });
+        } else if (wxSrc) {
             /* 天気左右のロゴ面は青地。青文字PNGのときは白文字に替える */
             var wxPaneSrc = String(wxSrc)
                 .replace(/shima_kikai_en\.png/, 'shima_kikai_en_white.png')
@@ -4455,7 +4478,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.05.04';
+    const CONTENT_VER = '2026.11.05.05';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5150,7 +5173,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         finishLapThenRestart_();
     }
-    /* 一周の最初。正面動画はファイルの再生に合わせ、30秒で終わる */
+    /* 再生が止まったときの上限。通常は動画ファイルの長さで切り替える */
     const FRONT_VIDEO_MS = 30000;
     let pageLapStartMs_ = 0;
     let lapHolding_ = false;
@@ -5236,6 +5259,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             if (frontVideoWatchId_ != null) { clearInterval(frontVideoWatchId_); frontVideoWatchId_ = null; }
             if (v) {
                 v.removeEventListener('ended', onEnded);
+                v.removeEventListener('loadedmetadata', armSafety_);
+                v.removeEventListener('durationchange', armSafety_);
                 v.removeEventListener('timeupdate', onTime);
                 v.removeEventListener('pause', onPause);
             }
@@ -5255,13 +5280,27 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             if (typeof done === 'function') done();
         }
         frontVideoFinish_ = finish;
+        function videoEndSec_() {
+            if (v && Number.isFinite(v.duration) && v.duration > 0.5 && v.duration !== Infinity) return v.duration;
+            return FRONT_VIDEO_MS / 1000;
+        }
+        function reachedEnd_() {
+            if (!v) return true;
+            if (v.ended) return true;
+            return v.currentTime >= videoEndSec_() - 0.08;
+        }
+        function armSafety_() {
+            if (finished) return;
+            if (lapHoldTimerId_ != null) { clearTimeout(lapHoldTimerId_); lapHoldTimerId_ = null; }
+            lapHoldTimerId_ = setTimeout(finish, Math.ceil(videoEndSec_() * 1000) + 1500);
+        }
         function onEnded() { finish(); }
         function onTime() {
-            if (v && v.currentTime >= FRONT_VIDEO_MS / 1000) finish();
+            if (reachedEnd_()) finish();
         }
         function kick() {
             if (finished || !v) return;
-            if (v.currentTime >= FRONT_VIDEO_MS / 1000 || v.ended) { finish(); return; }
+            if (reachedEnd_()) { finish(); return; }
             if (!v.paused) return;
             try {
                 const pending = v.play();
@@ -5277,15 +5316,18 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             v.setAttribute('playsinline', '');
             v.classList.add('is-on');
             v.addEventListener('ended', onEnded);
+            v.addEventListener('loadedmetadata', armSafety_);
+            v.addEventListener('durationchange', armSafety_);
             v.addEventListener('timeupdate', onTime);
             v.addEventListener('pause', onPause);
             try { v.currentTime = 0; } catch (eSeek) {}
             kick();
+            armSafety_();
         }
         let lastT = -1;
         frontVideoWatchId_ = setInterval(function () {
             if (!v) { finish(); return; }
-            if (v.currentTime >= FRONT_VIDEO_MS / 1000) { finish(); return; }
+            if (reachedEnd_()) { finish(); return; }
             if (v.currentTime <= lastT + 0.04) kick();
             lastT = v.currentTime;
             if ((videoSideKind_ === 'weather' || document.querySelector('#weather-panel.is-on')) && !sideTickerFlowing_()) {
@@ -5293,8 +5335,6 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 kickVideoSideTicker_(0);
             }
         }, 500);
-        /* 再生が止まったまま戻らないときだけ。通常は動画の30秒で終わる */
-        lapHoldTimerId_ = setTimeout(finish, FRONT_VIDEO_MS + 2000);
     }
     function showFrozenWeatherForLapHold_() {
         const panel = document.getElementById('weather-panel');
@@ -5342,8 +5382,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function sideTickerFlowing_() {
         if (!sideTickerAlive_) return false;
+        if (sideTickerWatchId_ || sideTickerRaf_) return true;
         var track = document.querySelector("#weather-panel .side-ticker-track.is-flowing");
-        if (!track) return !!sideTickerRaf_;
+        if (!track) return false;
         var name = String(track.style.animation || "");
         return name.indexOf("sideTicker") >= 0;
     }
@@ -13585,6 +13626,7 @@ function stopSideTicker_() {
     document.querySelectorAll("#weather-panel .side-ticker-track").forEach(function (track) {
       track.classList.remove("is-flowing");
       track.style.animation = "";
+      track.style.transition = "none";
       if (!track.getAnimations) return;
       track.getAnimations().forEach(function (anim) { anim.cancel(); });
     });
@@ -13763,10 +13805,10 @@ function startSideTickerMotion_() {
   var videoOnNow = !!document.querySelector(".content-area.video-on");
   if (videoOnNow) weatherRunning_ = true;
   if (!weatherRunning_) return;
-  var mode = document.documentElement.classList.contains("wbgt-off") ? "off" : "on";
   var videoOn = !!document.querySelector(".content-area.video-on");
-  /* 流している最中に組み直すと、数値だけ消えて同じ値が戻る。動画中は CSS の流れへ切り替える */
-  if (!videoOn && sideTickerAlive_ && sideTickerRaf_ && sideTickerMode_ === mode) return;
+  var mode = (document.documentElement.classList.contains("wbgt-off") ? "off" : "on") + (videoOn ? "-vid" : "");
+  /* 流している最中に組み直すと、数値だけ消えて同じ値が戻る。動画の開始だけは切り替える */
+  if (sideTickerAlive_ && (sideTickerRaf_ || sideTickerWatchId_) && sideTickerMode_ === mode) return;
   sideTickerMode_ = mode;
   stopSideTicker_();
   var left = buildSideTicker_("left", leftIndex);
@@ -13777,63 +13819,75 @@ function startSideTickerMotion_() {
   var cycleMs = SIDE_FLOW_MS * n;
   sideTickerParts_ = { left: left, right: right, cycleH: cycleH };
   if (cycleH < 1) return;
-  /* 動画の再生中は CSS アニメーションで流す。毎フレーム更新は動画に押されて止まり、組み直しで最初のカードに戻る */
-  if (document.querySelector(".content-area.video-on")) {
-    var css = "";
-    [left, right].forEach(function (part, idx) {
-      var name = idx === 0 ? "sideTickerL" : "sideTickerR";
-      var from = -Math.max(1, Math.round(part.cycleH));
-      css += "@keyframes " + name + "{from{transform:translate3d(0," + from + "px,0)}to{transform:translate3d(0,0,0)}}";
-      part.track.style.transform = "";
-      part.track.style.animation = name + " " + cycleMs + "ms linear infinite";
-      part.track.classList.add("is-flowing");
+  /* 1枠を枠いっぱいに止めてから、次の枠へ送る。動画中は事業カードの出現に合わせる */
+  var SLIDE_MS = 480;
+  var step = 0;
+  /* 志摩のPR映像で事業カードが出る時刻。左右の枠はここだけで送る */
+  var VIDEO_CARD_CUES = [15, 16, 17, 18, 19, 20, 21, 22.3];
+  var videoEl = document.getElementById("front-spot");
+  var videoSync = !!(videoOn && videoEl);
+  function slotIndex_(count) {
+    var k = step;
+    if (k < 0) k = 0;
+    if (videoSync) return Math.min(k, Math.max(0, count - 1));
+    return ((k % count) + count) % count;
+  }
+  function yForSlot_(part, k) {
+    var count = Math.max(1, part.count || 1);
+    var kk = slotIndex_(count);
+    var child = part.track && part.track.children[count - 1 - kk];
+    if (child) return -child.offsetTop;
+    return -part.cycleH * (count - 1 - kk) / count;
+  }
+  function paintSlots_(animate) {
+    [left, right].forEach(function (part) {
+      if (!part || !part.track) return;
+      var count = Math.max(1, part.count || 1);
+      var k = slotIndex_(count);
+      var y = yForSlot_(part, k);
+      if (!animate) {
+        part.track.style.transition = "none";
+        part.track.style.transform = "translate3d(0," + y.toFixed(2) + "px,0)";
+        return;
+      }
+      if (!videoSync && k === 0) {
+        part.track.style.transition = "none";
+        part.track.style.transform = "translate3d(0," + (-part.cycleH).toFixed(2) + "px,0)";
+        void part.track.offsetWidth;
+      }
+      part.track.style.transition = "transform " + SLIDE_MS + "ms linear";
+      part.track.style.transform = "translate3d(0," + y.toFixed(2) + "px,0)";
     });
-    var flowStyle = document.getElementById("side-flow-style");
-    if (!flowStyle) {
-      flowStyle = document.createElement("style");
-      flowStyle.id = "side-flow-style";
-      document.head.appendChild(flowStyle);
+  }
+  function stepFromVideo_() {
+    var t = videoEl && isFinite(videoEl.currentTime) ? videoEl.currentTime : 0;
+    var s = 0;
+    var i;
+    for (i = 0; i < VIDEO_CARD_CUES.length; i++) {
+      if (t + 0.04 >= VIDEO_CARD_CUES[i]) s++;
     }
-    flowStyle.textContent = css + "#weather-panel .side-ticker-track.is-flowing{animation-play-state:running !important;}";
-    sideTickerAlive_ = true;
+    return s;
+  }
+  if (videoSync) step = stepFromVideo_();
+  paintSlots_(false);
+  sideTickerAlive_ = true;
+  if (videoSync) {
+    sideTickerWatchId_ = setInterval(function () {
+      if (!sideTickerAlive_ || !weatherRunning_) return;
+      if (!document.querySelector(".content-area.video-on")) return;
+      var next = stepFromVideo_();
+      if (next === step) return;
+      step = next;
+      paintSlots_(true);
+    }, 80);
     return;
   }
-  function yAt_(part, pos) {
-    return -part.cycleH * (1 - pos);
-  }
-  /* 各面は自分の高さで周回。共通の進行率なので左右のテンポは揃い、継ぎ目は飛ばない */
-  var lead = Math.min(left.paneH || 0, right.paneH || 0);
-  var pos = (cycleH > lead && lead > 0) ? (lead / cycleH) : 0;
-  left.track.style.transform = "translate3d(0," + yAt_(left, pos).toFixed(2) + "px,0)";
-  right.track.style.transform = "translate3d(0," + yAt_(right, pos).toFixed(2) + "px,0)";
-  sideTickerAlive_ = true;
-  var last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-  var tickWall = Date.now();
-  function frame(now) {
-    if (!sideTickerAlive_ || !weatherRunning_) { sideTickerRaf_ = 0; return; }
-    var t = (typeof now === "number") ? now : ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now());
-    tickWall = Date.now();
-    var dt = t - last;
-    last = t;
-    if (!(dt > 0)) dt = 0;
-    /* 描画が空いたとき一気に飛ばさない。止まった時間は捨てて同じ速度で続ける */
-    if (dt > 48) dt = 48;
-    pos += dt / cycleMs;
-    if (pos >= 1) pos -= Math.floor(pos);
-    left.track.style.transform = "translate3d(0," + yAt_(left, pos).toFixed(2) + "px,0)";
-    right.track.style.transform = "translate3d(0," + yAt_(right, pos).toFixed(2) + "px,0)";
-    sideTickerRaf_ = requestAnimationFrame(frame);
-  }
-  sideTickerRaf_ = requestAnimationFrame(frame);
   sideTickerWatchId_ = setInterval(function () {
     if (!sideTickerAlive_ || !weatherRunning_) return;
     if (document.visibilityState === "hidden") return;
-    if (Date.now() - tickWall > 800) {
-      last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-      if (sideTickerRaf_) cancelAnimationFrame(sideTickerRaf_);
-      sideTickerRaf_ = requestAnimationFrame(frame);
-    }
-  }, 500);
+    step += 1;
+    paintSlots_(true);
+  }, SIDE_FLOW_MS);
 }
 
 /** 互換：index だけ更新（syncSides_ は呼ぶ側で行う。相互呼び出し禁止） */
