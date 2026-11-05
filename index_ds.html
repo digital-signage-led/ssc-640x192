@@ -2454,7 +2454,7 @@ html[data-demo-only="s1s4"] #scene5 {
   z-index: 80;
   display: block;
   visibility: hidden;
-  object-fit: fill;
+  object-fit: contain;
   object-position: center;
   background: #000;
   pointer-events: none;
@@ -2561,7 +2561,7 @@ html.wx-no-anim #weather-panel .side-pane {
 #weather-stage {
   width: 640px; height: 192px; overflow: hidden; position: relative;
   flex-shrink: 0;
-  background: #308ED8;
+  background: var(--site-chrome, #308ED8);
   transition: none;
 }
 .lv-safe { --bg0:#308ED8; --bg1:#2F8CDC; }
@@ -2726,7 +2726,7 @@ html.wx-no-anim #weather-panel .side-pane {
   justify-content: stretch;
   padding: 0;
   z-index: 2;
-  background: #0075C1;
+  background: var(--site-chrome, #0075C1);
 }
 #weather-panel .side-logo-wrap {
   display: flex;
@@ -2737,7 +2737,7 @@ html.wx-no-anim #weather-panel .side-pane {
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
-  background: #0075C1;
+  background: var(--site-chrome, #0075C1);
   border-radius: 0;
   padding: 0 8px;
 }
@@ -4105,7 +4105,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel is-on" title="警報・地震" aria-hidden="false" src="about:blank"></iframe>
-        <video id="front-spot" muted playsinline preload="auto" src="./rain/demo-car.mp4?v=20261028play"></video>
+        <video id="front-spot" muted playsinline preload="auto" src="./assets/shima_kikai_pr.mp4?v=2026.11.05.pr"></video>
         <script>
         (function () {
             try {
@@ -5309,8 +5309,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (area) {
             area.classList.add('weather-on');
             area.classList.remove('rain-on', 'typhoon-on', 'alert-on');
-            area.style.background = '#308ED8';
-            area.style.backgroundColor = '#308ED8';
+            area.style.background = siteChromeBg();
+            area.style.backgroundColor = siteChromeBg();
         }
         hideRainOverlay_();
         hideRadarPreload_();
@@ -5691,7 +5691,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         clearWeatherTimers_();
         weatherShowing_ = true;
-        const bgHex = '#308ED8';
+        const bgHex = siteChromeBg();
         panel.style.background = bgHex;
         panel.style.setProperty('--wbgt-bg', bgHex);
         panel.style.display = 'block';
@@ -9766,11 +9766,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const panel = document.getElementById('weather-panel');
         if (area) {
             area.classList.add('weather-on');
-            area.style.background = '#308ED8';
+            area.style.background = siteChromeBg();
         }
         if (panel) {
-            panel.style.background = '#308ED8';
-            panel.style.setProperty('--wbgt-bg', '#308ED8');
+            panel.style.background = siteChromeBg();
+            panel.style.setProperty('--wbgt-bg', siteChromeBg());
             panel.classList.add('is-on');
             panel.setAttribute('aria-hidden', 'false');
             panel.style.display = 'block';
@@ -13217,14 +13217,15 @@ function applyTheme(temp, hum, icon) {
   if (!stage) return;
   var keep640 = stage.classList.contains("is-640");
   var wx = weatherCardClass(icon);
-  /* 天気の地は青。カード面（#F0F1F3）とは分ける */
+  /* 天気の地。案件のイメージカラーがあればそれ、なければ青。カード面（#F0F1F3）とは分ける */
+  var chrome = (typeof siteChromeBg === "function") ? siteChromeBg() : "#308ED8";
   stage.className = "lv-safe " + wx + (keep640 ? " is-640" : "");
-  stage.style.setProperty("background", "#308ED8", "important");
-  stage.style.setProperty("--wbgt-bg", "#308ED8");
+  stage.style.setProperty("background", chrome, "important");
+  stage.style.setProperty("--wbgt-bg", chrome);
   var panel = document.getElementById("weather-panel");
   if (panel) {
-    panel.style.background = "#308ED8";
-    panel.style.setProperty("--wbgt-bg", "#308ED8");
+    panel.style.background = chrome;
+    panel.style.setProperty("--wbgt-bg", chrome);
   }
 }
 /* boot color: WbgtWeather.start(level) */
