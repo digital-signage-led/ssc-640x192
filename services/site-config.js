@@ -98,8 +98,24 @@
       cardSrc: logo.cardSrc ? withVer(logo.cardSrc, ver) : '',
       sideHdrLogoSrc: withVer(textSrc, ver),
       weatherLogoSrc: withVer(markSrc, ver),
-      weatherLogoAlt: logo.alt || site.customer || site.siteName || ''
+      weatherLogoAlt: logo.alt || site.customer || site.siteName || '',
+      sideCardSrc: logo.sideSrc ? withVer(logo.sideSrc, ver) : ''
     };
+    var brandBg = (ui.brandBg && /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/.test(String(ui.brandBg)))
+      ? String(ui.brandBg) : '';
+    var brandImg = (ui.brandBgImage && /^\.\/assets\/[A-Za-z0-9._-]+$/.test(String(ui.brandBgImage)))
+      ? withVer(String(ui.brandBgImage), ver) : '';
+    global.SITE_CHROME_BG = brandBg;
+    global.SITE_CHROME_IMAGE = brandImg;
+    global.siteChromeBg = function () { return global.SITE_CHROME_BG || '#308ED8'; };
+    global.siteChromeImage = function () { return global.SITE_CHROME_IMAGE || ''; };
+    if (global.document && global.document.documentElement) {
+      var root = global.document.documentElement;
+      if (brandBg) root.style.setProperty('--site-chrome', brandBg);
+      else root.style.removeProperty('--site-chrome');
+      if (brandImg) root.style.setProperty('--site-chrome-image', 'url("' + brandImg + '")');
+      else root.style.removeProperty('--site-chrome-image');
+    }
     global.TrivisionSite = { siteId: site.projectId, status: site.status || 'active' };
     try {
       var name = site.siteName || site.projectName || site.projectId;
