@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "projectId": "TV-0004",
+  "status": "active",
+  "customer": "レンタルのニッケン",
+  "rental": "レンタルのニッケン",
+  "projectName": "レンタルのニッケン",
+  "siteName": "堺市",
+  "location": "〒587-0042 大阪府堺市美原区木材通3-1-8",
+  "latitude": 34.516922,
+  "longitude": 135.57814,
+  "resolution": "640x192",
+  "layout": "TV-640",
+  "faces": 3,
+  "timeZone": "Asia/Tokyo",
+  "footSource": "データ提供：気象庁、環境省",
+  "releasePin": "2026.11.05.03",
+  "logo": {
+    "src": "./assets/nikken_logo.png",
+    "textSrc": "./assets/nikken_logo.png",
+    "markSrc": "./assets/nikken_logo.png",
+    "bannerSrc": "./assets/nikken_logo.png",
+    "cardSrc": "./assets/nikken_logo.png",
+    "sideSrc": "./assets/nikken_kyara.jpg",
+    "alt": "レンタルのニッケン",
+    "panelBg": "#ffffff"
+  },
+  "moe": {
+    "gasUrl": "https://script.google.com/macros/s/AKfycbzSTsappgfJTaJruOBJsbnCXSTPkeTBp39CXpvoSZsPQ0mWGs4KjSonC8_eZ2b1EeUXTQ/exec",
+    "point": "62091",
+    "fallbackPoint": "62078",
+    "pointName": "堺",
+    "alertArea": "大阪府",
+    "region": "07",
+    "prefecture": "62"
+  },
+  "jma": {
+    "amedasPoint": "62091",
+    "amedasSupplementPoint": "62078",
+    "forecastArea": "270000",
+    "forecastWeatherArea": "270000",
+    "forecastLabel": "堺市",
+    "warnArea": "270000",
+    "warnCity": "2714000",
+    "warnCityLabel": "堺市"
+  },
+  "ui": {
+    "brandBg": "#007222",
+    "brandBgImage": "./assets/nikken_bg.jpg",
+    "kicker": "ニッケン",
+    "impactName": "堺",
+    "impactMatch": ["堺", "美原", "大阪"],
+    "placeLabels": [
+      { "name": "美原", "lat": 34.5169, "lon": 135.5781, "major": true },
+      { "name": "堺", "lat": 34.5733, "lon": 135.483 },
+      { "name": "松原", "lat": 34.5778, "lon": 135.5517 }
+    ]
+  },
+  "updateSettings": { "refreshMs": 60000 },
+  "contentOrder": ["wbgt", "weather", "rain", "thunder", "typhoon", "warning", "quake"]
+}
