@@ -10687,10 +10687,16 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         const snap = lastAmedasSnapshot_;
         if (snap) {
-            const bits = ['舞鶴'];
-            if (snap.humi != null && isFinite(Number(snap.humi))) bits.push('湿度 ' + Math.round(Number(snap.humi)) + '%');
-            if (snap.pres != null && isFinite(Number(snap.pres))) bits.push(Math.round(Number(snap.pres)) + 'hPa');
-            if (bits.length > 1) paintSideVal_('.js-hero-sub', bits.join(' · '));
+            const heroSub = document.querySelector('.js-hero-sub');
+            const cur = heroSub ? String(heroSub.textContent || '').replace(/\s+/g, '').trim() : '';
+            if (!cur || cur === '--') {
+                const cityName = String((SITE_JMA && SITE_JMA.forecastLabel) || LOCATION_SHORT || '').trim();
+                const bits = [];
+                if (cityName) bits.push(cityName);
+                if (snap.humi != null && isFinite(Number(snap.humi))) bits.push('湿度 ' + Math.round(Number(snap.humi)) + '%');
+                if (snap.pres != null && isFinite(Number(snap.pres))) bits.push(Math.round(Number(snap.pres)) + 'hPa');
+                if (bits.length) paintSideVal_('.js-hero-sub', bits.join(' · '));
+            }
         }
         if (sideCardWeatherCode_ == null || !window.JmaWeatherIcons) return;
         const url = JmaWeatherIcons.url(sideCardWeatherCode_);
