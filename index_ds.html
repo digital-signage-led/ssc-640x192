@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.09.10';
+    var VER = '2026.11.09.11';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4492,7 +4492,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.09.10';
+    const CONTENT_VER = '2026.11.09.11';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5375,7 +5375,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 stallMs = 0;
             }
             lastT = v.currentTime;
-            if ((videoSideKind_ === 'weather' || document.querySelector('#weather-panel.is-on')) && (!sideTickerFlowing_() || String(sideTickerMode_).indexOf('-vid') < 0)) {
+            if ((videoSideKind_ === 'weather' || document.querySelector('#weather-panel.is-on')) && !sideTickerFlowing_()) {
                 videoSideKind_ = 'weather';
                 kickVideoSideTicker_(0);
             }
@@ -5426,12 +5426,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         revealAlertBoard_();
     }
     function sideTickerFlowing_() {
-        if (!sideTickerAlive_) return false;
-        if (sideTickerWatchId_ || sideTickerRaf_) return true;
-        var track = document.querySelector("#weather-panel .side-ticker-track.is-flowing");
-        if (!track) return false;
-        var name = String(track.style.animation || "");
-        return name.indexOf("sideTicker") >= 0;
+        return !!(window.sideTickerAlive_);
     }
     function kickVideoSideTicker_(n) {
         if (videoSideKind_ !== 'weather') return;
@@ -14097,7 +14092,6 @@ function startSideTickerMotion_() {
     part.track.style.transition = "none";
     part.track.style.transform = "translate3d(0," + y.toFixed(2) + "px,0)";
   });
-  var last = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
   sideTickerAlive_ = true;
   function liveTrack_(part, name) {
     var stack = document.querySelector('[data-side-stack="' + name + '"]');
@@ -14106,29 +14100,30 @@ function startSideTickerMotion_() {
     if (part && track) part.track = track;
     return track;
   }
-  function flowFrame_(now) {
+  var lastStep = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  function flowStep_() {
     if (!sideTickerAlive_) return;
-    var t = (typeof now === "number") ? now : ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now());
-    var dt = t - last;
-    last = t;
-    if (!(dt > 0)) dt = 0;
+    var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+    var dt = now - lastStep;
+    lastStep = now;
+    if (!(dt > 0)) return;
     if (dt > 80) dt = 80;
     var panelOn = !!document.querySelector("#weather-panel.is-on");
-    if ((weatherRunning_ || panelOn) && document.visibilityState !== "hidden") {
-      [left, right].forEach(function (part, idx) {
-        if (!part || !(part.cycleH > 0) || !(part.speed > 0)) return;
-        part.y += part.speed * dt;
-        while (part.y >= 0) part.y -= part.cycleH;
-        while (part.y < -part.cycleH) part.y += part.cycleH;
-        var track = liveTrack_(part, idx === 0 ? "left" : "right");
-        if (!track) return;
-        track.style.transition = "none";
-        track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
-      });
-    }
-    sideTickerRaf_ = requestAnimationFrame(flowFrame_);
+    var videoOnNow = !!document.querySelector(".content-area.video-on");
+    if (!weatherRunning_ && !panelOn && !videoOnNow) return;
+    [left, right].forEach(function (part, idx) {
+      if (!part || !(part.cycleH > 0) || !(part.speed > 0) || !isFinite(part.y)) return;
+      part.y += part.speed * dt;
+      while (part.y >= 0) part.y -= part.cycleH;
+      while (part.y < -part.cycleH) part.y += part.cycleH;
+      var track = liveTrack_(part, idx === 0 ? "left" : "right");
+      if (!track) return;
+      track.style.transition = "none";
+      track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
+    });
   }
-  sideTickerRaf_ = requestAnimationFrame(flowFrame_);
+  /* rAF が止まる端末でも、左右の中身は一定間隔で流す */
+  sideTickerWatchId_ = setInterval(flowStep_, 32);
 }
 
 /** 互換：index だけ更新（syncSides_ は呼ぶ側で行う。相互呼び出し禁止） */
