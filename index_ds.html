@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.09.11';
+    var VER = '2026.11.09.14';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -49,6 +49,44 @@
     }
     if (document.body) addBody_();
     else document.addEventListener('DOMContentLoaded', addBody_);
+    /* 窓が 640×192 より小さいときだけ全体を縮小する。実機サイズでは 1 のまま。
+       zoom だと窓の寸法が変わり、縮小が戻って見切れる。 */
+    function fitStageToWindow_() {
+        var root = document.documentElement;
+        var body = document.body;
+        root.style.setProperty('zoom', '1', 'important');
+        var vw = window.innerWidth || 640;
+        var vh = window.innerHeight || 192;
+        var s = 1;
+        if (vw < 632 || vh < 184) {
+            s = Math.min(vw / 640, vh / 192);
+            if (!(s > 0) || s > 1) s = 1;
+        }
+        /* 四捨五入で枠より大きくなると、右端の日付が1文字欠ける */
+        var w = Math.max(1, Math.floor(640 * s));
+        var h = Math.max(1, Math.floor(192 * s));
+        if (s < 1) s = Math.min(w / 640, h / 192);
+        root.style.setProperty('width', w + 'px', 'important');
+        root.style.setProperty('height', h + 'px', 'important');
+        root.style.setProperty('min-width', w + 'px', 'important');
+        root.style.setProperty('max-width', w + 'px', 'important');
+        root.style.setProperty('min-height', h + 'px', 'important');
+        root.style.setProperty('max-height', h + 'px', 'important');
+        root.style.setProperty('overflow', 'hidden', 'important');
+        if (!body) return;
+        body.style.setProperty('zoom', '1', 'important');
+        body.style.setProperty('width', '640px', 'important');
+        body.style.setProperty('height', '192px', 'important');
+        body.style.setProperty('min-width', '640px', 'important');
+        body.style.setProperty('max-width', '640px', 'important');
+        body.style.setProperty('min-height', '192px', 'important');
+        body.style.setProperty('max-height', '192px', 'important');
+        body.style.setProperty('transform-origin', '0 0', 'important');
+        body.style.setProperty('transform', s === 1 ? 'none' : ('scale(' + s + ')'), 'important');
+    }
+    fitStageToWindow_();
+    if (!document.body) document.addEventListener('DOMContentLoaded', fitStageToWindow_);
+    window.addEventListener('resize', fitStageToWindow_);
 })();
     </script>
     <style>
@@ -4492,7 +4530,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.09.11';
+    const CONTENT_VER = '2026.11.09.14';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4686,7 +4724,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261028rain7&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261110rain9&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (hold ? '&hold=1' : '');
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4699,7 +4737,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + (hold ? '&hold=1' : '') + '&v=20261028th15';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + (hold ? '&hold=1' : '') + '&v=20261110th17';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -4710,7 +4748,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261105ty15&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261110ty16&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + ((DEMO_ONLY === 'typhoon' || PREVIEW_FRONT_VIDEO) ? '' : '&gate=1') + (hold ? '&hold=1' : '');
         try {
             return new URL('./typhoon/index.html?' + q, location.href).href;

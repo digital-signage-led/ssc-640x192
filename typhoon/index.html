@@ -495,13 +495,13 @@
       height: 128px !important;
       max-height: 128px !important;
     }
-    /* タイル境界の1px隙間（下地が横線・縦線に見える）を、上下左右に重ねて消す */
+    /* タイル境界の1px隙間を重ねて消す。拡大はなめらかにする */
     #map .leaflet-tile,
     .side-map .leaflet-tile {
-      width: 258px !important;
-      height: 258px !important;
-      margin-top: -1px !important;
-      margin-left: -1px !important;
+      width: 257px !important;
+      height: 257px !important;
+      margin-top: -0.5px !important;
+      margin-left: -0.5px !important;
       mix-blend-mode: normal !important;
     }
     .leaflet-fade-anim .leaflet-tile,
@@ -512,8 +512,7 @@
     .leaflet-tile-container canvas,
     .leaflet-tile {
       background: transparent;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
+      image-rendering: auto !important;
     }
     /* 雨雲の動きと同じ。陸・海はキャンバスで単色化するためフィルタしない */
     .leaflet-basemap-pane { z-index: 200 !important; }
@@ -1522,14 +1521,18 @@
   }
 
   function paintFlatTile_(tile, coords, done) {
-    var ctx = tile.getContext('2d');
-    var img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function () {
-      var w = tile.width;
-      var h = tile.height;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, 0, 0, w, h);
+    var ctx = tile.getContext('2d', { alpha: false });
+    var w = tile.width;
+    var h = tile.height;
+    var cells = 4;
+    var cellW = w / cells;
+    var cellH = h / cells;
+    var left = cells * cells;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = '#f6f9fb';
+    ctx.fillRect(0, 0, w, h);
+    function finish_() {
       try {
         var frame = ctx.getImageData(0, 0, w, h);
         var d = frame.data;
@@ -1557,7 +1560,22 @@
         }
         for (y = 0; y < h; y++) {
           for (x = 0; x < w; x++) {
-            var rgb = clean[y * w + x] ? FLAT_WATER : FLAT_LAND;
+            var n = 0;
+            var y0 = y > 0 ? y - 1 : y;
+            var y1 = y < h - 1 ? y + 1 : y;
+            var x0 = x > 0 ? x - 1 : x;
+            var x1 = x < w - 1 ? x + 1 : x;
+            var yy, xx;
+            for (yy = y0; yy <= y1; yy++) {
+              for (xx = x0; xx <= x1; xx++) n += clean[yy * w + xx];
+            }
+            var samples = (y1 - y0 + 1) * (x1 - x0 + 1);
+            var t = n / samples;
+            var rgb = t >= 1 ? FLAT_WATER : (t <= 0 ? FLAT_LAND : [
+              Math.round(FLAT_LAND[0] + (FLAT_WATER[0] - FLAT_LAND[0]) * t),
+              Math.round(FLAT_LAND[1] + (FLAT_WATER[1] - FLAT_LAND[1]) * t),
+              Math.round(FLAT_LAND[2] + (FLAT_WATER[2] - FLAT_LAND[2]) * t)
+            ]);
             i = (y * w + x) * 4;
             d[i] = rgb[0];
             d[i + 1] = rgb[1];
@@ -1568,27 +1586,40 @@
         ctx.putImageData(frame, 0, 0);
       } catch (eFlat) {
         ctx.fillStyle = '#ecf0f2';
-        ctx.fillRect(0, 0, tile.width, tile.height);
+        ctx.fillRect(0, 0, w, h);
       }
       if (done) done(null, tile);
-    };
-    img.onerror = function () {
-      ctx.fillStyle = '#ecf0f2';
-      ctx.fillRect(0, 0, tile.width, tile.height);
-      if (done) done(null, tile);
-    };
-    img.src = GSI_PALE
-      .replace('{z}', String(coords.z))
-      .replace('{x}', String(coords.x))
-      .replace('{y}', String(coords.y));
+    }
+    function cell_(ix, iy) {
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function () {
+        ctx.drawImage(img, ix * cellW, iy * cellH, cellW, cellH);
+        left--;
+        if (left === 0) finish_();
+      };
+      img.onerror = function () {
+        left--;
+        if (left === 0) finish_();
+      };
+      img.src = GSI_PALE
+        .replace('{z}', String(coords.z + 2))
+        .replace('{x}', String(coords.x * cells + ix))
+        .replace('{y}', String(coords.y * cells + iy));
+    }
+    var ix, iy;
+    for (iy = 0; iy < cells; iy++) {
+      for (ix = 0; ix < cells; ix++) cell_(ix, iy);
+    }
   }
 
   var FlatBaseLayer_ = L.GridLayer.extend({
     createTile: function (coords, done) {
       var tile = document.createElement('canvas');
       var size = this.getTileSize();
-      tile.width = size.x;
-      tile.height = size.y;
+      /* 2段細かい地理院タイルを載せて、表示時になめらかに縮める */
+      tile.width = size.x * 4;
+      tile.height = size.y * 4;
       paintFlatTile_(tile, coords, done);
       return tile;
     }
@@ -1601,7 +1632,7 @@
   function loadPrefBorders_() {
     if (borderData_ || borderLoading_) return;
     borderLoading_ = true;
-    fetch('../rain/pref-borders.geojson', { cache: 'force-cache' }).then(function (res) {
+    fetch('../rain/pref-borders.geojson?v=20261110a', { cache: 'force-cache' }).then(function (res) {
       if (!res.ok) throw new Error('border');
       return res.json();
     }).then(function (data) {

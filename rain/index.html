@@ -788,10 +788,10 @@
     zoom: 8,
     width: 640,
     height: 192,
-    playMs: 450,
-    playMsPast: 400,
-    playMsNow: 700,
-    playMsFc: 550,
+    playMs: 900,
+    playMsPast: 800,
+    playMsNow: 1400,
+    playMsFc: 1100,
     loopPauseMs: 900,
     pastMaxMin: 60,
     futureMaxMin: 180,
@@ -1189,7 +1189,7 @@
   function loadPrefBorders_() {
     if (borderData_ || borderLoading_) return;
     borderLoading_ = true;
-    fetch('pref-borders.geojson', { cache: 'force-cache' }).then(function (res) {
+    fetch('pref-borders.geojson?v=20261110a', { cache: 'force-cache' }).then(function (res) {
       if (!res.ok) throw new Error('border');
       return res.json();
     }).then(function (data) {
