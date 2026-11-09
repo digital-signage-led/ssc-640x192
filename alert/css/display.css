@@ -430,18 +430,27 @@ html:not(.alert-ready) .machine {
   display: none;
 }
 
+/* 左右カードの下。正面の赤いテロップと同じ文言を流す */
+.machine[data-active="true"] .side-marquee,
 html.side-flow .side-marquee {
   display: block;
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 4px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
   height: 24px;
   overflow: hidden;
   z-index: 4;
-  background: linear-gradient(180deg, rgba(254, 226, 226, 0), #fee2e2 30%);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #fee2e2, #fecaca);
 }
 
+.machine[data-active="true"] .face--left .card,
+.machine[data-active="true"] .face--right .card {
+  padding-bottom: 36px;
+}
+
+.machine[data-active="true"] .side-marquee-track,
 html.side-flow .side-marquee-track {
   display: inline-flex;
   flex-wrap: nowrap;
@@ -450,10 +459,12 @@ html.side-flow .side-marquee-track {
   will-change: transform;
 }
 
+.machine[data-active="true"] .side-marquee-track.is-running,
 html.side-flow .side-marquee-track.is-running {
   animation: marquee-scroll var(--marquee-duration, 16s) linear infinite;
 }
 
+.machine[data-active="true"] .side-marquee-text,
 html.side-flow .side-marquee-text {
   display: inline-block;
   flex-shrink: 0;

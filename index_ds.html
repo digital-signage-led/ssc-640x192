@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.10.15';
+    var VER = '2026.11.10.16';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4530,7 +4530,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.10.15';
+    const CONTENT_VER = '2026.11.10.16';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -8212,7 +8212,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const params = new URLSearchParams();
         params.set('embed', '1');
         params.set('live', '1');
-        params.set('v', '20261110a');
+        params.set('v', '20261110c');
         if (jma.warnArea) params.set('area', jma.warnArea);
         if (jma.warnCity) params.set('city', jma.warnCity);
         const label = jma.warnCityLabel || (typeof getSiteLocationLabel_ === 'function' ? getSiteLocationLabel_() : '');

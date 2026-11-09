@@ -360,10 +360,32 @@ function startMotionAfterHold_(items) {
 function stopMarquee() {
   if (marqueeRaf) cancelAnimationFrame(marqueeRaf);
   marqueeRaf = 0;
-  if (!els.marquee) return;
-  els.marquee.classList.remove("is-running");
-  els.marquee.style.transform = "translateX(0)";
-  els.marquee.style.removeProperty("--marquee-duration");
+  if (els.marquee) {
+    els.marquee.classList.remove("is-running");
+    els.marquee.style.transform = "translateX(0)";
+    els.marquee.style.removeProperty("--marquee-duration");
+  }
+  document.querySelectorAll(".side-marquee-track").forEach((track) => {
+    track.classList.remove("is-running");
+  });
+}
+
+function startSideMarquee_() {
+  const text = els.marqueeTextA?.textContent || "";
+  document.querySelectorAll(".side-marquee-text").forEach((el) => {
+    el.textContent = text;
+  });
+  const speed = marqueeSpeed();
+  document.querySelectorAll(".side-marquee-track").forEach((track) => {
+    const span = track.querySelector(".side-marquee-text");
+    const w = span ? span.getBoundingClientRect().width : 0;
+    if (w < 8) {
+      track.classList.remove("is-running");
+      return;
+    }
+    track.style.setProperty("--marquee-duration", `${Math.max(6, w / speed)}s`);
+    track.classList.add("is-running");
+  });
 }
 
 function startMarquee() {
@@ -371,25 +393,13 @@ function startMarquee() {
   if (!els.marquee || !els.marqueeTextA) return;
 
   const run = () => {
+    startSideMarquee_();
     const half = els.marqueeTextA.getBoundingClientRect().width;
     if (half < 8) return;
     const speed = marqueeSpeed();
     const duration = Math.max(8, half / speed);
     els.marquee.style.setProperty("--marquee-duration", `${duration}s`);
     els.marquee.classList.add("is-running");
-    if (KEEP_MOTION) {
-      const text = els.marqueeTextA.textContent || "";
-      document.querySelectorAll(".side-marquee-text").forEach((el) => {
-        el.textContent = text;
-      });
-      document.querySelectorAll(".side-marquee-track").forEach((track) => {
-        const span = track.querySelector(".side-marquee-text");
-        const w = span ? span.getBoundingClientRect().width : 0;
-        const sideDur = Math.max(6, (w || 200) / speed);
-        track.style.setProperty("--marquee-duration", `${sideDur}s`);
-        track.classList.add("is-running");
-      });
-    }
   };
 
   if (document.fonts?.ready) {
