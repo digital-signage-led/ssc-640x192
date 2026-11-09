@@ -89,12 +89,17 @@ function postParent_(payload) {
 function postQuakeCover_() {
   if (!EMBED_SIGNAGE || !embedQuakeReady_) return;
   const quake = !!embedHasQuake_;
-  if (postQuakeCover_.last === quake) return;
-  postQuakeCover_.last = quake;
+  /* 地震なしを先に返すと、注意報の取得前に親が警報画面を消す */
+  if (!quake && !embedWarnReady_) return;
+  const show = !!(embedHasWarn_ || quake);
+  const sig = (show ? "1" : "0") + (quake ? "1" : "0");
+  if (postQuakeCover_.last === sig) return;
+  postQuakeCover_.last = sig;
   postParent_({
     type: "alert-board-status",
-    show: !!(embedHasWarn_ || quake),
+    show: show,
     quake: quake,
+    ready: !!embedWarnReady_,
   });
 }
 
@@ -107,7 +112,7 @@ function considerEmbed_() {
   const show = embedHasWarn_ || embedHasQuake_;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      postParent_({ type: "alert-board-status", show: show, quake: !!embedHasQuake_ });
+      postParent_({ type: "alert-board-status", show: show, quake: !!embedHasQuake_, ready: true });
       if (KEEP_MOTION) return;
       if (!show) {
         postParent_({ type: "alert-board-done", show: false });

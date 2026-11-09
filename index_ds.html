@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.09.14';
+    var VER = '2026.11.10.15';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4530,7 +4530,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.09.14';
+    const CONTENT_VER = '2026.11.10.15';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5106,6 +5106,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 showAlertSidesForVideo_();
             }
             if (radarGate_ === 'alert') {
+                /* ready なしの「なし」は地震の先回り。注意報の結果を待つ */
+                if (!d.show && !d.ready) return;
                 if (!d.show) {
                     radarGate_ = '';
                     onAlertBoardDone_();
@@ -5328,11 +5330,13 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 window.onWeatherLayoutCycleDone_ = null;
                 try { if (window.WbgtWeather && window.WbgtWeather.stop) window.WbgtWeather.stop(); } catch (eWx) {}
             }
-            try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
-            /* 動画の最後は左右がロゴ、正面は下段が空。出す前に天気の最初の画面へ揃える */
-            try { if (window.WbgtWeather && window.WbgtWeather.snapOpenFrame) window.WbgtWeather.snapOpenFrame(); } catch (eSnap) {}
-            hideFrontVideo_();
             if (typeof done === 'function') done();
+            /* 警報の有無が決まるまで正面の動画を残す。先に外すと途中の天気が全面に出る */
+            if (radarGate_ !== 'alert' && !alertBoardShowing_) {
+                try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+                try { if (window.WbgtWeather && window.WbgtWeather.snapOpenFrame) window.WbgtWeather.snapOpenFrame(); } catch (eSnap) {}
+                hideFrontVideo_();
+            }
         }
         frontVideoFinish_ = finish;
         function videoEndSec_() {
@@ -8208,7 +8212,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         const params = new URLSearchParams();
         params.set('embed', '1');
         params.set('live', '1');
-        params.set('v', '20261029e');
+        params.set('v', '20261110a');
         if (jma.warnArea) params.set('area', jma.warnArea);
         if (jma.warnCity) params.set('city', jma.warnCity);
         const label = jma.warnCityLabel || (typeof getSiteLocationLabel_ === 'function' ? getSiteLocationLabel_() : '');
@@ -8236,6 +8240,8 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         try { panel.src = 'about:blank'; } catch (eBlank) {}
     }
     function revealAlertBoard_() {
+        try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+        hideFrontVideo_();
         const panel = document.getElementById('alert-panel');
         const area = document.querySelector('.content-area');
         clearWeatherTimers_();
@@ -8286,6 +8292,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         playScene4();
     }
     function onAlertBoardDone_() {
+        if (document.querySelector('.content-area.video-on')) {
+            try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+            try { if (window.WbgtWeather && window.WbgtWeather.snapOpenFrame) window.WbgtWeather.snapOpenFrame(); } catch (eSnap) {}
+            hideFrontVideo_();
+        }
         if (radarGate_ === 'alert' || alertBoardShowing_) {
             radarGate_ = '';
             hideAlertBoard_();

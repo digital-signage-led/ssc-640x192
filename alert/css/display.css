@@ -208,9 +208,12 @@ html:not(.alert-ready) .machine {
 }
 
 /* 下へ消える → 上から出現 */
-.card.is-exit,
+.card.is-exit {
+  animation: card-exit-down 0.38s cubic-bezier(0.4, 0, 0.7, 1) forwards;
+}
+
 .card.is-enter {
-  animation: none;
+  animation: card-enter-top 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 @keyframes card-exit-down {
