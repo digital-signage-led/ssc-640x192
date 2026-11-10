@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.10.20';
+    var VER = '2026.11.10.21';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -4537,7 +4537,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.10.20';
+    const CONTENT_VER = '2026.11.10.21';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4606,7 +4606,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const PLAY_TYPHOON_AFTER_RAIN = query.get('notyphoon') !== '1' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rain' && DEMO_ONLY !== 'thunder';
     /** 台風の次に舞鶴の警報・地震ボード（発表がなければ子がすぐ終了）。?nowarn=1 でスキップ */
     const PLAY_ALERT_BOARD = query.get('nowarn') !== '1' && DEMO_ONLY !== 'rainwarn' && DEMO_ONLY !== 'alert' && DEMO_ONLY !== 'rain' && DEMO_ONLY !== 'thunder' && DEMO_ONLY !== 'typhoon' && DEMO_ONLY !== 'quake';
-    const ALERT_BOARD_HOLD_MS = 45000;
+    const ALERT_BOARD_HOLD_MS = 25000;
+    let alertAwaitingFresh_ = false;
+    let alertCycleSpent_ = false;
     const WEATHER_HOLD_MS = 120000; /* 通常cascade＋気象観測1周＋最後の時刻＋終了静止＋余裕 */
     const RAIN_HOLD_MS = 180000; /* 安全弁上限。通常は iframe が1周完了で postMessage */
     const THUNDER_HOLD_MS = 90000; /* 雷: 約1時間分のコマ・1周＋余裕 */
@@ -5145,6 +5147,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 showAlertSidesForVideo_();
             }
             if (radarGate_ === 'alert') {
+                alertAwaitingFresh_ = false;
                 /* ready なしの「なし」は地震の先回り。注意報の結果を待つ */
                 if (!d.show && !d.ready) return;
                 if (!d.show) {
@@ -5159,7 +5162,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             return;
         }
         if (d.type === 'alert-board-done') {
-            if (lapHolding_) return;
+            if (alertAwaitingFresh_) return;
+            if (lapHolding_) {
+                alertCycleSpent_ = true;
+                return;
+            }
             if (!alertBoardShowing_ && radarGate_ !== 'alert') return;
             radarGate_ = '';
             onAlertBoardDone_();
@@ -5500,11 +5507,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         videoSideKind_ = 'alert';
         try {
             var srcNow = panel.src || '';
-            if (srcNow.indexOf('alert/index.html') < 0 || srcNow.indexOf('about:blank') >= 0 || srcNow.indexOf('motion=1') < 0) {
-                panel.src = alertBoardSrc_() + '&motion=1';
+            if (srcNow.indexOf('alert/index.html') < 0 || srcNow.indexOf('about:blank') >= 0) {
+                panel.src = alertBoardSrc_();
             }
         } catch (eSrc) {}
-        revealAlertBoard_();
+        revealAlertBoard_(true);
     }
     function sideTickerFlowing_() {
         return !!(window.sideTickerAlive_);
@@ -8269,7 +8276,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         alertBoardShowing_ = false;
         if (alertBoardTimerId_ != null) { clearTimeout(alertBoardTimerId_); alertBoardTimerId_ = null; }
         const area = document.querySelector('.content-area');
-        if (area) area.classList.remove('alert-on');
+        if (area) {
+            area.classList.remove('alert-on');
+            area.style.background = '';
+            area.style.backgroundColor = '';
+        }
         if (!panel) return;
         panel.classList.remove('is-on', 'is-gate');
         panel.setAttribute('aria-hidden', 'true');
@@ -8278,9 +8289,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         panel.style.opacity = '0';
         try { panel.src = 'about:blank'; } catch (eBlank) {}
     }
-    function revealAlertBoard_() {
-        try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
-        hideFrontVideo_();
+    function revealAlertBoard_(keepVideo) {
+        if (!keepVideo) {
+            try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+            hideFrontVideo_();
+        }
         const panel = document.getElementById('alert-panel');
         const area = document.querySelector('.content-area');
         clearWeatherTimers_();
@@ -8293,8 +8306,10 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (area) {
             area.classList.remove('rain-on', 'typhoon-on');
             area.classList.add('alert-on');
-            area.style.background = '#ffff00';
-            area.style.backgroundColor = '#ffff00';
+            if (!keepVideo) {
+                area.style.background = '#ffff00';
+                area.style.backgroundColor = '#ffff00';
+            }
         }
         if (!panel) return;
         panel.classList.remove('is-gate');
@@ -8355,26 +8370,36 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         alertBoardShowing_ = true;
         radarGate_ = 'alert';
         hideWbgtSceneEl_();
+        var areaWait = document.querySelector('.content-area');
+        if (areaWait) {
+            areaWait.style.background = '';
+            areaWait.style.backgroundColor = '';
+        }
         try {
             var srcNow = panel.src || '';
-            var alertReady = srcNow.indexOf('alert/index.html') >= 0 && srcNow.indexOf('about:blank') < 0;
-            if (!alertReady) panel.src = alertBoardSrc_();
+            var hasBoard = srcNow.indexOf('alert/index.html') >= 0 && srcNow.indexOf('about:blank') < 0 && srcNow.indexOf('motion=1') < 0;
+            if (!hasBoard || alertCycleSpent_) {
+                alertAwaitingFresh_ = true;
+                alertCycleSpent_ = false;
+                panel.src = alertBoardSrc_();
+            }
         } catch (eSrc) {
             radarGate_ = '';
+            alertAwaitingFresh_ = false;
             hideAlertBoard_();
             continueAfterAlert_();
             return;
         }
-        /* 中身が決まるまで出さない。空の警報画面は黒地で、天気の前が真っ暗になる */
+        /* 中身が決まるまで出さない。空の警報は黄地のまま止まる */
         panel.classList.remove('is-on');
         panel.classList.add('is-gate');
         panel.style.display = 'block';
         panel.style.visibility = 'hidden';
         panel.style.opacity = '0';
-        if (!document.querySelector('#weather-panel.is-on') && !weatherShowing_) {
+        if (!document.querySelector('#weather-panel.is-on') && !weatherShowing_ && !document.querySelector('.content-area.video-on')) {
             try { paintBootSplash_(); } catch (eSplash) {}
         }
-        armAlertBoardHold_(ALERT_BOARD_HOLD_MS);
+        armAlertBoardHold_(12000);
     }
     function showIssuedAlertsOrScene4_() {
         if (quakeTimerId_) { clearTimeout(quakeTimerId_); quakeTimerId_ = null; }
