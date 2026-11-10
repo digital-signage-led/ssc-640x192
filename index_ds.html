@@ -4205,7 +4205,17 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel" title="警報・地震" aria-hidden="true" src="about:blank"></iframe>
-        <video id="front-spot" muted playsinline preload="auto" src="./assets/shima_kikai_pr.mp4?v=2026.11.09.pr"></video>
+        <video id="front-spot" muted playsinline preload="auto"></video>
+        <script>
+        (function () {
+            var v = document.getElementById('front-spot');
+            var cfg = window.SignageConfig || {};
+            var list = Array.isArray(cfg.frontVideos) ? cfg.frontVideos : [];
+            var src = list.length ? String(list[0]) : '';
+            if (!src && String(cfg.projectId || '') === 'TV-0002') src = './assets/shima_kikai_pr.mp4?v=2026.11.09.pr';
+            if (v && src) v.src = src;
+        })();
+        </script>
         <script>
         (function () {
             try {
@@ -4615,10 +4625,15 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     };
     /* 本番既定: WBGT と天気の2本のみ（時刻なし）。only= は再生フィルタ */
     const DEMO_ONLY = normalizeOnlyParam_(query.get('only')) || 's4';
-    /** 志摩機械だけ、一周の境で正面動画を出す。?video=1 は確認用に繰り返す */
-    function playShimaFrontVideo_() {
+    /** 志摩機械は同梱の1本。案件JSONの frontVideos があるサイト（ニッケン堺）はそちらの順 */
+    function frontVideoList_() {
         var cfg = window.SignageConfig || {};
-        return String(cfg.projectId || '') === 'TV-0002';
+        if (Array.isArray(cfg.frontVideos) && cfg.frontVideos.length) return cfg.frontVideos.map(String);
+        if (String(cfg.projectId || '') === 'TV-0002') return ['./assets/shima_kikai_pr.mp4?v=2026.11.09.pr'];
+        return [];
+    }
+    function playShimaFrontVideo_() {
+        return frontVideoList_().length > 0;
     }
     const PREVIEW_FRONT_VIDEO = playShimaFrontVideo_() && query.get('video') === '1';
     document.documentElement.dataset.demoOnly = DEMO_ONLY;
@@ -5166,11 +5181,10 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 return;
             }
             clearQuakeHold_();
-            if (videoSideKind_ === 'alert' && !alertLive_) {
-                videoSideKind_ = '';
-                showSidesForFrontVideo_();
-            } else if (lapHolding_ && d.show && videoSideKind_ === 'weather') {
-                showAlertSidesForVideo_();
+            /* どの案件でも、動画中に警報・注意報が出ていれば左右は警報面 */
+            if (lapHolding_) {
+                if (d.show) showAlertSidesForVideo_();
+                else if (d.ready && videoSideKind_ === 'alert') showWeatherSidesForVideo_();
             }
             if (radarGate_ === 'alert') {
                 alertAwaitingFresh_ = false;
@@ -5363,14 +5377,32 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         if (!v) return;
         try { v.pause(); } catch (ePause) {}
     }
+    let frontVideoCancel_ = false;
     function playFrontVideoThen_(done) {
-        if (!playShimaFrontVideo_()) {
+        var list = frontVideoList_();
+        if (!list.length) {
             openingVideoPending_ = false;
             lapHolding_ = false;
             hideFrontVideo_();
             if (typeof done === 'function') done();
             return;
         }
+        if (lapHolding_ || lapHoldTimerId_ != null) return;
+        frontVideoCancel_ = false;
+        var pos = 0;
+        function step() {
+            if (frontVideoCancel_) return;
+            var keepUp = pos < list.length - 1;
+            playOneFrontClip_(list[pos], function () {
+                if (frontVideoCancel_) return;
+                pos += 1;
+                if (pos < list.length) step();
+                else if (typeof done === 'function') done();
+            }, keepUp);
+        }
+        step();
+    }
+    function playOneFrontClip_(src, done, keepUp) {
         if (lapHoldTimerId_ != null) return;
         /* 正面だけ動画。最初の絵が揃うまで出さない（黄地や天気のちらつきを出さない） */
         const area = document.querySelector('.content-area');
@@ -5391,6 +5423,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 v.removeEventListener('timeupdate', onTime);
                 v.removeEventListener('pause', onPause);
             }
+            /* 次の動画へ続けるあいだは、左右の流れと正面の枠を残す */
+            if (keepUp && !frontVideoCancel_) {
+                if (typeof done === 'function') done();
+                return;
+            }
             lapHolding_ = false;
             pageLapStartMs_ = 0;
             videoSideKind_ = '';
@@ -5410,19 +5447,38 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 hideFrontVideo_();
             }
         }
-        frontVideoFinish_ = finish;
+        frontVideoFinish_ = function () {
+            frontVideoCancel_ = true;
+            finish();
+        };
+        if (v && src) {
+            try {
+                var abs = new URL(src, location.href).href;
+                if (v.currentSrc !== abs) {
+                    v.src = src;
+                    v.load();
+                } else if (v.currentTime > 0.05) {
+                    try { v.currentTime = 0; } catch (eSeek0) {}
+                }
+            } catch (eSrc) {
+                v.src = src;
+            }
+        }
+        let clipReady = false;
         function videoEndSec_() {
             if (v && Number.isFinite(v.duration) && v.duration > 0.5 && v.duration !== Infinity) return v.duration;
             return FRONT_VIDEO_MS / 1000;
         }
         function reachedEnd_() {
-            if (!v) return true;
+            if (!clipReady || !v) return false;
             if (v.ended) return true;
             return v.currentTime >= videoEndSec_() - 0.08;
         }
         function armSafety_() {
-            if (finished || lapHoldTimerId_ != null) return;
-            lapHoldTimerId_ = setTimeout(finish, Math.ceil(videoEndSec_() * 1000) + 1500);
+            if (finished) return;
+            if (lapHoldTimerId_ != null) { clearTimeout(lapHoldTimerId_); lapHoldTimerId_ = null; }
+            var sec = (v && Number.isFinite(v.duration) && v.duration > 0.5 && v.duration !== Infinity) ? v.duration : (FRONT_VIDEO_MS / 1000);
+            lapHoldTimerId_ = setTimeout(finish, Math.ceil(sec * 1000) + 1500);
         }
         function onEnded() { finish(); }
         function onTime() {
@@ -5452,6 +5508,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 v.removeEventListener('canplay', onReady_);
             }
             reveal_();
+            clipReady = true;
         }
         if (v) {
             v.muted = true;
@@ -5459,7 +5516,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             v.loop = false;
             v.playbackRate = 1;
             v.setAttribute('playsinline', '');
-            v.classList.remove('is-on');
+            if (!area || !area.classList.contains('video-on')) v.classList.remove('is-on');
             v.addEventListener('ended', onEnded);
             v.addEventListener('loadedmetadata', armSafety_);
             v.addEventListener('durationchange', armSafety_);
@@ -5470,7 +5527,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             if (v.currentTime > 0.15) {
                 try { v.currentTime = 0; } catch (eSeek) {}
             }
-            if (v.readyState >= 2) reveal_();
+            if (v.readyState >= 2) { reveal_(); clipReady = true; }
             else setTimeout(reveal_, 1200);
             kick();
             armSafety_();
@@ -5489,7 +5546,9 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
                 stallMs = 0;
             }
             lastT = v.currentTime;
-            if ((videoSideKind_ === 'weather' || document.querySelector('#weather-panel.is-on')) && !sideTickerFlowing_()) {
+            if (lapHolding_ && (alertLive_ || hasIssuedWarn_() || alertQuakeLive_)) {
+                if (videoSideKind_ !== 'alert') showAlertSidesForVideo_();
+            } else if ((videoSideKind_ === 'weather' || document.querySelector('#weather-panel.is-on')) && !sideTickerFlowing_()) {
                 videoSideKind_ = 'weather';
                 kickVideoSideTicker_(0);
             }
@@ -5527,15 +5586,14 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     }
     function showAlertSidesForVideo_() {
         const panel = document.getElementById('alert-panel');
-        hideWeatherOverlay_();
-        try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
         if (!panel) return;
         videoSideKind_ = 'alert';
+        try { weatherRunning_ = false; stopSideTicker_(); } catch (eSide) {}
+        hideWeatherOverlay_({ keepAlert: true });
         try {
+            var want = alertBoardSrc_({ motion: true });
             var srcNow = panel.src || '';
-            if (srcNow.indexOf('alert/index.html') < 0 || srcNow.indexOf('about:blank') >= 0) {
-                panel.src = alertBoardSrc_();
-            }
+            if (srcNow.indexOf('motion=1') < 0) panel.src = want;
         } catch (eSrc) {}
         revealAlertBoard_(true);
     }
@@ -5557,16 +5615,32 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
     }
     function showWeatherSidesForVideo_() {
-        hideAlertBoard_();
+        /* 動画中は警報の取得を残す。消すと、発表された瞬間に左右へ出せない */
+        hideAlertBoard_(!!lapHolding_);
         showFrozenWeatherForLapHold_();
         videoSideKind_ = 'weather';
         kickVideoSideTicker_(0);
+    }
+    function ensureVideoAlertFrame_() {
+        var panel = document.getElementById('alert-panel');
+        if (!panel) return;
+        var srcNow = '';
+        try { srcNow = panel.src || ''; } catch (eNow) {}
+        if (srcNow.indexOf('motion=1') < 0) {
+            try { panel.src = alertBoardSrc_({ motion: true }); } catch (eSrc) {}
+            return;
+        }
+        try {
+            if (panel.contentWindow) panel.contentWindow.postMessage({ type: 'alert-board-query' }, '*');
+        } catch (eAsk) {}
     }
     function showSidesForFrontVideo_() {
         hideRainOverlay_();
         hideRadarPreload_();
         hideTyphoonOverlay_();
-        const useAlert = alertLive_ || hasIssuedWarn_() || !!quakeActive;
+        ensureVideoAlertFrame_();
+        /* 全案件共通。発表中の警報・注意報は動画の左右。無いときは天気の左右 */
+        const useAlert = alertLive_ || hasIssuedWarn_() || !!quakeActive || alertQuakeLive_;
         if (useAlert) showAlertSidesForVideo_();
         else showWeatherSidesForVideo_();
     }
@@ -8279,17 +8353,18 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         quakeDemoTimerId_ = setTimeout(startQuakeOnlyPreview_, QUAKE_POLL_MS);
     }
-    function alertBoardSrc_() {
+    function alertBoardSrc_(opts) {
         const jma = (typeof SITE_CFG !== 'undefined' && SITE_CFG.jma) || {};
         const params = new URLSearchParams();
         params.set('embed', '1');
         params.set('live', '1');
-        params.set('v', '20261110c');
+        params.set('v', '20261110d');
         if (jma.warnArea) params.set('area', jma.warnArea);
         if (jma.warnCity) params.set('city', jma.warnCity);
         const label = jma.warnCityLabel || (typeof getSiteLocationLabel_ === 'function' ? getSiteLocationLabel_() : '');
         if (label) params.set('label', label);
         if (jma.warnCities && jma.warnCities.length) params.set('cities', jma.warnCities.join(','));
+        if (opts && opts.motion) params.set('motion', '1');
         const q = params.toString();
         try {
             return new URL('./alert/index.html?' + q, location.href).href;
@@ -8297,7 +8372,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             return './alert/index.html?' + q;
         }
     }
-    function hideAlertBoard_() {
+    function hideAlertBoard_(keepSrc) {
         const panel = document.getElementById('alert-panel');
         alertBoardShowing_ = false;
         if (alertBoardTimerId_ != null) { clearTimeout(alertBoardTimerId_); alertBoardTimerId_ = null; }
@@ -8313,6 +8388,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         panel.style.display = 'none';
         panel.style.visibility = 'hidden';
         panel.style.opacity = '0';
+        if (keepSrc) return;
         try { panel.src = 'about:blank'; } catch (eBlank) {}
     }
     function revealAlertBoard_(keepVideo) {

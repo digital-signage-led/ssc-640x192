@@ -129,6 +129,15 @@ function considerEmbed_() {
   });
 }
 
+window.addEventListener("message", (ev) => {
+  const data = ev && ev.data;
+  if (!data || data.type !== "alert-board-query") return;
+  postQuakeCover_.last = "";
+  embedReported_ = false;
+  considerEmbed_();
+  postQuakeCover_();
+});
+
 function marqueeSpeed() {
   const custom = Number(els.machine?.dataset.speed);
   return Number.isFinite(custom) && custom > 0 ? custom : CONFIG.marqueeSpeedPxPerSec;

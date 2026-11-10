@@ -81,6 +81,11 @@
         warnCities: Array.isArray(jma.warnCities) ? jma.warnCities.map(String) : []
       },
       geo: { lat: Number(site.latitude), lon: Number(site.longitude) },
+      frontVideos: (Array.isArray(site.frontVideos) ? site.frontVideos : []).map(function (s) {
+        s = String(s || '');
+        if (!/^\.\/assets\/[A-Za-z0-9._-]+\.mp4$/.test(s)) return '';
+        return withVer(s, ver);
+      }).filter(Boolean),
       timeZone: site.timeZone || 'Asia/Tokyo',
       refreshMs: (site.updateSettings && site.updateSettings.refreshMs) || 60000,
       footSource: site.footSource || 'データ提供：気象庁、環境省',
