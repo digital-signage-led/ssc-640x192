@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.10.21';
+    var VER = '2026.11.10.22';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2573,7 +2573,7 @@ html.wx-no-anim #weather-panel .side-pane {
 
 #weather-panel {
   --font: "Roboto", "Noto Sans JP", sans-serif;
-  --surface: rgba(240, 241, 243, 0.8); /* カード面80%。文字は透かさない */
+  --surface: #F0F1F3; /* カード面：純白#fff禁止（LED白飛び防止） */
   --on: #1a1a1a;
   --muted: #3c4043;
   --line: #D0D3D8;
@@ -2627,31 +2627,31 @@ html.wx-no-anim #weather-panel .side-pane {
 .lv-pending { --bg0:#555555; --bg1:#555555; }
 
 .wx-clear {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#4285F4; --on-accent:#E8F0FE;
 }
 .wx-partly {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#FBBC04; --on-accent:#202124;
 }
 .wx-cloudy {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#F29900; --on-accent:#202124;
 }
 .wx-rain {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
 .wx-thunder {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#EA4335; --on-accent:#FCE8E6;
 }
 .wx-snow {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
 .wx-night {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:#F0F1F3; --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
 
@@ -4537,7 +4537,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.10.21';
+    const CONTENT_VER = '2026.11.10.22';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
