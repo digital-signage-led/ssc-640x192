@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.10.23';
+    var VER = '2026.11.10.24';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2719,17 +2719,17 @@ html.wx-no-anim #weather-panel .side-pane {
 #weather-panel .side-stack {
   position: relative; width: 100%; height: 100%; overflow: hidden;
   /* 上下端フェード（縦テロップがカード縁で自然に消える） */
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 4%, #000 96%, transparent 100%);
 }
-/* カード上下縁にも同系のオーバーレイ（背景色でフェードを補強） */
+/* カード上下縁のフェードは端だけ。数値まで白く消さない */
 #weather-panel .face:not(.front) .card::before,
 #weather-panel .face:not(.front) .card::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  height: 22px;
+  height: 8px;
   z-index: 6;
   pointer-events: none;
 }
@@ -4563,7 +4563,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.10.23';
+    const CONTENT_VER = '2026.11.10.24';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -10113,18 +10113,23 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
             jobs.push((async function () {
                 const s = performance.now();
                 try {
-                    /* 予報失敗で気温・湿度まで落ちないよう、AMeDAS を先に適用する */
-                    const { latest, obs } = await fetchWithTimeout_(
+                    /* 予報は観測と同時に取り、届いた時点で天気と降水確率を入れる */
+                    const amedasTask = fetchWithTimeout_(
                         fetchJmaAmedasObservation_(), DATA_FETCH_TIMEOUT_MS, 'JMA-amedas'
                     );
+                    const forecastTask = plan.forecast
+                        ? fetchWithTimeout_(fetchJmaForecast_(), DATA_FETCH_TIMEOUT_MS, 'JMA-forecast').then(function (fc) {
+                            if (fc) applyJmaDailyForecastToDom(fc, null, null);
+                            return fc;
+                        })
+                        : null;
+                    const { latest, obs } = await amedasTask;
                     if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'local-fallback');
                     const live = applyJmaAmedasToDom(obs, latest);
                     try { paintS4TempHumi_(document.getElementById('scene4')); } catch (ePaint) {}
-                    if (plan.forecast) {
+                    if (forecastTask) {
                         try {
-                            const fc = await fetchWithTimeout_(
-                                fetchJmaForecast_(), DATA_FETCH_TIMEOUT_MS, 'JMA-forecast'
-                            );
+                            const fc = await forecastTask;
                             if (fc) applyJmaDailyForecastToDom(fc, live.todayMaxTemp, live.todayLiveIcon);
                         } catch (fcErr) {
                             console.warn('[取得] 予報のみ失敗（気温表示は維持）:', fcErr.message || fcErr);
@@ -10733,6 +10738,18 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         }
         paintHeroNowFromForecast_();
     }
+    /** 左右の天気ピルに入る短い文言。予報文のままだと枠に収まらず消える */
+    function shortSideWeatherLabel_(text) {
+        const s = String(text || '').replace(/\s+/g, '').replace(/　/g, '');
+        if (!s) return '';
+        if (s.indexOf('雷') >= 0 && s.indexOf('雨') >= 0) return '雷雨';
+        if (s.indexOf('雷') >= 0) return '雷';
+        if (s.indexOf('雪') >= 0) return '雪';
+        if (s.indexOf('雨') >= 0) return '雨';
+        if (s.indexOf('曇') >= 0 || s.indexOf('くも') >= 0) return '曇り';
+        if (s.indexOf('晴') >= 0) return '晴れ';
+        return s.slice(0, 4);
+    }
     function captureSidePop_(forecastJson) {
         const short = Array.isArray(forecastJson) ? forecastJson[0] : null;
         const series = short && short.timeSeries;
@@ -10752,11 +10769,11 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
         for (let j = 0; j < series.length; j++) {
             const area = pickJmaForecastArea_(series[j].areas);
             if (!area) continue;
-            if (!sideCardWeather_ && area.weathers) {
+            if (area.weathers) {
                 for (let w = 0; w < area.weathers.length; w++) {
                     const s = String(area.weathers[w] || '').trim();
                     if (!s) continue;
-                    sideCardWeather_ = s.replace(/\s+/g, '').slice(0, 8);
+                    sideCardWeather_ = shortSideWeatherLabel_(s);
                     break;
                 }
             }
@@ -14485,8 +14502,7 @@ function startSideTickerMotion_() {
   var cycleH = Math.max(left.cycleH || 0, right.cycleH || 0);
   sideTickerParts_ = { left: left, right: right, cycleH: cycleH };
   if (cycleH < 1) return;
-  /* 動画中も天気中も、左右は同じ速さで止めずに流す */
-  /* 左右は止めずに流す。右のキャラクター面も同じ速度 */
+  /* 左右は1枠ずつ止めて見せ、次の枠へ送る。流しっぱなしだと下の数値が端で消える */
   if (keptY.left == null && keptY.right == null && sideTrackShowsLogo_()) {
     try { snapSideTracksToOpen_(); } catch (eOpen) {}
   }
@@ -14536,11 +14552,45 @@ function startSideTickerMotion_() {
     if (!sidePhaseChecked_) {
       try { ensureSidePhase_(); } catch (ePhase) {}
     }
+    var holdMs = 2100;
+    var slideMs = 420;
+    function wrapY_(y, cycle) {
+      while (y >= 0) y -= cycle;
+      while (y < -cycle) y += cycle;
+      return y;
+    }
+    function alignPaneY_(y, pane, cycle) {
+      var dist = ((y + cycle) % cycle + cycle) % cycle;
+      var snapped = Math.round(dist / pane) * pane;
+      if (snapped >= cycle) snapped = 0;
+      return wrapY_(-cycle + snapped, cycle);
+    }
     [left, right].forEach(function (part, idx) {
-      if (!part || !(part.cycleH > 0) || !(part.speed > 0) || !isFinite(part.y)) return;
-      part.y += part.speed * dt;
-      while (part.y >= 0) part.y -= part.cycleH;
-      while (part.y < -part.cycleH) part.y += part.cycleH;
+      if (!part || !(part.cycleH > 0) || !isFinite(part.y)) return;
+      var pane = Math.max(1, part.paneH || 182);
+      var cycle = part.cycleH;
+      if (!part.sideBeat) {
+        part.y = alignPaneY_(part.y, pane, cycle);
+        part.sideBeat = "hold";
+        part.holdUntil = now + holdMs;
+      }
+      if (part.sideBeat === "hold") {
+        if (now >= part.holdUntil) {
+          part.sideBeat = "slide";
+          part.slideFrom = part.y;
+          part.slideTo = part.y + pane;
+          part.slideStart = now;
+        }
+      } else {
+        var u = (now - part.slideStart) / slideMs;
+        if (!(u < 1)) {
+          part.y = wrapY_(part.slideTo, cycle);
+          part.sideBeat = "hold";
+          part.holdUntil = now + holdMs;
+        } else {
+          part.y = part.slideFrom + (part.slideTo - part.slideFrom) * u;
+        }
+      }
       var track = liveTrack_(part, idx === 0 ? "left" : "right");
       if (!track) return;
       track.style.transition = "none";
