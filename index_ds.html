@@ -25,7 +25,7 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.10.25';
+    var VER = '2026.11.10.26';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
@@ -2654,6 +2654,18 @@ html.wx-no-anim #weather-panel .side-pane {
   --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
+/* 志摩機械はカード面を不透明（透明度100）。青地が透けない */
+html[data-site="TV-0002"] #weather-panel,
+html[data-site="TV-0002"] #weather-stage,
+html[data-site="TV-0002"] .wx-clear,
+html[data-site="TV-0002"] .wx-partly,
+html[data-site="TV-0002"] .wx-cloudy,
+html[data-site="TV-0002"] .wx-rain,
+html[data-site="TV-0002"] .wx-thunder,
+html[data-site="TV-0002"] .wx-snow,
+html[data-site="TV-0002"] .wx-night {
+  --surface: #F0F1F3;
+}
 
 #faces {
   display: grid; grid-template-columns: 128px 384px 128px;
@@ -4573,7 +4585,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.10.25';
+    const CONTENT_VER = '2026.11.10.26';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4585,6 +4597,7 @@ html.wbgt-off #weather-panel .side-pane.is-wbgt {
     const WBGT_ONLY = query.get('wbgtOnly') === '1';
     /** 警報・注意報・地震は、発表中のときだけ出す */
     const SITE_CFG = window.SignageConfig || {};
+    if (SITE_CFG.projectId) document.documentElement.dataset.site = String(SITE_CFG.projectId);
     /** 表示・スケジュール時刻は常に日本標準時（端末TZに依存しない） */
     const CLOCK_TZ = 'Asia/Tokyo';
     const NO_JMA_WARN = false;
@@ -15562,7 +15575,8 @@ window.WbgtWeather = {
       if (!weatherRunning_) return;
       document.documentElement.classList.remove("wx-no-anim");
       try { startSideTickerMotion_(); } catch (eSide) { console.warn("side ticker:", eSide); }
-      try { startFrontSlotMotion_(); } catch (eFrontSlot) { console.warn("front slot:", eFrontSlot); }
+      /* 正面は以前のコマ送り。連続スロットはカードが途中で切れる */
+      try { stopFrontSlot_(); } catch (eFrontSlot) {}
     }, WEATHER_START_HOLD_MS));
 
     /* 正面：着地静止のあと cascade → 時刻(2回目) → 気象観測完走 → WBGT */
