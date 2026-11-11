@@ -3059,7 +3059,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
  * 待機カードは画面外＋透明で保持。
  * display:none / visibility:hidden だと次の cascade で transition が消える（LED Chromium）。
  */
-#weather-panel .flow-card.is-wait {
+#weather-panel .flow-card.is-wait:not(.is-top):not(.is-bottom):not(.is-enter):not(.is-exit) {
   display: flex !important;
   transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0);
   opacity: 0;
@@ -4608,7 +4608,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.11.01';
+    const CONTENT_VER = '2026.11.11.02';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -14837,6 +14837,7 @@ var weatherTimers_ = [];
 var weatherRunning_ = false;
 var frontAnimTimer_ = 0;
 var frontMoveTimer_ = 0;
+var frontSlideTimer_ = 0;
 function clearFrontStepTimers_() {
   if (frontAnimTimer_) {
     clearTimeout(frontAnimTimer_);
@@ -14845,6 +14846,10 @@ function clearFrontStepTimers_() {
   if (frontMoveTimer_) {
     clearTimeout(frontMoveTimer_);
     frontMoveTimer_ = 0;
+  }
+  if (frontSlideTimer_) {
+    clearInterval(frontSlideTimer_);
+    frontSlideTimer_ = 0;
   }
 }
 function clearWeatherLocalTimers_(keepSides) {
@@ -15074,6 +15079,12 @@ function nextNormalCard_(idx) {
   var n = FRONT_CYCLE[(i + 1) % FRONT_CYCLE.length];
   if (wbgtFrontSkipped_() && n === 6) n = FRONT_CYCLE[(FRONT_CYCLE.indexOf(6) + 1) % FRONT_CYCLE.length];
   return n;
+}
+/* 最初の2枚は出ている。残りを1回ずつ上段へ入れる。期間外のWBGTを数に入れると、雨の次が現在の天気へ戻る */
+function frontStepsBeforeEnd_() {
+  var n = FRONT_CYCLE.length;
+  if (wbgtFrontSkipped_()) n -= 1;
+  return Math.max(1, n - 2);
 }
 function avoidSkippedWbgtCards_() {
   if (!wbgtFrontSkipped_()) return;
@@ -15437,14 +15448,37 @@ function frontStep() {
   clearCard(elEnter);
   elEnter.classList.add("is-enter");
   void elEnter.offsetWidth;
+  var h = elTop.offsetHeight || elEnter.offsetHeight || 89;
+  var gap = 5;
+  var yEnter = -(h + gap);
+  var yTop = 0;
+  var yBottom = h + gap;
+  var yExit = (h + gap) * 2;
   [elEnter, elTop, elBot].forEach(function (el) {
-    if (el) el.style.setProperty("transition", "transform 420ms linear");
+    if (!el) return;
+    el.style.transition = "none";
   });
-  void elEnter.offsetWidth;
-  /* rAF はサイネージで止まる。左右と同じ setTimeout で、止まったあと一枚だけ送る */
-  frontMoveTimer_ = setTimeout(function () {
-    frontMoveTimer_ = 0;
-    if (gen !== frontStepGen_) return;
+  elEnter.style.transform = "translate3d(0," + yEnter + "px,0)";
+  elTop.style.transform = "translate3d(0," + yTop + "px,0)";
+  elBot.style.transform = "translate3d(0," + yBottom + "px,0)";
+  /* CSS transition は描画が止まるとクラスだけ進み、週間天気で送りが切れる。左右と同じ間隔で位置を書く */
+  var slideT0 = Date.now();
+  var slideMs = 420;
+  frontSlideTimer_ = setInterval(function () {
+    if (gen !== frontStepGen_) {
+      clearInterval(frontSlideTimer_);
+      frontSlideTimer_ = 0;
+      return;
+    }
+    var p = (Date.now() - slideT0) / slideMs;
+    if (p > 1) p = 1;
+    if (!(p >= 0)) p = 0;
+    elEnter.style.transform = "translate3d(0," + (yEnter + (yTop - yEnter) * p) + "px,0)";
+    elTop.style.transform = "translate3d(0," + (yTop + (yBottom - yTop) * p) + "px,0)";
+    elBot.style.transform = "translate3d(0," + (yBottom + (yExit - yBottom) * p) + "px,0)";
+    if (p < 1) return;
+    clearInterval(frontSlideTimer_);
+    frontSlideTimer_ = 0;
     if (!weatherRunning_) {
       frontAnim = false;
       return;
@@ -15454,24 +15488,18 @@ function frontStep() {
     clearCard(elTop);
     elTop.classList.add("is-bottom");
     clearCard(elBot);
-    elBot.classList.add("is-exit");
-    /* 絵と番号を同時に進める。番号が遅れると次の送りが重なり、カードが崩れる */
+    elBot.classList.add("is-wait");
+    elEnter.style.transform = "";
+    elTop.style.transform = "";
+    elBot.style.transform = "";
     bottomIdx = fromTop;
     topIdx = enterIdx;
-    frontAnimTimer_ = setTimeout(function () {
-      if (gen !== frontStepGen_) return;
-      frontAnimTimer_ = 0;
-      if (elBot.classList.contains("is-exit")) {
-        clearCard(elBot);
-        elBot.classList.add("is-wait");
-      }
-      frontAnim = false;
-      if (enterIdx === CHART_CARD || topIdx === CHART_CARD || bottomIdx === CHART_CARD) {
-        drawChart("chartMain");
-      }
-      try { scheduleMeteoToChart_(); } catch (eMet) {}
-    }, FRONT_ANIM_MS);
-  }, 40);
+    frontAnim = false;
+    if (enterIdx === CHART_CARD || topIdx === CHART_CARD || bottomIdx === CHART_CARD) {
+      drawChart("chartMain");
+    }
+    try { scheduleMeteoToChart_(); } catch (eMet) {}
+  }, 32);
   return true;
 }
 
@@ -15534,7 +15562,7 @@ function weatherSyncedBeat_() {
 
   try {
     if (!slotTick()) return;
-    if (frontSwitchCount_ >= FRONT_SWITCHES_BEFORE_END) {
+    if (frontSwitchCount_ >= frontStepsBeforeEnd_()) {
       frontHoldBeatsLeft_ = SIDE_STEPS_PER_FRONT - 1;
     }
   } catch (eTick) {
