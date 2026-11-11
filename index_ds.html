@@ -6,7 +6,7 @@
 <!-- データ元: 気象庁（AMeDAS・予報・警報）／環境省（WBGT・熱中症アラート）のみ。外部天気APIは使用しない -->
 <!-- WBGT・環境省地点 61111（舞鶴）／天気・気象庁 AMeDAS 61111（舞鶴）／予報 260000・天気は北部 260020・警報 2620200 -->
 <!-- 改修:JS前から native-640。サイネージ＝ブラウザ同一ピクセル（隙間も固定） -->
-<html lang="ja" class="native-640">
+<html lang="ja" class="native-640 wx-no-anim">
     <head>
     <meta charset="UTF-8">
     <style>html,body{background:#000;margin:0}</style>
@@ -4608,7 +4608,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.11.02';
+    const CONTENT_VER = '2026.11.11.03';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5763,7 +5763,6 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             if ((n || 0) < 40) setTimeout(function () { kickVideoSideTicker_((n || 0) + 1); }, 50);
             return;
         }
-        try { document.documentElement.classList.remove('wx-no-anim'); } catch (eAnim) {}
         weatherRunning_ = true;
         startSideTickerMotion_();
         try { paintWeatherSideCards_(); } catch (ePaint) {}
@@ -14443,7 +14442,6 @@ function sideTrackShowsLogo_() {
 function snapWeatherOpenFrame_() {
   /* すでに流れている左右は、先頭へ戻して止めない */
   if (sideTickerAlive_ && document.querySelector("#weather-panel .side-ticker-track .side-pane")) {
-    document.documentElement.classList.remove("wx-no-anim");
     return;
   }
   document.documentElement.classList.add("wx-no-anim");
@@ -15159,33 +15157,38 @@ function showFinaleClockThenExit_() {
   }
   frontAnim = true;
   noteFrontSwitch_();
-  document.documentElement.classList.remove("wx-no-anim");
-  elClock.style.transition = "none";
+  [elClock, elTop, elBot].forEach(function (el) {
+    if (el) el.style.transition = "none";
+  });
   clearCard(elClock);
   elClock.classList.add("is-enter");
-  void elClock.offsetWidth;
-  [elClock, elTop, elBot].forEach(function (el) {
-    if (el) el.style.setProperty("transition", "transform 420ms linear");
-  });
-  void elClock.offsetWidth;
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      if (!weatherRunning_) { frontAnim = false; return; }
-      clearCard(elClock);
-      elClock.classList.add("is-top");
-      if (elTop) {
-        clearCard(elTop);
-        elTop.classList.add("is-bottom");
-      }
-      if (elBot && elBot !== elClock) {
-        clearCard(elBot);
-        elBot.classList.add("is-exit");
-      }
-    });
-  });
-  if (frontAnimTimer_) { clearTimeout(frontAnimTimer_); frontAnimTimer_ = 0; }
-  frontAnimTimer_ = setTimeout(function () {
-    frontAnimTimer_ = 0;
+  var hClock = (elTop && elTop.offsetHeight) || 89;
+  var gapClock = 5;
+  var yEnterC = -(hClock + gapClock);
+  var yTopC = 0;
+  var yBottomC = hClock + gapClock;
+  var yExitC = (hClock + gapClock) * 2;
+  elClock.style.transform = "translate3d(0," + yEnterC + "px,0)";
+  if (elTop) elTop.style.transform = "translate3d(0," + yTopC + "px,0)";
+  if (elBot) elBot.style.transform = "translate3d(0," + yBottomC + "px,0)";
+  var clockT0 = Date.now();
+  clearFrontStepTimers_();
+  frontSlideTimer_ = setInterval(function () {
+    var p = (Date.now() - clockT0) / 420;
+    if (p > 1) p = 1;
+    if (!(p >= 0)) p = 0;
+    elClock.style.transform = "translate3d(0," + (yEnterC + (yTopC - yEnterC) * p) + "px,0)";
+    if (elTop) elTop.style.transform = "translate3d(0," + (yTopC + (yBottomC - yTopC) * p) + "px,0)";
+    if (elBot && elBot !== elClock) elBot.style.transform = "translate3d(0," + (yBottomC + (yExitC - yBottomC) * p) + "px,0)";
+    if (p < 1) return;
+    clearInterval(frontSlideTimer_);
+    frontSlideTimer_ = 0;
+    clearCard(elClock);
+    elClock.classList.add("is-top");
+    if (elTop) {
+      clearCard(elTop);
+      elTop.classList.add("is-bottom");
+    }
     if (elBot && elBot !== elClock) {
       clearCard(elBot);
       elBot.classList.add("is-wait");
@@ -15195,7 +15198,7 @@ function showFinaleClockThenExit_() {
     frontAnim = false;
     try { updateClock(); } catch (eClk) {}
     weatherTimers_.push(setTimeout(afterClockGoMeteo_, CLOCK_FINALE_MS));
-  }, FRONT_ANIM_MS);
+  }, 32);
 }
 function advanceFromMeteo_() {
   if (!weatherRunning_ || frontAnim) return;
@@ -15435,8 +15438,6 @@ function frontStep() {
   frontAnim = true;
   noteFrontSwitch_();
   clearFrontStepTimers_();
-  /* 静止フラグが残っていると transition:none が勝ち、カードが瞬間で切り替わる */
-  document.documentElement.classList.remove("wx-no-anim");
   /* 前の切替で残った退場カードを消す。残っていると下のカードが消えて先頭へ戻る */
   document.querySelectorAll("#frontFlow .flow-card").forEach(function (el) {
     if (el === elTop || el === elBot || el === elEnter) return;
@@ -15489,9 +15490,6 @@ function frontStep() {
     elTop.classList.add("is-bottom");
     clearCard(elBot);
     elBot.classList.add("is-wait");
-    elEnter.style.transform = "";
-    elTop.style.transform = "";
-    elBot.style.transform = "";
     bottomIdx = fromTop;
     topIdx = enterIdx;
     frontAnim = false;
@@ -15657,33 +15655,38 @@ function beginMeteoTailThenExit_() {
   }
   frontAnim = true;
   noteFrontSwitch_();
-  document.documentElement.classList.remove("wx-no-anim");
-  elMeteo.style.transition = "none";
+  [elMeteo, elTop, elBot].forEach(function (el) {
+    if (el) el.style.transition = "none";
+  });
   clearCard(elMeteo);
   elMeteo.classList.add("is-enter");
-  void elMeteo.offsetWidth;
-  [elMeteo, elTop, elBot].forEach(function (el) {
-    if (el) el.style.setProperty("transition", "transform 420ms linear");
-  });
-  void elMeteo.offsetWidth;
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () {
-      if (!weatherRunning_) { frontAnim = false; return; }
-      clearCard(elMeteo);
-      elMeteo.classList.add("is-top");
-      if (elTop) {
-        clearCard(elTop);
-        elTop.classList.add("is-bottom");
-      }
-      if (elBot && elBot !== elMeteo) {
-        clearCard(elBot);
-        elBot.classList.add("is-exit");
-      }
-    });
-  });
-  if (frontAnimTimer_) { clearTimeout(frontAnimTimer_); frontAnimTimer_ = 0; }
-  frontAnimTimer_ = setTimeout(function () {
-    frontAnimTimer_ = 0;
+  var hMet = (elTop && elTop.offsetHeight) || 89;
+  var gapMet = 5;
+  var yEnterM = -(hMet + gapMet);
+  var yTopM = 0;
+  var yBottomM = hMet + gapMet;
+  var yExitM = (hMet + gapMet) * 2;
+  elMeteo.style.transform = "translate3d(0," + yEnterM + "px,0)";
+  if (elTop) elTop.style.transform = "translate3d(0," + yTopM + "px,0)";
+  if (elBot && elBot !== elMeteo) elBot.style.transform = "translate3d(0," + yBottomM + "px,0)";
+  var metT0 = Date.now();
+  clearFrontStepTimers_();
+  frontSlideTimer_ = setInterval(function () {
+    var p = (Date.now() - metT0) / 420;
+    if (p > 1) p = 1;
+    if (!(p >= 0)) p = 0;
+    elMeteo.style.transform = "translate3d(0," + (yEnterM + (yTopM - yEnterM) * p) + "px,0)";
+    if (elTop) elTop.style.transform = "translate3d(0," + (yTopM + (yBottomM - yTopM) * p) + "px,0)";
+    if (elBot && elBot !== elMeteo) elBot.style.transform = "translate3d(0," + (yBottomM + (yExitM - yBottomM) * p) + "px,0)";
+    if (p < 1) return;
+    clearInterval(frontSlideTimer_);
+    frontSlideTimer_ = 0;
+    clearCard(elMeteo);
+    elMeteo.classList.add("is-top");
+    if (elTop) {
+      clearCard(elTop);
+      elTop.classList.add("is-bottom");
+    }
     if (elBot && elBot !== elMeteo) {
       clearCard(elBot);
       elBot.classList.add("is-wait");
@@ -15692,7 +15695,7 @@ function beginMeteoTailThenExit_() {
     topIdx = METEO_CARD;
     frontAnim = false;
     try { scheduleMeteoToChart_(); } catch (eMet) { console.warn("meteo tail:", eMet); }
-  }, FRONT_ANIM_MS);
+  }, 32);
   weatherTimers_.push(setTimeout(function () {
     if (!weatherRunning_ || !weatherMeteoVisit_) return;
     console.warn("meteo tail: safety finish after full-cycle wait");
@@ -15841,7 +15844,6 @@ window.WbgtWeather = {
   /** 天気UIが空（色だけ）になっていないか確認し、必要なら復帰 */
   ensureUi: function () {
     try {
-      document.documentElement.classList.remove("wx-no-anim");
       var panel = document.getElementById("weather-panel");
       if (panel) {
         panel.classList.add("is-on");
