@@ -3032,6 +3032,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
   transform-origin: center center;
   /* カードごと、左右のコマ送りと同じ速さで縦に送る。縮小やフェードはしない */
   transition: transform 420ms linear;
+  will-change: transform;
   backface-visibility: hidden;
   z-index: 1;
   box-sizing: border-box;
@@ -4608,7 +4609,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.11.03';
+    const CONTENT_VER = '2026.11.11.04';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -14944,6 +14945,7 @@ async function refreshNow_() {
       setAll(".js-hero-desc", "取得不可");
       setAll(".js-hero-sub", "取得不可");
     }
+    markFrontPaintReady_();
     return;
   }
   try {
@@ -14954,6 +14956,8 @@ async function refreshNow_() {
     drawChart("chartMain");
   } catch (eFc) {
     console.warn("[天気] 予報のみ失敗（気温表示は維持）:", eFc && (eFc.message || eFc));
+  } finally {
+    markFrontPaintReady_();
   }
 }
 
@@ -15423,7 +15427,37 @@ function nextEnterCard_() {
   return enterIdx;
 }
 
+function markFrontPaintReady_() {
+  var imgs = document.querySelectorAll("#frontFlow .flow-card img");
+  var pending = 0;
+  function done() {
+    pending -= 1;
+    if (pending <= 0) frontPaintReady_ = true;
+  }
+  var i;
+  for (i = 0; i < imgs.length; i++) {
+    var img = imgs[i];
+    if (img.complete) continue;
+    pending += 1;
+    img.addEventListener("load", done);
+    img.addEventListener("error", done);
+  }
+  if (pending <= 0) frontPaintReady_ = true;
+  setTimeout(function () { frontPaintReady_ = true; }, 800);
+}
+function frontCardY_(el) {
+  if (!el) return 0;
+  var tr = "";
+  try { tr = getComputedStyle(el).transform || ""; } catch (eTr) { tr = ""; }
+  var m = String(tr).match(/matrix\(([^)]+)\)/);
+  if (!m) return 0;
+  var y = parseFloat(m[1].split(",")[5]);
+  return isFinite(y) ? y : 0;
+}
 var frontStepGen_ = 0;
+var frontPaintReady_ = false;
+var frontOpeningHold_ = false;
+var frontOpenWaitStart_ = 0;
 /** 正面：上段→下段→退場の一定方向 cascade（気象観測は含めない） */
 function frontStep() {
   if (frontAnim || weatherMeteoVisit_) return false;
@@ -15449,12 +15483,11 @@ function frontStep() {
   clearCard(elEnter);
   elEnter.classList.add("is-enter");
   void elEnter.offsetWidth;
-  var h = elTop.offsetHeight || elEnter.offsetHeight || 89;
-  var gap = 5;
-  var yEnter = -(h + gap);
-  var yTop = 0;
-  var yBottom = h + gap;
-  var yExit = (h + gap) * 2;
+  var yEnter = frontCardY_(elEnter);
+  var yTop = frontCardY_(elTop);
+  var yBottom = frontCardY_(elBot);
+  if (!(yBottom > yTop + 20)) yBottom = yTop + (elTop.offsetHeight || 89) + 5;
+  var yExit = yBottom + (yBottom - yTop);
   [elEnter, elTop, elBot].forEach(function (el) {
     if (!el) return;
     el.style.transition = "none";
@@ -15462,18 +15495,24 @@ function frontStep() {
   elEnter.style.transform = "translate3d(0," + yEnter + "px,0)";
   elTop.style.transform = "translate3d(0," + yTop + "px,0)";
   elBot.style.transform = "translate3d(0," + yBottom + "px,0)";
-  /* CSS transition は描画が止まるとクラスだけ進み、週間天気で送りが切れる。左右と同じ間隔で位置を書く */
-  var slideT0 = Date.now();
+  /* 1回の遅れで大きく飛ばさない。最初の送りは予報の描画と重なるとカクつく */
   var slideMs = 420;
+  var shownP = 0;
+  var lastTick = Date.now();
   frontSlideTimer_ = setInterval(function () {
     if (gen !== frontStepGen_) {
       clearInterval(frontSlideTimer_);
       frontSlideTimer_ = 0;
       return;
     }
-    var p = (Date.now() - slideT0) / slideMs;
+    var now = Date.now();
+    var dt = now - lastTick;
+    lastTick = now;
+    if (!(dt > 0)) dt = 0;
+    if (dt > 48) dt = 48;
+    shownP += dt / slideMs;
+    var p = shownP;
     if (p > 1) p = 1;
-    if (!(p >= 0)) p = 0;
     elEnter.style.transform = "translate3d(0," + (yEnter + (yTop - yEnter) * p) + "px,0)";
     elTop.style.transform = "translate3d(0," + (yTop + (yBottom - yTop) * p) + "px,0)";
     elBot.style.transform = "translate3d(0," + (yBottom + (yExit - yBottom) * p) + "px,0)";
@@ -15523,6 +15562,12 @@ function queueFrontCycle_(ms) {
       queueFrontCycle_(200);
       return;
     }
+    /* 最初の1枚は、週間天気の数字とアイコンが載ってから送る。描きながら動かすとカクつく */
+    if (frontOpeningHold_ && !frontPaintReady_ && (Date.now() - frontOpenWaitStart_) < 2500) {
+      queueFrontCycle_(100);
+      return;
+    }
+    frontOpeningHold_ = false;
     try { weatherSyncedBeat_(); } catch (eBeat) { console.warn("front cascade:", eBeat); }
     if (!frontCycleOn_ || !weatherRunning_ || weatherMeteoVisit_) return;
     queueFrontCycle_(SIDE_MS * SIDE_STEPS_PER_FRONT);
@@ -15754,6 +15799,9 @@ window.WbgtWeather = {
     frontAnim = false;
     sideBeatCount_ = 0;
     frontHoldBeatsLeft_ = -1;
+    frontOpeningHold_ = true;
+    frontOpenWaitStart_ = Date.now();
+    frontPaintReady_ = !refreshJob_;
     /* 連続スクロールを外して、カード2枚の並びに戻す */
     try { stopFrontSlot_(true); } catch (eSlotOff) {}
     /* 初回配置はトランジションなし。ここで外すと、描画の瞬間に先頭へ戻って消える */
