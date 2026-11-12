@@ -4600,7 +4600,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.06';
+    const CONTENT_VER = '2026.11.12.07';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4943,18 +4943,6 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         rainTilesReady_ = false;
         rain.classList.add('is-gate');
         try { rain.src = rainPanelSrc_(true); } catch (ePre) {}
-        /* 台風は雨雲の有無と別に、天気のあいだに判定まで終える。終わってから読むと最大20秒止まる */
-        if (PLAY_TYPHOON_AFTER_RAIN && !typhoonPreloadStarted_) {
-            const ty = document.getElementById('typhoon-panel');
-            if (ty) {
-                typhoonPreloadStarted_ = true;
-                ty.classList.add('is-gate');
-                try {
-                    var tyNow = ty.src || '';
-                    if (tyNow.indexOf('typhoon/index.html') < 0) ty.src = typhoonPanelSrc_(true);
-                } catch (eTyPre) {}
-            }
-        }
     }
     function preloadNextAfterRain_() {
         if (PLAY_THUNDER_AFTER_RAIN && !thunderPreloadStarted_) {
@@ -4966,22 +4954,23 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
                 try { pre.src = thunderPanelSrc_(true); } catch (eTh) {}
             }
         }
-        if (PLAY_TYPHOON_AFTER_RAIN && !typhoonPreloadStarted_) {
-            const ty = document.getElementById('typhoon-panel');
-            if (ty) {
-                typhoonPreloadStarted_ = true;
-                ty.classList.add('is-gate');
-                try {
-                    var tyNow = ty.src || '';
-                    if (tyNow.indexOf('typhoon/index.html') < 0) ty.src = typhoonPanelSrc_(true);
-                } catch (eTy) {}
-            }
-        }
+    }
+    function preloadTyphoonFrame_() {
+        if (!PLAY_TYPHOON_AFTER_RAIN || typhoonPreloadStarted_) return;
+        const ty = document.getElementById('typhoon-panel');
+        if (!ty) return;
+        typhoonPreloadStarted_ = true;
+        ty.classList.add('is-gate');
+        try {
+            var tyNow = ty.src || '';
+            if (tyNow.indexOf('typhoon/index.html') < 0) ty.src = typhoonPanelSrc_(true);
+        } catch (eTy) {}
     }
     function showPreparedThunder_() {
         radarGate_ = '';
         revealThunderPreload_();
         thunderShowing_ = true;
+        preloadTyphoonFrame_();
         armChildFrame_(document.getElementById('radar-preload'));
         armRainHold_(THUNDER_HOLD_MS, onThunderDone_);
     }
@@ -5093,7 +5082,6 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             rainDecision_ = 'show';
             rainCloudsThisPass_ = true;
             rainPrepared_ = true;
-            if (!thunderPreloadStarted_ || !typhoonPreloadStarted_) preloadNextAfterRain_();
             if (rainTilesReady_ && (radarGate_ === 'rain' || rainWanted_)) {
                 radarGate_ = '';
                 rainWanted_ = false;
@@ -5114,6 +5102,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             radarGate_ = '';
             revealThunderPreload_();
             thunderShowing_ = true;
+            preloadTyphoonFrame_();
             armChildFrame_(document.getElementById('radar-preload'));
             armRainHold_(THUNDER_HOLD_MS, onThunderDone_);
             return;
@@ -5137,6 +5126,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             rainDecision_ = 'skip';
             rainCloudsThisPass_ = false;
             rainWanted_ = false;
+            preloadTyphoonFrame_();
             if (radarGate_ === 'rain' || rainShowing_) {
                 radarGate_ = '';
                 rainShowing_ = false;
@@ -5159,6 +5149,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         if (d.type === 'thunder-radar-done') {
             if (!thunderShowing_) {
                 if (thunderDecision_ !== 'show') thunderDecision_ = 'skip';
+                preloadTyphoonFrame_();
                 return;
             }
             radarGate_ = '';
@@ -5343,6 +5334,17 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
     function deferWeatherForOpeningVideo_() {
         return PREVIEW_FRONT_VIDEO || lapHolding_ || openingVideoPending_;
     }
+    /* 表示順どおり。2本目の動画が映ってから警報、そのあと天気を読む */
+    let openingVideosShown_ = false;
+    let followOnLoadsStarted_ = false;
+    function queueLoadsAfterFirstVideo_() {
+        if (followOnLoadsStarted_) return;
+        followOnLoadsStarted_ = true;
+        try {
+            if (window.WbgtWeather && !weatherShowing_) window.WbgtWeather.prepare({});
+        } catch (ePrep) {}
+        try { kickBootFetch_(); } catch (eKick) {}
+    }
     let lapHoldTimerId_ = null;
     let frontVideoWatchId_ = null;
     let alertLive_ = false;
@@ -5480,21 +5482,30 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         if (lapHolding_ || lapHoldTimerId_ != null) return;
         frontVideoCancel_ = false;
         var pos = 0;
+        var opened = false;
         function step() {
             if (frontVideoCancel_) return;
             var keepUp = pos < list.length - 1;
             var clip = prepareFrontClip_(list[pos]);
-            if (keepUp) prepareFrontClip_(list[pos + 1], clip);
             playOneFrontClip_(clip, list[pos], function () {
                 if (frontVideoCancel_) return;
                 pos += 1;
                 if (pos < list.length) step();
                 else if (typeof done === 'function') done();
-            }, keepUp);
+            }, keepUp, function () {
+                opened = true;
+                /* いまの動画が映ってから、次の1本だけ読む */
+                if (keepUp) prepareFrontClip_(list[pos + 1], clip);
+                else openingVideosShown_ = true;
+            });
         }
+        /* 先頭の動画が始まらないときだけ、天気の取得へ進む */
+        setTimeout(function () {
+            if (!opened) queueLoadsAfterFirstVideo_();
+        }, 8000);
         step();
     }
-    function playOneFrontClip_(v, src, done, keepUp) {
+    function playOneFrontClip_(v, src, done, keepUp, onShown) {
         if (lapHoldTimerId_ != null) return;
         /* 正面だけ動画。次の絵が揃うまで、いまの絵を残す */
         const area = document.querySelector('.content-area');
@@ -5620,6 +5631,9 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             v.addEventListener('ended', onEnded);
             v.addEventListener('timeupdate', onTime);
             v.addEventListener('pause', onPause);
+            if (typeof onShown === 'function') {
+                try { onShown(); } catch (eShown) {}
+            }
             showSidesForFrontVideo_();
             kick();
         }
@@ -5786,7 +5800,13 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         hideRainOverlay_();
         hideRadarPreload_();
         hideTyphoonOverlay_();
+        /* 警報ページは動画の次。2本目が映ってから読み、そのあと天気を取る */
+        if (!openingVideosShown_) {
+            showWeatherSidesForVideo_();
+            return;
+        }
         ensureVideoAlertFrame_();
+        queueLoadsAfterFirstVideo_();
         /* 全案件共通。発表中の警報・注意報は動画の左右。無いときは天気の左右 */
         const useAlert = alertLive_ || hasIssuedWarn_() || !!quakeActive || alertQuakeLive_;
         if (useAlert) showAlertSidesForVideo_();
@@ -10256,13 +10276,8 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             panel.style.visibility = 'visible';
             panel.style.opacity = '1';
         }
-        /* 動画が届くまでは黒くしない。カードだけ出して、本編の送りは動画のあと */
-        if (deferWeatherForOpeningVideo_()) {
-            try {
-                if (window.WbgtWeather && !weatherShowing_) window.WbgtWeather.prepare({});
-            } catch (eBootVid) {}
-            return;
-        }
+        /* 動画が届くまでは黒くしない。天気の取得は動画が流れ始めてから */
+        if (deferWeatherForOpeningVideo_()) return;
         /* 青い地だけにしない。天気の中身を出して、その場から流す */
         try {
             if (window.WbgtWeather && !weatherShowing_) {
@@ -12935,8 +12950,8 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
                 }
             } catch (eWatch) {}
         }, 2000);
-        /* 改修:二重 rAF 待ちを廃止。即 fetch 開始（表示と並列） */
-        kickBootFetch_();
+        /* 動画が先頭の案件は、動画が流れ始めてから気象を取る */
+        if (!playShimaFrontVideo_()) kickBootFetch_();
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 syncTimeFromNetwork().then(function () {
