@@ -4600,7 +4600,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.07';
+    const CONTENT_VER = '2026.11.12.08';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5344,6 +5344,10 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             if (window.WbgtWeather && !weatherShowing_) window.WbgtWeather.prepare({});
         } catch (ePrep) {}
         try { kickBootFetch_(); } catch (eKick) {}
+        /* 雨雲は2本目の動画中に読む。天気のコマ送りと同時に読むと、正面が一段ごとに止まる */
+        setTimeout(function () {
+            try { preloadRainForWeather_(); } catch (eRain) {}
+        }, 1500);
     }
     let lapHoldTimerId_ = null;
     let frontVideoWatchId_ = null;
@@ -6152,9 +6156,11 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             el.style.opacity = '0';
         });
         if (typeof hideInactiveLegacyScenes_ === 'function') hideInactiveLegacyScenes_();
-        /* 画面切替中は天気コンテンツを静止。着地後に動き出す */
+        /* 動画中に描いたカードは取り直さない。取り直すと、最初のコマ送りの途中で中身が入れ替わる */
         try {
-            if (window.WbgtWeather) window.WbgtWeather.prepare(lv >= 0 ? { level: lv } : {});
+            if (window.WbgtWeather && !window.weatherPaintFrozen_ && !window.weatherRefreshPending_) {
+                window.WbgtWeather.prepare(lv >= 0 ? { level: lv } : {});
+            }
         } catch (e2) { console.error(e2); }
         /* 読み込み時の横スライドはしない。その場に出す */
         hideWbgtSceneEl_();
@@ -6165,7 +6171,8 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         panel.style.removeProperty('--wx-rtl-ms');
         panel.setAttribute('aria-hidden', 'false');
         area.classList.add('weather-on');
-        preloadRainForWeather_();
+        /* まだ雨雲を読んでいなければ、最初の一段が終わってから読む */
+        setTimeout(function () { preloadRainForWeather_(); }, 700);
         weatherSwapTimerId_ = setTimeout(function () {
             weatherSwapTimerId_ = null;
             area.classList.add('weather-on');
@@ -15005,7 +15012,11 @@ function setWeatherPaintFrozen_(on) {
 }
 async function refresh() {
   if (refreshJob_) return refreshJob_;
-  refreshJob_ = refreshNow_().finally(function () { refreshJob_ = null; });
+  window.weatherRefreshPending_ = true;
+  refreshJob_ = refreshNow_().finally(function () {
+    refreshJob_ = null;
+    window.weatherRefreshPending_ = false;
+  });
   return refreshJob_;
 }
 async function refreshNow_() {
