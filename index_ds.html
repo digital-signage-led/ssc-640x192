@@ -4632,7 +4632,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.15';
+    const CONTENT_VER = '2026.11.12.16';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -15716,8 +15716,9 @@ function playDownSlide_(els, onDone) {
     if (!el) return;
     el.style.transition = "none";
     el.style.transform = "";
-    el.style.animation = "";
+    el.style.animation = "none";
   });
+  if (els.enter) void els.enter.offsetWidth;
   var finished = false;
   function finish(cancel) {
     if (finished) return;
@@ -15746,9 +15747,33 @@ function playDownSlide_(els, onDone) {
   frontSlideFinish_ = finish;
   if (els.enter) els.enter.addEventListener("animationend", onEnd);
   map.forEach(function (pair) {
-    if (pair[0]) pair[0].classList.add(pair[1]);
+    var el = pair[0];
+    if (!el) return;
+    el.style.animation = "";
+    el.classList.add(pair[1]);
   });
-  frontSlideTimer_ = setTimeout(function () { finish(false); }, 480);
+  var slideWaits = 0;
+  function armSlideFinish_(ms) {
+    frontSlideTimer_ = setTimeout(function () {
+      frontSlideTimer_ = 0;
+      var running = false;
+      try {
+        var anims = els.enter && els.enter.getAnimations ? els.enter.getAnimations() : [];
+        var i;
+        for (i = 0; i < anims.length; i++) {
+          if (anims[i].playState === "running") running = true;
+        }
+      } catch (eRun) {}
+      /* 最初の送りは描画が遅れても、途中で位置を飛ばさない */
+      if (running && slideWaits < 3) {
+        slideWaits += 1;
+        armSlideFinish_(200);
+        return;
+      }
+      finish(false);
+    }, ms);
+  }
+  armSlideFinish_(520);
 }
 var frontStepGen_ = 0;
 var frontPaintReady_ = false;
@@ -16042,7 +16067,8 @@ window.WbgtWeather = {
     frontHoldBeatsLeft_ = -1;
     frontOpeningHold_ = true;
     frontOpenWaitStart_ = Date.now();
-    frontPaintReady_ = !refreshJob_;
+    frontPaintReady_ = false;
+    try { markFrontPaintReady_(); } catch (ePaint) { frontPaintReady_ = true; }
     if (!refreshJob_) setWeatherPaintFrozen_(true);
     /* 連続スクロールを外して、カード2枚の並びに戻す */
     try { stopFrontSlot_(true); } catch (eSlotOff) {}
@@ -16059,13 +16085,13 @@ window.WbgtWeather = {
     /* 改修:天気データも最短15分（15分未満禁止） */
     weatherTimers_.push(setInterval(refresh, 15 * 60 * 1000));
 
-    /* 左右は止めない。正面は中身が載った次の画面から送る。1秒待つと始まりで止まる */
+    /* 最初の2枚（現在の天気と時刻）を1秒出してから送る。直後に動かすと最初のカードが飛ぶ */
     if (!keepFlow) {
       try { startSideTickerMotion_(); } catch (eSide) { console.warn("side ticker:", eSide); }
     } else {
       try { ensureSidePhase_(); } catch (ePhase) {}
     }
-    queueFrontCycle_(32);
+    queueFrontCycle_(WEATHER_START_HOLD_MS);
     startFrontStuckWatch_();
     weatherTimers_.push(setTimeout(function () {
       if (!weatherRunning_) return;
