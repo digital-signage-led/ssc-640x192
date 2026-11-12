@@ -18,10 +18,8 @@
     <title>WBGT Signage 3面 640×192 - 舞鶴 · 志摩機械 · 2026.11.05.01</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- display=block: 届く前の別フォントを出さない。最初から同じ字 -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=block">
-    <link rel="preload" as="image" href="./assets/shima_kikai_en.png?v=2026.10.22.01">
-    <link rel="preload" as="video" href="./assets/shima_kikai_pr.mp4?v=2026.11.09.pr">
+    <!-- 最初の表示をフォントの到着まで止めない -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700&display=swap">
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
@@ -4602,7 +4600,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.05';
+    const CONTENT_VER = '2026.11.12.06';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -12835,7 +12833,8 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
     /* 改修:画像 onload 前からデータ取得を始める（体感の待ち短縮） */
     try { setTimeout(kickBootFetch_, 0); } catch (eKickEarly) {}
 
-    window.onload = function () {
+    /* 画像と動画の到着を待たない。アラート面と同じく、HTML が読めた時点で出す */
+    function bootSignage_() {
         /* 改修:即起動 — 通信完了を待たずレイアウト表示。fetch は kickBootFetch_ */
         try {
         bootDisplayHold_ = false;
@@ -12843,7 +12842,8 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         /* 改修:restoreSignageStateCache_ は no-op（前回値禁止） */
         if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
-        if (!PLAY_ALERT_BOARD) paintBootSplash_();
+        /* 警報があとで出る案件でも、先に天気を出す。onload まで待つと動画の分だけ黒くなる */
+        if (!DEMO_ALERT_ONLY) paintBootSplash_();
         endBootReveal_();
         const logoEl = document.getElementById('signage-logo');
         const logoCfg = window.SIGNAGE_CONFIG;
@@ -12956,7 +12956,9 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             try { endBootReveal_(); } catch (e2) {}
             try { scheduleDataRefresh(); } catch (e3) {}
         }
-    };
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootSignage_);
+    else bootSignage_();
 
 </script>
 
