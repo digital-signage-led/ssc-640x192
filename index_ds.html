@@ -4600,7 +4600,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.10';
+    const CONTENT_VER = '2026.11.12.11';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -14237,13 +14237,18 @@ function motionPumpStart_(task) {
   if (motionTasks_.indexOf(task) < 0) motionTasks_.push(task);
   if (!motionRaf_) motionRaf_ = requestAnimationFrame(motionPumpFrame_);
   if (!motionWatchId_) {
-    /* 画面更新が止まる端末だけ、同じ位置計算を間隔で続ける */
+    /* 画面更新が止まったときだけ再開する。常時の間隔タイマーは更新を遅らせ、動きを遅くする */
     motionWatchId_ = setInterval(function () {
       if (!motionTasks_.length) return;
       var now = motionNow_();
-      if (motionLastPaint_ && (now - motionLastPaint_) < 40) return;
+      if (motionLastPaint_ && (now - motionLastPaint_) < 200) return;
+      if (motionRaf_) {
+        cancelAnimationFrame(motionRaf_);
+        motionRaf_ = 0;
+      }
       motionRunTasks_(now);
-    }, 32);
+      if (motionTasks_.length) motionRaf_ = requestAnimationFrame(motionPumpFrame_);
+    }, 250);
   }
 }
 function motionPumpStop_(task) {
@@ -14804,7 +14809,8 @@ function startFrontSlotMotion_() {
     var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
     var dt = now - last;
     last = now;
-    if (!(dt > 0) || dt > 200) dt = 32;
+    if (!(dt > 0)) return;
+    if (dt > 200) dt = 32;
     var st = frontSlotState_;
     st.y += st.speed * dt;
     if (st.y >= 0) st.y -= st.cycleH;
@@ -14902,16 +14908,20 @@ function startSideTickerMotion_() {
     return track;
   }
   var lastStep = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  var sideDebt_ = 0;
   var sideCheckAt_ = 0;
   var sideCheckOk_ = true;
   function flowStep_() {
     if (!sideTickerAlive_) return;
     var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-    var dt = now - lastStep;
+    var raw = now - lastStep;
     lastStep = now;
-    if (!(dt > 0)) return;
-    /* 1フレーム分だけ進める。遅れをまとめて足すと、左右も正面も一段で飛ぶ */
-    if (dt > 34) dt = 34;
+    if (!(raw > 0)) return;
+    /* 遅れた時間は捨てない。捨てると途中から遅くなり、遅れが続くと止まる */
+    sideDebt_ += raw;
+    if (sideDebt_ > 160) sideDebt_ = 80;
+    var dt = sideDebt_ > 80 ? 80 : sideDebt_;
+    sideDebt_ -= dt;
     if (now - sideCheckAt_ > 500) {
       sideCheckAt_ = now;
       sideCheckOk_ = !!(weatherRunning_ || document.querySelector("#weather-panel.is-on") || document.querySelector(".content-area.video-on"));
@@ -14923,7 +14933,6 @@ function startSideTickerMotion_() {
       var cycle = part.cycleH;
       while (part.y >= 0) part.y -= cycle;
       while (part.y < -cycle) part.y += cycle;
-      part.track.style.transition = "none";
       part.track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
     });
   }
@@ -15625,14 +15634,19 @@ function playDownSlide_(els, onDone) {
   put(0);
   var last = motionNow_();
   var shown = 0;
+  var debt = 0;
   var done = false;
   function task(now) {
     if (task !== frontSlideTask_) return false;
-    var dt = now - last;
+    var raw = now - last;
     last = now;
-    if (!(dt > 0)) dt = 0;
-    if (dt > 34) dt = 34;
-    shown += dt;
+    if (!(raw > 0)) raw = 0;
+    /* 遅れた時間は次の画面更新で返す。34ミリ秒で切ると、途中から遅くなって止まる */
+    debt += raw;
+    if (debt > 160) debt = 80;
+    var step = debt > 80 ? 80 : debt;
+    debt -= step;
+    shown += step;
     var p = shown / 420;
     put(p);
     if (p < 1) return true;
