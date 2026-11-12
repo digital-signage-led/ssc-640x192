@@ -25,21 +25,14 @@
     <script>
     /* 改修:WEB＝サイネージ同一ピクセル。版(?v=)が変わったら HTML を取り直す */
 (function () {
-    var VER = '2026.11.10.29';
     var root = document.documentElement;
     root.classList.add('native-640');
     root.classList.remove('browser-preview');
-    root.dataset.contentVer = VER;
     try {
         var q = new URLSearchParams(location.search);
-        var needNav = false;
-        if (q.get('v') !== VER) { q.set('v', VER); needNav = true; }
-        if (q.get('native640') !== '1') { q.set('native640', '1'); needNav = true; }
-        if (needNav) {
-            root.style.background = '#000';
-            root.style.visibility = 'hidden';
-            location.replace(location.pathname + '?' + q.toString() + (location.hash || ''));
-            return;
+        if (q.get('native640') !== '1') {
+            q.set('native640', '1');
+            history.replaceState(null, '', location.pathname + '?' + q.toString() + (location.hash || ''));
         }
     } catch (e) {}
     function addBody_() {
@@ -4240,8 +4233,8 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel" title="警報・地震" aria-hidden="true" src="about:blank"></iframe>
-        <video id="front-spot" muted playsinline preload="auto"></video>
-        <video id="front-spot-b" muted playsinline preload="auto"></video>
+        <video id="front-spot" muted playsinline preload="metadata"></video>
+        <video id="front-spot-b" muted playsinline preload="metadata"></video>
         <script>
         (function () {
             var v = document.getElementById('front-spot');
@@ -4609,7 +4602,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.03';
+    const CONTENT_VER = '2026.11.12.04';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -10246,7 +10239,6 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
     }
     /** 起動直後は熱中症画面を出さない。灰色の空画面ではなく天気（青）を出す */
     function paintBootSplash_() {
-        if (deferWeatherForOpeningVideo_()) return;
         if (alertCoversScreen_()) return;
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
         updateClock();
@@ -10265,6 +10257,13 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             panel.style.display = 'block';
             panel.style.visibility = 'visible';
             panel.style.opacity = '1';
+        }
+        /* 動画が届くまでは黒くしない。カードだけ出して、本編の送りは動画のあと */
+        if (deferWeatherForOpeningVideo_()) {
+            try {
+                if (window.WbgtWeather && !weatherShowing_) window.WbgtWeather.prepare({});
+            } catch (eBootVid) {}
+            return;
         }
         /* 青い地だけにしない。天気の中身を出して、その場から流す */
         try {
