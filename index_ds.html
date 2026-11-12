@@ -4231,7 +4231,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         <iframe id="radar-preload" title="雷ナウキャスト" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="typhoon-panel" class="typhoon-panel" title="台風情報" aria-hidden="true" src="about:blank"></iframe>
         <iframe id="alert-panel" class="alert-panel" title="警報・地震" aria-hidden="true" src="about:blank"></iframe>
-        <video id="front-spot" muted playsinline preload="metadata"></video>
+        <video id="front-spot" muted playsinline preload="auto"></video>
         <video id="front-spot-b" muted playsinline preload="metadata"></video>
         <script>
         (function () {
@@ -4600,7 +4600,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.08';
+    const CONTENT_VER = '2026.11.12.09';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -5571,15 +5571,20 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         if (v && src) {
             try {
                 var abs = new URL(src, location.href).href;
+                v.preload = 'auto';
                 if (v.currentSrc !== abs) {
                     v.muted = true;
                     v.src = src;
                     v.load();
-                } else if (v.currentTime > 0.05 && v.readyState < 2) {
+                } else if (v.readyState < 2) {
+                    /* 先に src だけ入っていると、絵が来る前で止まる。ここから本体を読む */
+                    try { v.load(); } catch (eLoad) {}
+                } else if (v.currentTime > 0.05) {
                     try { v.currentTime = 0; } catch (eSeek0) {}
                 }
             } catch (eSrc) {
                 v.src = src;
+                try { v.load(); } catch (eLoad2) {}
             }
         }
         let clipReady = false;
@@ -10262,7 +10267,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             });
         } catch (eFlowBoot) {}
     }
-    /** 起動直後は熱中症画面を出さない。灰色の空画面ではなく天気（青）を出す */
+    /** 起動直後は熱中症画面を出さない。動画がある案件は動画から。無い案件は天気を出す */
     function paintBootSplash_() {
         if (alertCoversScreen_()) return;
         if (timeSync.baseUtcMs == null) applySyncedUtcMs(Date.now(), 'boot-local');
@@ -10270,6 +10275,25 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         hideWbgtSceneEl_();
         const area = document.querySelector('.content-area');
         const panel = document.getElementById('weather-panel');
+        /* 先頭は動画。天気カードを先に出すと、--℃ の画面が最初に見える */
+        if (deferWeatherForOpeningVideo_()) {
+            if (panel) {
+                panel.classList.remove('is-on');
+                panel.setAttribute('aria-hidden', 'true');
+                panel.style.display = 'none';
+                panel.style.visibility = 'hidden';
+                panel.style.opacity = '0';
+            }
+            if (area) {
+                area.classList.remove('weather-on');
+                area.style.backgroundColor = siteChromeBg();
+                var chromeImg = (typeof siteChromeImage === 'function') ? siteChromeImage() : '';
+                area.style.backgroundImage = chromeImg ? ('url("' + chromeImg + '")') : 'none';
+                area.style.backgroundSize = 'cover';
+                area.style.backgroundPosition = 'center center';
+            }
+            return;
+        }
         if (area) {
             area.classList.add('weather-on');
             area.style.background = siteChromeBg();
@@ -10283,8 +10307,6 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
             panel.style.visibility = 'visible';
             panel.style.opacity = '1';
         }
-        /* 動画が届くまでは黒くしない。天気の取得は動画が流れ始めてから */
-        if (deferWeatherForOpeningVideo_()) return;
         /* 青い地だけにしない。天気の中身を出して、その場から流す */
         try {
             if (window.WbgtWeather && !weatherShowing_) {
@@ -12852,8 +12874,10 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         transitionToScene(s4, playScene4);
     }
 
-    /* 改修:画像 onload 前からデータ取得を始める（体感の待ち短縮） */
-    try { setTimeout(kickBootFetch_, 0); } catch (eKickEarly) {}
+    /* 動画が先頭の案件は、ここで気象を取ると動画の到着が遅れる */
+    try {
+        if (!playShimaFrontVideo_()) setTimeout(kickBootFetch_, 0);
+    } catch (eKickEarly) {}
 
     /* 画像と動画の到着を待たない。アラート面と同じく、HTML が読めた時点で出す */
     function bootSignage_() {
@@ -12864,7 +12888,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         /* 改修:restoreSignageStateCache_ は no-op（前回値禁止） */
         if (typeof SignageBg !== 'undefined') SignageBg.initHosts();
         applySiteLocationLabels_();
-        /* 警報があとで出る案件でも、先に天気を出す。onload まで待つと動画の分だけ黒くなる */
+        /* 動画がある案件は動画から。天気カードを先に出すと --℃ が最初の画面になる */
         if (!DEMO_ALERT_ONLY) paintBootSplash_();
         endBootReveal_();
         const logoEl = document.getElementById('signage-logo');
