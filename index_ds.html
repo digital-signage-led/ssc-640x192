@@ -4609,7 +4609,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.11.04';
+    const CONTENT_VER = '2026.11.12.01';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -14147,6 +14147,49 @@ function playSidesCrossSwap_() {
 
 var sideSwitchTimers_ = Object.create(null); /* 互換（縦テロップ化後は未使用） */
 var sideTickerRaf_ = 0;
+var sideMotionTask_ = null;
+var motionTasks_ = [];
+var motionRaf_ = 0;
+var motionLastPaint_ = 0;
+var motionWatchId_ = 0;
+function motionNow_() {
+  return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+}
+function motionRunTasks_(now) {
+  motionLastPaint_ = now;
+  var i;
+  for (i = motionTasks_.length - 1; i >= 0; i--) {
+    var keep = true;
+    try { keep = motionTasks_[i](now) !== false; } catch (eMot) { keep = false; }
+    if (!keep) motionTasks_.splice(i, 1);
+  }
+  if (!motionTasks_.length && motionRaf_) {
+    cancelAnimationFrame(motionRaf_);
+    motionRaf_ = 0;
+  }
+}
+function motionPumpFrame_(now) {
+  motionRaf_ = 0;
+  motionRunTasks_(now);
+  if (motionTasks_.length) motionRaf_ = requestAnimationFrame(motionPumpFrame_);
+}
+function motionPumpStart_(task) {
+  if (motionTasks_.indexOf(task) < 0) motionTasks_.push(task);
+  if (!motionRaf_) motionRaf_ = requestAnimationFrame(motionPumpFrame_);
+  if (!motionWatchId_) {
+    /* 画面更新が止まる端末だけ、同じ位置計算を間隔で続ける */
+    motionWatchId_ = setInterval(function () {
+      if (!motionTasks_.length) return;
+      var now = motionNow_();
+      if (motionLastPaint_ && (now - motionLastPaint_) < 40) return;
+      motionRunTasks_(now);
+    }, 32);
+  }
+}
+function motionPumpStop_(task) {
+  var i = motionTasks_.indexOf(task);
+  if (i >= 0) motionTasks_.splice(i, 1);
+}
 var sidePhaseChecked_ = false;
 var sideTickerWatchId_ = 0;
 var sideTickerAlive_ = false;
@@ -14170,10 +14213,12 @@ function stopSideTicker_() {
     cancelAnimationFrame(sideTickerRaf_);
     sideTickerRaf_ = 0;
   }
-  if (sideTickerWatchId_) {
-    clearInterval(sideTickerWatchId_);
-    sideTickerWatchId_ = 0;
+  if (sideMotionTask_) {
+    motionPumpStop_(sideMotionTask_);
+    sideMotionTask_ = null;
   }
+  if (sideTickerWatchId_ > 0) clearInterval(sideTickerWatchId_);
+  sideTickerWatchId_ = 0;
   sideTickerParts_ = null;
   try {
     document.querySelectorAll("#weather-panel .side-ticker-track").forEach(function (track) {
@@ -14195,10 +14240,12 @@ function freezeSideTickerHold_() {
     cancelAnimationFrame(sideTickerRaf_);
     sideTickerRaf_ = 0;
   }
-  if (sideTickerWatchId_) {
-    clearInterval(sideTickerWatchId_);
-    sideTickerWatchId_ = 0;
+  if (sideMotionTask_) {
+    motionPumpStop_(sideMotionTask_);
+    sideMotionTask_ = null;
   }
+  if (sideTickerWatchId_ > 0) clearInterval(sideTickerWatchId_);
+  sideTickerWatchId_ = 0;
   try {
     document.querySelectorAll("#weather-panel .side-ticker-track").forEach(function (track) {
       track.classList.remove("is-flowing");
@@ -14802,7 +14849,8 @@ function startSideTickerMotion_() {
     var dt = now - lastStep;
     lastStep = now;
     if (!(dt > 0)) return;
-    if (dt > 80) dt = 80;
+    /* 1回の遅れで大きく飛ばさない。通常の画面更新（約16〜33ms）はそのまま進める */
+    if (dt > 50) dt = 50;
     var panelOn = !!document.querySelector("#weather-panel.is-on");
     var videoOnNow = !!document.querySelector(".content-area.video-on");
     if (!weatherRunning_ && !panelOn && !videoOnNow) return;
@@ -14821,8 +14869,14 @@ function startSideTickerMotion_() {
       track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
     });
   }
-  /* rAF が止まる端末でも、左右の中身は一定間隔で流す */
-  sideTickerWatchId_ = setInterval(flowStep_, 32);
+  /* スマホもサイネージも画面の更新ごとに進める。更新が止まった端末は間隔側が続ける */
+  sideMotionTask_ = function () {
+    if (!sideTickerAlive_) return false;
+    flowStep_();
+    return sideTickerAlive_;
+  };
+  sideTickerWatchId_ = -1;
+  motionPumpStart_(sideMotionTask_);
 }
 
 /** 互換：index だけ更新（syncSides_ は呼ぶ側で行う。相互呼び出し禁止） */
@@ -14837,6 +14891,7 @@ var weatherRunning_ = false;
 var frontAnimTimer_ = 0;
 var frontMoveTimer_ = 0;
 var frontSlideTimer_ = 0;
+var frontSlideTask_ = null;
 function clearFrontStepTimers_() {
   if (frontAnimTimer_) {
     clearTimeout(frontAnimTimer_);
@@ -14849,6 +14904,10 @@ function clearFrontStepTimers_() {
   if (frontSlideTimer_) {
     clearInterval(frontSlideTimer_);
     frontSlideTimer_ = 0;
+  }
+  if (frontSlideTask_) {
+    motionPumpStop_(frontSlideTask_);
+    frontSlideTask_ = null;
   }
 }
 function clearWeatherLocalTimers_(keepSides) {
@@ -15166,27 +15225,8 @@ function showFinaleClockThenExit_() {
   });
   clearCard(elClock);
   elClock.classList.add("is-enter");
-  var hClock = (elTop && elTop.offsetHeight) || 89;
-  var gapClock = 5;
-  var yEnterC = -(hClock + gapClock);
-  var yTopC = 0;
-  var yBottomC = hClock + gapClock;
-  var yExitC = (hClock + gapClock) * 2;
-  elClock.style.transform = "translate3d(0," + yEnterC + "px,0)";
-  if (elTop) elTop.style.transform = "translate3d(0," + yTopC + "px,0)";
-  if (elBot) elBot.style.transform = "translate3d(0," + yBottomC + "px,0)";
-  var clockT0 = Date.now();
-  clearFrontStepTimers_();
-  frontSlideTimer_ = setInterval(function () {
-    var p = (Date.now() - clockT0) / 420;
-    if (p > 1) p = 1;
-    if (!(p >= 0)) p = 0;
-    elClock.style.transform = "translate3d(0," + (yEnterC + (yTopC - yEnterC) * p) + "px,0)";
-    if (elTop) elTop.style.transform = "translate3d(0," + (yTopC + (yBottomC - yTopC) * p) + "px,0)";
-    if (elBot && elBot !== elClock) elBot.style.transform = "translate3d(0," + (yBottomC + (yExitC - yBottomC) * p) + "px,0)";
-    if (p < 1) return;
-    clearInterval(frontSlideTimer_);
-    frontSlideTimer_ = 0;
+  void elClock.offsetWidth;
+  playDownSlide_({ enter: elClock, top: elTop, bot: elBot }, function () {
     clearCard(elClock);
     elClock.classList.add("is-top");
     if (elTop) {
@@ -15202,7 +15242,7 @@ function showFinaleClockThenExit_() {
     frontAnim = false;
     try { updateClock(); } catch (eClk) {}
     weatherTimers_.push(setTimeout(afterClockGoMeteo_, CLOCK_FINALE_MS));
-  }, 32);
+  });
 }
 function advanceFromMeteo_() {
   if (!weatherRunning_ || frontAnim) return;
@@ -15446,13 +15486,81 @@ function markFrontPaintReady_() {
   setTimeout(function () { frontPaintReady_ = true; }, 800);
 }
 function frontCardY_(el) {
-  if (!el) return 0;
+  if (!el) return NaN;
+  var inline = el.style && el.style.transform ? String(el.style.transform) : "";
+  var im = /translate3d\(\s*[^,]+,\s*([-\d.]+)px/i.exec(inline);
+  if (im) {
+    var iy = parseFloat(im[1]);
+    if (isFinite(iy)) return iy;
+  }
   var tr = "";
   try { tr = getComputedStyle(el).transform || ""; } catch (eTr) { tr = ""; }
-  var m = String(tr).match(/matrix\(([^)]+)\)/);
-  if (!m) return 0;
-  var y = parseFloat(m[1].split(",")[5]);
-  return isFinite(y) ? y : 0;
+  if (!tr || tr === "none") return NaN;
+  var nums = null;
+  var yIndex = 5;
+  if (tr.indexOf("matrix3d(") === 0) {
+    nums = tr.slice(9, -1).split(",");
+    yIndex = 13;
+  } else if (tr.indexOf("matrix(") === 0) {
+    nums = tr.slice(7, -1).split(",");
+    yIndex = 5;
+  }
+  if (!nums || nums.length <= yIndex) return NaN;
+  var y = parseFloat(nums[yIndex]);
+  return isFinite(y) ? y : NaN;
+}
+function frontSlideYs_(elEnter, elTop, elBot) {
+  var h = (elTop && elTop.offsetHeight) || (elEnter && elEnter.offsetHeight) || 89;
+  var gap = 5;
+  var yEnter = frontCardY_(elEnter);
+  var yTop = frontCardY_(elTop);
+  var yBottom = frontCardY_(elBot);
+  /* スマホは matrix3d で読めず 0 になる。0 のまま動かすと、入るカードが飛ばされる */
+  if (!(yEnter < -8)) yEnter = -(h + gap);
+  if (!(yTop > -8 && yTop < 8)) yTop = 0;
+  if (!(yBottom > yTop + 20)) yBottom = yTop + h + gap;
+  return {
+    yEnter: yEnter,
+    yTop: yTop,
+    yBottom: yBottom,
+    yExit: yBottom + (yBottom - yTop)
+  };
+}
+function playDownSlide_(els, onDone) {
+  var ys = frontSlideYs_(els.enter, els.top, els.bot);
+  var yEnter = ys.yEnter;
+  var yTop = ys.yTop;
+  var yBottom = ys.yBottom;
+  var yExit = ys.yExit;
+  [els.enter, els.top, els.bot].forEach(function (el) {
+    if (!el) return;
+    el.style.transition = "none";
+  });
+  function put(p) {
+    if (p < 0) p = 0;
+    if (p > 1) p = 1;
+    if (els.enter) els.enter.style.transform = "translate3d(0," + Math.round(yEnter + (yTop - yEnter) * p) + "px,0)";
+    if (els.top) els.top.style.transform = "translate3d(0," + Math.round(yTop + (yBottom - yTop) * p) + "px,0)";
+    if (els.bot && els.bot !== els.enter) els.bot.style.transform = "translate3d(0," + Math.round(yBottom + (yExit - yBottom) * p) + "px,0)";
+  }
+  put(0);
+  var t0 = motionNow_();
+  var done = false;
+  function task(now) {
+    if (task !== frontSlideTask_) return false;
+    var p = (now - t0) / 420;
+    put(p);
+    if (p < 1) return true;
+    if (!done) {
+      done = true;
+      frontSlideTask_ = null;
+      try { onDone(); } catch (eDone) { console.warn("front slide:", eDone); }
+    }
+    return false;
+  }
+  clearFrontStepTimers_();
+  frontSlideTask_ = task;
+  motionPumpStart_(task);
 }
 var frontStepGen_ = 0;
 var frontPaintReady_ = false;
@@ -15466,8 +15574,6 @@ function frontStep() {
   var elTop = cardEl(topIdx), elBot = cardEl(bottomIdx), elEnter = cardEl(enterIdx);
   if (!elTop || !elBot || !elEnter) return false;
   if (elEnter === elTop || elEnter === elBot) return false;
-  frontStepGen_ += 1;
-  var gen = frontStepGen_;
   var fromTop = topIdx;
   frontAnim = true;
   noteFrontSwitch_();
@@ -15483,42 +15589,10 @@ function frontStep() {
   clearCard(elEnter);
   elEnter.classList.add("is-enter");
   void elEnter.offsetWidth;
-  var yEnter = frontCardY_(elEnter);
-  var yTop = frontCardY_(elTop);
-  var yBottom = frontCardY_(elBot);
-  if (!(yBottom > yTop + 20)) yBottom = yTop + (elTop.offsetHeight || 89) + 5;
-  var yExit = yBottom + (yBottom - yTop);
-  [elEnter, elTop, elBot].forEach(function (el) {
-    if (!el) return;
-    el.style.transition = "none";
-  });
-  elEnter.style.transform = "translate3d(0," + yEnter + "px,0)";
-  elTop.style.transform = "translate3d(0," + yTop + "px,0)";
-  elBot.style.transform = "translate3d(0," + yBottom + "px,0)";
-  /* 1回の遅れで大きく飛ばさない。最初の送りは予報の描画と重なるとカクつく */
-  var slideMs = 420;
-  var shownP = 0;
-  var lastTick = Date.now();
-  frontSlideTimer_ = setInterval(function () {
-    if (gen !== frontStepGen_) {
-      clearInterval(frontSlideTimer_);
-      frontSlideTimer_ = 0;
-      return;
-    }
-    var now = Date.now();
-    var dt = now - lastTick;
-    lastTick = now;
-    if (!(dt > 0)) dt = 0;
-    if (dt > 48) dt = 48;
-    shownP += dt / slideMs;
-    var p = shownP;
-    if (p > 1) p = 1;
-    elEnter.style.transform = "translate3d(0," + (yEnter + (yTop - yEnter) * p) + "px,0)";
-    elTop.style.transform = "translate3d(0," + (yTop + (yBottom - yTop) * p) + "px,0)";
-    elBot.style.transform = "translate3d(0," + (yBottom + (yExit - yBottom) * p) + "px,0)";
-    if (p < 1) return;
-    clearInterval(frontSlideTimer_);
-    frontSlideTimer_ = 0;
+  if (enterIdx === CHART_CARD || fromTop === CHART_CARD || bottomIdx === CHART_CARD) {
+    try { drawChart("chartMain"); } catch (eCh) {}
+  }
+  playDownSlide_({ enter: elEnter, top: elTop, bot: elBot }, function () {
     if (!weatherRunning_) {
       frontAnim = false;
       return;
@@ -15532,11 +15606,8 @@ function frontStep() {
     bottomIdx = fromTop;
     topIdx = enterIdx;
     frontAnim = false;
-    if (enterIdx === CHART_CARD || topIdx === CHART_CARD || bottomIdx === CHART_CARD) {
-      drawChart("chartMain");
-    }
     try { scheduleMeteoToChart_(); } catch (eMet) {}
-  }, 32);
+  });
   return true;
 }
 
@@ -15688,7 +15759,7 @@ function beginMeteoTailThenExit_() {
   weatherMeteoVisit_ = true;
   weatherMeteoNext_ = false;
   frontAnim = false;
-  if (!sideTickerRaf_) {
+  if (!sideTickerAlive_) {
     try { startSideTickerMotion_(); } catch (eSide) {}
   }
   var elTop = cardEl(topIdx);
@@ -15705,27 +15776,8 @@ function beginMeteoTailThenExit_() {
   });
   clearCard(elMeteo);
   elMeteo.classList.add("is-enter");
-  var hMet = (elTop && elTop.offsetHeight) || 89;
-  var gapMet = 5;
-  var yEnterM = -(hMet + gapMet);
-  var yTopM = 0;
-  var yBottomM = hMet + gapMet;
-  var yExitM = (hMet + gapMet) * 2;
-  elMeteo.style.transform = "translate3d(0," + yEnterM + "px,0)";
-  if (elTop) elTop.style.transform = "translate3d(0," + yTopM + "px,0)";
-  if (elBot && elBot !== elMeteo) elBot.style.transform = "translate3d(0," + yBottomM + "px,0)";
-  var metT0 = Date.now();
-  clearFrontStepTimers_();
-  frontSlideTimer_ = setInterval(function () {
-    var p = (Date.now() - metT0) / 420;
-    if (p > 1) p = 1;
-    if (!(p >= 0)) p = 0;
-    elMeteo.style.transform = "translate3d(0," + (yEnterM + (yTopM - yEnterM) * p) + "px,0)";
-    if (elTop) elTop.style.transform = "translate3d(0," + (yTopM + (yBottomM - yTopM) * p) + "px,0)";
-    if (elBot && elBot !== elMeteo) elBot.style.transform = "translate3d(0," + (yBottomM + (yExitM - yBottomM) * p) + "px,0)";
-    if (p < 1) return;
-    clearInterval(frontSlideTimer_);
-    frontSlideTimer_ = 0;
+  void elMeteo.offsetWidth;
+  playDownSlide_({ enter: elMeteo, top: elTop, bot: elBot }, function () {
     clearCard(elMeteo);
     elMeteo.classList.add("is-top");
     if (elTop) {
@@ -15740,7 +15792,7 @@ function beginMeteoTailThenExit_() {
     topIdx = METEO_CARD;
     frontAnim = false;
     try { scheduleMeteoToChart_(); } catch (eMet) { console.warn("meteo tail:", eMet); }
-  }, 32);
+  });
   weatherTimers_.push(setTimeout(function () {
     if (!weatherRunning_ || !weatherMeteoVisit_) return;
     console.warn("meteo tail: safety finish after full-cycle wait");
