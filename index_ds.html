@@ -4602,7 +4602,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.04';
+    const CONTENT_VER = '2026.11.12.05';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -14843,27 +14843,29 @@ function startSideTickerMotion_() {
     return track;
   }
   var lastStep = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  var sideCheckAt_ = 0;
+  var sideCheckOk_ = true;
   function flowStep_() {
     if (!sideTickerAlive_) return;
     var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
     var dt = now - lastStep;
     lastStep = now;
     if (!(dt > 0)) return;
-    /* 1回の遅れで大きく飛ばさない。通常の画面更新（約16〜33ms）はそのまま進める */
-    if (dt > 50) dt = 50;
-    var panelOn = !!document.querySelector("#weather-panel.is-on");
-    var videoOnNow = !!document.querySelector(".content-area.video-on");
-    if (!weatherRunning_ && !panelOn && !videoOnNow) return;
-    [left, right].forEach(function (part, idx) {
-      if (!part || !(part.cycleH > 0) || !(part.speed > 0) || !isFinite(part.y)) return;
+    /* 1フレーム分だけ進める。遅れをまとめて足すと、左右も正面も一段で飛ぶ */
+    if (dt > 34) dt = 34;
+    if (now - sideCheckAt_ > 500) {
+      sideCheckAt_ = now;
+      sideCheckOk_ = !!(weatherRunning_ || document.querySelector("#weather-panel.is-on") || document.querySelector(".content-area.video-on"));
+    }
+    if (!sideCheckOk_) return;
+    [left, right].forEach(function (part) {
+      if (!part || !(part.cycleH > 0) || !(part.speed > 0) || !isFinite(part.y) || !part.track) return;
       part.y += part.speed * dt;
       var cycle = part.cycleH;
       while (part.y >= 0) part.y -= cycle;
       while (part.y < -cycle) part.y += cycle;
-      var track = liveTrack_(part, idx === 0 ? "left" : "right");
-      if (!track) return;
-      track.style.transition = "none";
-      track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
+      part.track.style.transition = "none";
+      part.track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
     });
   }
   /* スマホもサイネージも画面の更新ごとに進める。更新が止まった端末は間隔側が続ける */
@@ -14926,6 +14928,8 @@ function weatherSetLevel_(lv) {
 }
 
 function updateClock() {
+  /* 送りの途中で文字を書くと、そのフレームだけカードが止まる */
+  if (frontAnim) return;
   /* ネット同期時刻を優先（端末TZ非依存）。失敗時のみ Date.now()。表示は常に Asia/Tokyo */
   var ms = (typeof window.getNowMs === "function") ? window.getNowMs() : Date.now();
   if (!Number.isFinite(ms)) ms = Date.now();
@@ -15548,16 +15552,25 @@ function playDownSlide_(els, onDone) {
   function put(p) {
     if (p < 0) p = 0;
     if (p > 1) p = 1;
-    if (els.enter) els.enter.style.transform = "translate3d(0," + Math.round(yEnter + (yTop - yEnter) * p) + "px,0)";
-    if (els.top) els.top.style.transform = "translate3d(0," + Math.round(yTop + (yBottom - yTop) * p) + "px,0)";
-    if (els.bot && els.bot !== els.enter) els.bot.style.transform = "translate3d(0," + Math.round(yBottom + (yExit - yBottom) * p) + "px,0)";
+    var ye = (yEnter + (yTop - yEnter) * p).toFixed(2);
+    var yt = (yTop + (yBottom - yTop) * p).toFixed(2);
+    var yb = (yBottom + (yExit - yBottom) * p).toFixed(2);
+    if (els.enter) els.enter.style.transform = "translate3d(0," + ye + "px,0)";
+    if (els.top) els.top.style.transform = "translate3d(0," + yt + "px,0)";
+    if (els.bot && els.bot !== els.enter) els.bot.style.transform = "translate3d(0," + yb + "px,0)";
   }
   put(0);
-  var t0 = motionNow_();
+  var last = motionNow_();
+  var shown = 0;
   var done = false;
   function task(now) {
     if (task !== frontSlideTask_) return false;
-    var p = (now - t0) / 420;
+    var dt = now - last;
+    last = now;
+    if (!(dt > 0)) dt = 0;
+    if (dt > 34) dt = 34;
+    shown += dt;
+    var p = shown / 420;
     put(p);
     if (p < 1) return true;
     if (!done) {
@@ -15597,10 +15610,6 @@ function frontStep() {
   elEnter.style.transition = "none";
   clearCard(elEnter);
   elEnter.classList.add("is-enter");
-  void elEnter.offsetWidth;
-  if (enterIdx === CHART_CARD || fromTop === CHART_CARD || bottomIdx === CHART_CARD) {
-    try { drawChart("chartMain"); } catch (eCh) {}
-  }
   playDownSlide_({ enter: elEnter, top: elTop, bot: elBot }, function () {
     if (!weatherRunning_) {
       frontAnim = false;
@@ -15615,7 +15624,9 @@ function frontStep() {
     bottomIdx = fromTop;
     topIdx = enterIdx;
     frontAnim = false;
-    try { scheduleMeteoToChart_(); } catch (eMet) {}
+    if (topIdx === METEO_CARD || bottomIdx === METEO_CARD) {
+      try { scheduleMeteoToChart_(); } catch (eMet) {}
+    }
   });
   return true;
 }
