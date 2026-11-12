@@ -4609,7 +4609,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.01';
+    const CONTENT_VER = '2026.11.12.03';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -10963,6 +10963,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
     }
     /** 起動取得の観測・予報を、動画中に流している左右カードへ入れる */
     function paintWeatherSideCards_() {
+        if (window.weatherPaintFrozen_) return;
         const snap = lastAmedasSnapshot_;
         if (snap) {
             paintSideVal_('.js-temp', sideUnitHtml_(snap.temp, '℃', 0));
@@ -11068,6 +11069,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         });
     }
     function paintFrontWeekly_(forecastJson) {
+        if (window.weatherPaintFrozen_) return;
         const host = document.querySelector('#weather-panel .js-weekly');
         if (!host || host.querySelector('.day')) return;
         const weekly = Array.isArray(forecastJson) ? forecastJson[1] : null;
@@ -14513,32 +14515,31 @@ function snapWeatherOpenFrame_() {
 }
 
 /** 左右が同じカードを出しているときは、右だけ4枠分ずらす */
+function paneAtTravel_(track, y) {
+  if (!track) return null;
+  var target = -y;
+  var best = null;
+  var bestD = 1e9;
+  var i;
+  for (i = 0; i < track.children.length; i++) {
+    var ch = track.children[i];
+    if (ch.offsetHeight < 1) continue;
+    var d = Math.abs(target - ch.offsetTop);
+    if (d < bestD) { bestD = d; best = ch; }
+  }
+  return best;
+}
 function ensureSidePhase_() {
-  if (!sideTickerParts_ || !sideTickerParts_.right) return;
-  function keyAt(name) {
-    var stack = document.querySelector('[data-side-stack="' + name + '"]');
-    var track = stack ? sideStackDirectChildren_(stack, "side-ticker-track")[0] : null;
-    if (!stack || !track) return "";
-    var sr = stack.getBoundingClientRect();
-    if (sr.height < 40) return "";
-    var best = null;
-    var bestOv = 0;
-    var i;
-    for (i = 0; i < track.children.length; i++) {
-      var ch = track.children[i];
-      var r = ch.getBoundingClientRect();
-      var ov = Math.min(r.bottom, sr.bottom) - Math.max(r.top, sr.top);
-      if (ov > bestOv) { bestOv = ov; best = ch; }
-    }
-    return sidePaneKey_(best);
-  }
-  var lk = keyAt("left");
-  var rk = keyAt("right");
+  if (sidePhaseChecked_) return;
+  if (!sideTickerParts_ || !sideTickerParts_.left || !sideTickerParts_.right) return;
+  var left = sideTickerParts_.left;
+  var right = sideTickerParts_.right;
+  if (!left.track || !right.track) return;
+  var lk = sidePaneKey_(paneAtTravel_(left.track, isFinite(left.y) ? left.y : 0));
+  var rk = sidePaneKey_(paneAtTravel_(right.track, isFinite(right.y) ? right.y : 0));
   if (!lk || !rk) return;
-  if (lk !== rk) {
-    sidePhaseChecked_ = true;
-    return;
-  }
+  sidePhaseChecked_ = true;
+  if (lk !== rk) return;
   var part = sideTickerParts_.right;
   var shift = Math.max(1, part.paneH || 182) * 4;
   var cycle = part.cycleH > 1 ? part.cycleH : shift;
@@ -14854,9 +14855,6 @@ function startSideTickerMotion_() {
     var panelOn = !!document.querySelector("#weather-panel.is-on");
     var videoOnNow = !!document.querySelector(".content-area.video-on");
     if (!weatherRunning_ && !panelOn && !videoOnNow) return;
-    if (!sidePhaseChecked_) {
-      try { ensureSidePhase_(); } catch (ePhase) {}
-    }
     [left, right].forEach(function (part, idx) {
       if (!part || !(part.cycleH > 0) || !(part.speed > 0) || !isFinite(part.y)) return;
       part.y += part.speed * dt;
@@ -14980,12 +14978,22 @@ function updateClock() {
 }
 
 var refreshJob_ = null;
+var weatherPaintFrozen_ = false;
+function setWeatherPaintFrozen_(on) {
+  weatherPaintFrozen_ = !!on;
+  window.weatherPaintFrozen_ = weatherPaintFrozen_;
+}
 async function refresh() {
   if (refreshJob_) return refreshJob_;
   refreshJob_ = refreshNow_().finally(function () { refreshJob_ = null; });
   return refreshJob_;
 }
 async function refreshNow_() {
+  /* 一度出した天気カードは、流れているあいだ描き直さない。次の取得は次に天気へ入るとき */
+  if (weatherPaintFrozen_) {
+    markFrontPaintReady_();
+    return;
+  }
   var w = null;
   try {
     /* 予報失敗で気温・湿度まで落ちないよう、観測を先に反映 */
@@ -15005,6 +15013,7 @@ async function refreshNow_() {
       setAll(".js-hero-sub", "取得不可");
     }
     markFrontPaintReady_();
+    if (weatherRunning_) setWeatherPaintFrozen_(true);
     return;
   }
   try {
@@ -15017,6 +15026,7 @@ async function refreshNow_() {
     console.warn("[天気] 予報のみ失敗（気温表示は維持）:", eFc && (eFc.message || eFc));
   } finally {
     markFrontPaintReady_();
+    if (weatherRunning_) setWeatherPaintFrozen_(true);
   }
 }
 
@@ -15829,6 +15839,7 @@ window.addEventListener("wbgt-on", relayoutSidesForWbgt_);
 window.WbgtWeather = {
   prepare: function (opts) {
     opts = opts || {};
+    setWeatherPaintFrozen_(false);
     clearMeteoAdvance_();
     clearWeatherLocalTimers_();
     weatherRunning_ = true;
@@ -15854,17 +15865,13 @@ window.WbgtWeather = {
     frontOpeningHold_ = true;
     frontOpenWaitStart_ = Date.now();
     frontPaintReady_ = !refreshJob_;
+    if (!refreshJob_) setWeatherPaintFrozen_(true);
     /* 連続スクロールを外して、カード2枚の並びに戻す */
     try { stopFrontSlot_(true); } catch (eSlotOff) {}
     /* 初回配置はトランジションなし。ここで外すと、描画の瞬間に先頭へ戻って消える */
     document.documentElement.classList.add("wx-no-anim");
     try {
       syncFrontFlow_();
-      var flow = document.getElementById("frontFlow");
-      if (flow) void flow.offsetWidth;
-      document.querySelectorAll("#frontFlow .flow-card").forEach(function (el) {
-        void el.offsetWidth;
-      });
       scheduleMeteoToChart_();
     } catch (ePrime) {
       console.warn("beginMotion setup:", ePrime);
@@ -15874,11 +15881,13 @@ window.WbgtWeather = {
     /* 改修:天気データも最短15分（15分未満禁止） */
     weatherTimers_.push(setInterval(refresh, 15 * 60 * 1000));
 
-    /* 左右は止めずに流す。正面は1秒止めてから、一枚ずつ送ってまた止まる */
+    /* 左右は止めない。正面は中身が載った次の画面から送る。1秒待つと始まりで止まる */
     if (!keepFlow) {
       try { startSideTickerMotion_(); } catch (eSide) { console.warn("side ticker:", eSide); }
+    } else {
+      try { ensureSidePhase_(); } catch (ePhase) {}
     }
-    queueFrontCycle_(WEATHER_START_HOLD_MS);
+    queueFrontCycle_(32);
     startFrontStuckWatch_();
     weatherTimers_.push(setTimeout(function () {
       if (!weatherRunning_) return;
@@ -15902,6 +15911,7 @@ window.WbgtWeather = {
   /** 退場用：タイマー停止のみ。カード DOM は触らない（最後の瞬間切替を防ぐ） */
   freezeForExit: function () {
     weatherRunning_ = false;
+    setWeatherPaintFrozen_(false);
     frontSlotAlive_ = false;
     if (frontSlotTimer_) { clearInterval(frontSlotTimer_); frontSlotTimer_ = 0; }
     frontCascadeArmed_ = false;
