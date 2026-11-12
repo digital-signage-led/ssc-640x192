@@ -2617,7 +2617,7 @@ html.wx-no-anim #weather-panel .flow-card.is-wx-bot {
 
 #weather-panel {
   --font: "Roboto", "Noto Sans JP", sans-serif;
-  --surface: rgba(240, 241, 243, 0.8); /* カード面80%。文字は透かさない */
+  --surface: rgba(240, 241, 243, 0.7); /* カード面70%。文字は透かさない */
   --on: #1a1a1a;
   --muted: #3c4043;
   --line: #D0D3D8;
@@ -2671,31 +2671,31 @@ html.wx-no-anim #weather-panel .flow-card.is-wx-bot {
 .lv-pending { --bg0:#555555; --bg1:#555555; }
 
 .wx-clear {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#4285F4; --on-accent:#E8F0FE;
 }
 .wx-partly {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#FBBC04; --on-accent:#202124;
 }
 .wx-cloudy {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#F29900; --on-accent:#202124;
 }
 .wx-rain {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
 .wx-thunder {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#EA4335; --on-accent:#FCE8E6;
 }
 .wx-snow {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
 .wx-night {
-  --surface:rgba(240, 241, 243, 0.8); --line:#D0D3D8;
+  --surface:rgba(240, 241, 243, 0.7); --line:#D0D3D8;
   --accent:#5C6BC0; --on-accent:#E8ECF4;
 }
 /* 志摩機械はカード面を不透明（透明度100）。青地が透けない */
@@ -3067,7 +3067,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
   background: var(--surface);
   border-color: transparent;
 }
-/* カード面は80%。イラストはすき間とカード越しに見える */
+/* カード面は70%。イラストはすき間とカード越しに見える */
 #weather-panel .flow-card[data-card="8"] .front-logo-img {
   display: block;
   width: 100%;
@@ -4632,7 +4632,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.16';
+    const CONTENT_VER = '2026.11.12.17';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
