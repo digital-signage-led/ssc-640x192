@@ -2723,7 +2723,8 @@
 
     /* 雨も雷も「いま」から約1時間先。過去コマはない */
     showFrame(nowIndex);
-    scheduleNext();
+    /* hold=1 は親が天気を出しているあいだ。ここで回すと天気のコマ送りが止まって見える */
+    if (!holdPlay_) scheduleNext();
     /* 画面を出す前に判定を始める。数字のあと出しを避ける */
     updateRainEstimate(frames);
     armFirstReveal_();

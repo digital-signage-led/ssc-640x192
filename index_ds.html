@@ -2582,6 +2582,38 @@ html.wx-no-anim #weather-panel .side-pane {
   transition: none !important;
   animation: none !important;
 }
+/* 一段の移動だけは CSS に任せる。位置の書き込みが止まるとカクつく */
+html.wx-no-anim #weather-panel .flow-card.is-wx-enter {
+  animation: wx-down-enter 420ms linear forwards !important;
+}
+html.wx-no-anim #weather-panel .flow-card.is-wx-top {
+  animation: wx-down-top 420ms linear forwards !important;
+}
+html.wx-no-anim #weather-panel .flow-card.is-wx-bot {
+  animation: wx-down-bot 420ms linear forwards !important;
+}
+@keyframes wx-down-enter {
+  from { transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+@keyframes wx-down-top {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, calc(100% + var(--wx-card-gap, 5px)), 0); }
+}
+@keyframes wx-down-bot {
+  from { transform: translate3d(0, calc(100% + var(--wx-card-gap, 5px)), 0); }
+  to { transform: translate3d(0, calc(200% + 2 * var(--wx-card-gap, 5px)), 0); }
+}
+@keyframes wx-side-flow {
+  from { transform: translate3d(0, calc(-1 * var(--side-cycle, 0px)), 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+#weather-panel .side-ticker-track.is-css-flow {
+  animation-name: wx-side-flow;
+  animation-duration: var(--side-flow-ms, 22000ms);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
 
 #weather-panel {
   --font: "Roboto", "Noto Sans JP", sans-serif;
@@ -3043,10 +3075,10 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
   object-fit: contain;
   object-position: center center;
 }
-#weather-panel .flow-card.is-top { display: flex !important; transform: translate3d(0, 0, 0); opacity: 1; z-index: 3; visibility: visible; }
-#weather-panel .flow-card.is-bottom { display: flex !important; transform: translate3d(0, calc(100% + var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 2; visibility: visible; }
-#weather-panel .flow-card.is-enter { display: flex !important; transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 4; visibility: visible; }
-#weather-panel .flow-card.is-exit { display: flex !important; transform: translate3d(0, calc(200% + 2 * var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 1; visibility: visible; pointer-events: none; }
+#weather-panel .flow-card.is-top { display: flex !important; transform: translate3d(0, 0, 0); opacity: 1; z-index: 3; visibility: visible; will-change: transform; }
+#weather-panel .flow-card.is-bottom { display: flex !important; transform: translate3d(0, calc(100% + var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 2; visibility: visible; will-change: transform; }
+#weather-panel .flow-card.is-enter { display: flex !important; transform: translate3d(0, calc(-100% - var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 4; visibility: visible; will-change: transform; }
+#weather-panel .flow-card.is-exit { display: flex !important; transform: translate3d(0, calc(200% + 2 * var(--wx-card-gap, 5px)), 0); opacity: 1; z-index: 1; visibility: visible; pointer-events: none; will-change: transform; }
 /*
  * 待機カードは画面外＋透明で保持。
  * display:none / visibility:hidden だと次の cascade で transition が消える（LED Chromium）。
@@ -4600,7 +4632,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.11';
+    const CONTENT_VER = '2026.11.12.15';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -4805,7 +4837,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         const geo = (SITE_CFG && SITE_CFG.geo) || {};
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
-        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261110rain10&lat=' + encodeURIComponent(String(lat))
+        const q = 'embed=1&signage=1&native640=1&loops=1&v=20261112rain13&lat=' + encodeURIComponent(String(lat))
             + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'rain' ? '' : '&gate=1') + (hold ? '&hold=1' : '');
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
@@ -4818,7 +4850,7 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
         const lat = (geo.lat != null && isFinite(Number(geo.lat))) ? Number(geo.lat) : 35.445427;
         const lon = (geo.lon != null && isFinite(Number(geo.lon))) ? Number(geo.lon) : 135.299683;
         const q = 'embed=1&signage=1&native640=1&mode=thunder&loops=1&lat=' + encodeURIComponent(String(lat))
-            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + (hold ? '&hold=1' : '') + '&v=20261110th17';
+            + '&lon=' + encodeURIComponent(String(lon)) + siteQuery_() + (DEMO_ONLY === 'thunder' ? '' : '&gate=1') + (hold ? '&hold=1' : '') + '&v=20261112th13';
         try {
             return new URL('./rain/index.html?' + q, location.href).href;
         } catch (eUrl) {
@@ -5539,10 +5571,9 @@ html.wbgt-off #weather-panel .flow-card[data-card="6"] {
                 v.removeEventListener('timeupdate', onTime);
                 v.removeEventListener('pause', onPause);
             }
-            /* 終わる瞬間に動画が黒くなる。次の絵が出るまで、その直前の絵で正面を覆う */
-            try { freezeFrontFrame_(v); } catch (eHold) {}
-            /* 次の動画へ続けるあいだは、左右の流れと正面の枠を残す */
+            /* 終わる瞬間に動画が黒くなる。次の動画へ続けるときだけ、直前の絵で正面を覆う */
             if (keepUp && !frontVideoCancel_) {
+                try { freezeFrontFrame_(v); } catch (eHold) {}
                 if (typeof done === 'function') done();
                 return;
             }
@@ -14270,6 +14301,49 @@ function clearSideTickerVideoHook_() {
   sideTickerVideoHook_ = null;
 }
 
+function freezeCssSide_(track) {
+  if (!track || !track.classList.contains("is-css-flow")) return;
+  var cycle = parseFloat(track.style.getPropertyValue("--side-cycle")) || 0;
+  var y = NaN;
+  try {
+    var anims = track.getAnimations ? track.getAnimations() : [];
+    var anim = anims && anims[0];
+    var timing = anim && anim.effect && anim.effect.getComputedTiming ? anim.effect.getComputedTiming() : null;
+    var p = timing ? timing.progress : null;
+    if ((p == null || !isFinite(p)) && anim && timing && timing.duration) {
+      p = (Number(anim.currentTime) % timing.duration) / timing.duration;
+    }
+    if (cycle > 0 && p != null && isFinite(p)) y = -cycle * (1 - p);
+  } catch (eFreeze) {}
+  track.classList.remove("is-css-flow");
+  track.style.animation = "none";
+  if (isFinite(y)) track.style.transform = "translate3d(0," + y.toFixed(2) + "px,0)";
+}
+
+function armCssSide_(part) {
+  var track = part && part.track;
+  var cycle = part && part.cycleH;
+  if (!track || !(cycle > 0)) return false;
+  var pane = Math.max(1, part.paneH || 1);
+  var dur = Math.round(cycle * SIDE_FLOW_MS / pane);
+  if (!(dur > 0)) return false;
+  var y = part.y;
+  if (!(y <= 0 && y > -cycle - 1)) y = -cycle;
+  var frac = (y + cycle) / cycle;
+  if (frac < 0) frac = 0;
+  if (frac > 0.999) frac = 0;
+  track.style.setProperty("--side-cycle", cycle.toFixed(2) + "px");
+  track.style.setProperty("--side-flow-ms", dur + "ms");
+  track.style.animation = "none";
+  track.style.transform = "";
+  track.classList.remove("is-css-flow");
+  void track.offsetWidth;
+  track.style.animation = "";
+  track.classList.add("is-css-flow");
+  track.style.animationDelay = (-frac * dur) + "ms";
+  return true;
+}
+
 function stopSideTicker_() {
   sideTickerAlive_ = false;
   sidePhaseChecked_ = false;
@@ -14287,12 +14361,11 @@ function stopSideTicker_() {
   sideTickerParts_ = null;
   try {
     document.querySelectorAll("#weather-panel .side-ticker-track").forEach(function (track) {
-      var kept = track.style.transform;
-      track.classList.remove("is-flowing");
+      freezeCssSide_(track);
+      track.classList.remove("is-flowing", "is-css-flow");
       track.style.animation = "";
       track.style.transition = "none";
       if (track.getAnimations) track.getAnimations().forEach(function (anim) { anim.cancel(); });
-      if (kept) track.style.transform = kept;
     });
   } catch (eAnimStop) {}
 }
@@ -14848,7 +14921,13 @@ function startSideTickerMotion_() {
     try { applyWbgtSidePaneVisibility_(); } catch (eWbgtPane) {}
     try { refreshSideCycleKeepPlace_(); } catch (eKeep) {}
     sideTickerMode_ = mode;
-    if (sideTickerAlive_ && sideTickerWatchId_) return;
+    if (sideTickerAlive_ && sideTickerWatchId_) {
+      if (!document.querySelector("#weather-panel .side-ticker-track.is-css-flow")) {
+        armCssSide_(sideTickerParts_.left);
+        armCssSide_(sideTickerParts_.right);
+      }
+      return;
+    }
   }
   var left;
   var right;
@@ -14919,8 +14998,9 @@ function startSideTickerMotion_() {
     if (!(raw > 0)) return;
     /* 遅れた時間は捨てない。捨てると途中から遅くなり、遅れが続くと止まる */
     sideDebt_ += raw;
-    if (sideDebt_ > 160) sideDebt_ = 80;
-    var dt = sideDebt_ > 80 ? 80 : sideDebt_;
+    /* 週間天気のように絵が重いと更新が遅れる。遅れた分は速度を落とさず返す。1枚分は飛ばない */
+    if (sideDebt_ > 280) sideDebt_ = 140;
+    var dt = sideDebt_ > 140 ? 140 : sideDebt_;
     sideDebt_ -= dt;
     if (now - sideCheckAt_ > 500) {
       sideCheckAt_ = now;
@@ -14936,13 +15016,15 @@ function startSideTickerMotion_() {
       part.track.style.transform = "translate3d(0," + part.y.toFixed(2) + "px,0)";
     });
   }
-  /* スマホもサイネージも画面の更新ごとに進める。更新が止まった端末は間隔側が続ける */
+  /* 左右の流れは CSS。位置を毎フレーム書くと、重い画面で遅くなって止まる */
+  sideTickerWatchId_ = -1;
+  sideMotionTask_ = null;
+  if (armCssSide_(left) && armCssSide_(right)) return;
   sideMotionTask_ = function () {
     if (!sideTickerAlive_) return false;
     flowStep_();
     return sideTickerAlive_;
   };
-  sideTickerWatchId_ = -1;
   motionPumpStart_(sideMotionTask_);
 }
 
@@ -14969,8 +15051,14 @@ function clearFrontStepTimers_() {
     frontMoveTimer_ = 0;
   }
   if (frontSlideTimer_) {
+    clearTimeout(frontSlideTimer_);
     clearInterval(frontSlideTimer_);
     frontSlideTimer_ = 0;
+  }
+  if (frontSlideFinish_) {
+    var abortSlide = frontSlideFinish_;
+    frontSlideFinish_ = null;
+    try { abortSlide(true); } catch (eAbort) {}
   }
   if (frontSlideTask_) {
     motionPumpStop_(frontSlideTask_);
@@ -15611,55 +15699,56 @@ function frontSlideYs_(elEnter, elTop, elBot) {
     yExit: yBottom + (yBottom - yTop)
   };
 }
+var frontSlideFinish_ = null;
 function playDownSlide_(els, onDone) {
-  var ys = frontSlideYs_(els.enter, els.top, els.bot);
-  var yEnter = ys.yEnter;
-  var yTop = ys.yTop;
-  var yBottom = ys.yBottom;
-  var yExit = ys.yExit;
-  [els.enter, els.top, els.bot].forEach(function (el) {
+  if (frontSlideFinish_) {
+    var prevSlide = frontSlideFinish_;
+    frontSlideFinish_ = null;
+    try { prevSlide(true); } catch (ePrev) {}
+  }
+  var map = [
+    [els.enter, "is-wx-enter", "wx-down-enter"],
+    [els.top, "is-wx-top", "wx-down-top"],
+    [els.bot && els.bot !== els.enter ? els.bot : null, "is-wx-bot", "wx-down-bot"]
+  ];
+  map.forEach(function (pair) {
+    var el = pair[0];
     if (!el) return;
     el.style.transition = "none";
+    el.style.transform = "";
+    el.style.animation = "";
   });
-  function put(p) {
-    if (p < 0) p = 0;
-    if (p > 1) p = 1;
-    var ye = (yEnter + (yTop - yEnter) * p).toFixed(2);
-    var yt = (yTop + (yBottom - yTop) * p).toFixed(2);
-    var yb = (yBottom + (yExit - yBottom) * p).toFixed(2);
-    if (els.enter) els.enter.style.transform = "translate3d(0," + ye + "px,0)";
-    if (els.top) els.top.style.transform = "translate3d(0," + yt + "px,0)";
-    if (els.bot && els.bot !== els.enter) els.bot.style.transform = "translate3d(0," + yb + "px,0)";
-  }
-  put(0);
-  var last = motionNow_();
-  var shown = 0;
-  var debt = 0;
-  var done = false;
-  function task(now) {
-    if (task !== frontSlideTask_) return false;
-    var raw = now - last;
-    last = now;
-    if (!(raw > 0)) raw = 0;
-    /* 遅れた時間は次の画面更新で返す。34ミリ秒で切ると、途中から遅くなって止まる */
-    debt += raw;
-    if (debt > 160) debt = 80;
-    var step = debt > 80 ? 80 : debt;
-    debt -= step;
-    shown += step;
-    var p = shown / 420;
-    put(p);
-    if (p < 1) return true;
-    if (!done) {
-      done = true;
-      frontSlideTask_ = null;
+  var finished = false;
+  function finish(cancel) {
+    if (finished) return;
+    finished = true;
+    frontSlideFinish_ = null;
+    if (frontSlideTimer_) {
+      clearTimeout(frontSlideTimer_);
+      frontSlideTimer_ = 0;
+    }
+    if (els.enter) els.enter.removeEventListener("animationend", onEnd);
+    if (!cancel && typeof onDone === "function") {
       try { onDone(); } catch (eDone) { console.warn("front slide:", eDone); }
     }
-    return false;
+    map.forEach(function (pair) {
+      var el = pair[0];
+      if (!el) return;
+      el.classList.remove(pair[1]);
+      el.style.animation = "";
+    });
   }
-  clearFrontStepTimers_();
-  frontSlideTask_ = task;
-  motionPumpStart_(task);
+  function onEnd(ev) {
+    if (!ev || ev.target !== els.enter) return;
+    if (ev.animationName && ev.animationName !== "wx-down-enter") return;
+    finish(false);
+  }
+  frontSlideFinish_ = finish;
+  if (els.enter) els.enter.addEventListener("animationend", onEnd);
+  map.forEach(function (pair) {
+    if (pair[0]) pair[0].classList.add(pair[1]);
+  });
+  frontSlideTimer_ = setTimeout(function () { finish(false); }, 480);
 }
 var frontStepGen_ = 0;
 var frontPaintReady_ = false;
@@ -15798,6 +15887,8 @@ function resetFrontFlow_() {
 
 /** 現在の index を画面に反映（リセットせず継続表示用） */
 function syncFrontFlow_() {
+  /* コマ送りの途中でクラスを戻すと、一段がカクついて止まる */
+  if (frontAnim) return;
   avoidSkippedWbgtCards_();
   document.querySelectorAll("#frontFlow .flow-card").forEach(function (el) {
     var i = parseInt(el.getAttribute("data-card"), 10);
