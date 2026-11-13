@@ -4651,7 +4651,7 @@ html.native-640.wx-no-anim #weather-panel .js-meteo-ticker.marquee-track.is-css-
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.19';
+    const CONTENT_VER = '2026.11.13.01';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -11206,7 +11206,13 @@ html.native-640.wx-no-anim #weather-panel .js-meteo-ticker.marquee-track.is-css-
             html += '<div class="day"><div class="d-label">' + label + '</div>' + icon +
                 '<div class="d-temp"><span class="d-max">' + hi + '</span><span class="d-sep">/</span><span class="d-min">' + lo + '</span></div></div>';
         }
-        if (html) host.innerHTML = html;
+        if (html) {
+            if (window.weatherFrontAnim_ && window.queueWeeklyHtml_) window.queueWeeklyHtml_(html);
+            else {
+                host.innerHTML = html;
+                if (window.recheckFrontPaint_) window.recheckFrontPaint_();
+            }
+        }
     }
     function applyJmaAmedasToDom(obs, latest) {
         if (latest) lastAmedasObsTime = latest instanceof Date ? latest : new Date(latest);
@@ -13852,7 +13858,7 @@ function renderWeekly(days) {
       '<div class="d-temp"><span class="d-max">' + d.max + "</span>" +
       '<span class="d-sep">/</span><span class="d-min">' + d.min + "</span></div></div>";
   }).join("");
-  setAll(".js-weekly", html, true);
+  paintWeeklyHtml_(html);
 }
 function renderHourly(hours) {
   hours = hours.slice(0, HOURLY_COUNT);
@@ -15090,6 +15096,7 @@ function clearWeatherLocalTimers_(keepSides) {
   clearFrontStepTimers_();
   /* 途中 clear で frontAnim が true のまま残ると cascade が二度と進まない */
   frontAnim = false;
+  window.weatherFrontAnim_ = false;
   frontCascadeArmed_ = false;
   try { clearMeteoAdvance_(); } catch (eMeteoClr) {}
   try { stopFrontCycle_(); } catch (eCycle) {}
@@ -15415,6 +15422,7 @@ function showFinaleClockThenExit_() {
     return;
   }
   frontAnim = true;
+  window.weatherFrontAnim_ = true;
   noteFrontSwitch_();
   [elClock, elTop, elBot].forEach(function (el) {
     if (el) el.style.transition = "none";
@@ -15436,6 +15444,8 @@ function showFinaleClockThenExit_() {
     bottomIdx = prevTop;
     topIdx = CLOCK_CARD;
     frontAnim = false;
+    window.weatherFrontAnim_ = false;
+    try { flushWeeklyHtml_(); } catch (eWkClk) {}
     try { updateClock(); } catch (eClk) {}
     weatherTimers_.push(setTimeout(afterClockGoMeteo_, CLOCK_FINALE_MS));
   });
@@ -15657,23 +15667,60 @@ function nextEnterCard_() {
 }
 
 function markFrontPaintReady_() {
+  if (frontPaintReady_) return;
   var imgs = document.querySelectorAll("#frontFlow .flow-card img");
   var pending = 0;
-  function done() {
-    pending -= 1;
-    if (pending <= 0) frontPaintReady_ = true;
+  var settled = false;
+  function ready() {
+    if (settled) return;
+    settled = true;
+    frontPaintReady_ = true;
+  }
+  function arm(img) {
+    pending += 1;
+    var done = function () {
+      pending -= 1;
+      if (pending <= 0) ready();
+    };
+    /* 読み込み済みでも、描く前に decode する。動きの途中で描くと週間天気で止まる */
+    if (img.decode) img.decode().then(done, done);
+    else if (img.complete) done();
+    else {
+      img.addEventListener("load", done);
+      img.addEventListener("error", done);
+    }
   }
   var i;
-  for (i = 0; i < imgs.length; i++) {
-    var img = imgs[i];
-    if (img.complete) continue;
-    pending += 1;
-    img.addEventListener("load", done);
-    img.addEventListener("error", done);
-  }
-  if (pending <= 0) frontPaintReady_ = true;
-  setTimeout(function () { frontPaintReady_ = true; }, 800);
+  for (i = 0; i < imgs.length; i++) arm(imgs[i]);
+  if (pending <= 0) ready();
+  /* アイコンが来ないときだけ、ここで打ち切る。先に送ると週間天気で止まる */
+  setTimeout(ready, 2500);
 }
+function noteWeeklyPainted_() {
+  if (frontAnim || !frontOpeningHold_) return;
+  frontPaintReady_ = false;
+  markFrontPaintReady_();
+}
+var pendingWeeklyHtml_ = "";
+function paintWeeklyHtml_(html) {
+  if (!html) return;
+  if (frontAnim) {
+    pendingWeeklyHtml_ = html;
+    window.weatherFrontAnim_ = true;
+    return;
+  }
+  setAll(".js-weekly", html, true);
+  noteWeeklyPainted_();
+}
+function flushWeeklyHtml_() {
+  if (!pendingWeeklyHtml_ || frontAnim) return;
+  var html = pendingWeeklyHtml_;
+  pendingWeeklyHtml_ = "";
+  setAll(".js-weekly", html, true);
+  noteWeeklyPainted_();
+}
+window.queueWeeklyHtml_ = paintWeeklyHtml_;
+window.recheckFrontPaint_ = noteWeeklyPainted_;
 function frontCardY_(el) {
   if (!el) return NaN;
   var inline = el.style && el.style.transform ? String(el.style.transform) : "";
@@ -15787,6 +15834,7 @@ function frontStep() {
   if (elEnter === elTop || elEnter === elBot) return false;
   var fromTop = topIdx;
   frontAnim = true;
+  window.weatherFrontAnim_ = true;
   noteFrontSwitch_();
   clearFrontStepTimers_();
   /* 前の切替で残った退場カードを消す。残っていると下のカードが消えて先頭へ戻る */
@@ -15813,6 +15861,8 @@ function frontStep() {
     bottomIdx = fromTop;
     topIdx = enterIdx;
     frontAnim = false;
+    window.weatherFrontAnim_ = false;
+    try { flushWeeklyHtml_(); } catch (eWk) {}
     if (topIdx === METEO_CARD || bottomIdx === METEO_CARD) {
       try { scheduleMeteoToChart_(); } catch (eMet) {}
     }
@@ -15981,6 +16031,7 @@ function beginMeteoTailThenExit_() {
     return;
   }
   frontAnim = true;
+  window.weatherFrontAnim_ = true;
   noteFrontSwitch_();
   [elMeteo, elTop, elBot].forEach(function (el) {
     if (el) el.style.transition = "none";
@@ -16002,6 +16053,8 @@ function beginMeteoTailThenExit_() {
     bottomIdx = topIdx === CLOCK_CARD ? CLOCK_CARD : (isNormalFrontCard_(topIdx) ? topIdx : CLOCK_CARD);
     topIdx = METEO_CARD;
     frontAnim = false;
+    window.weatherFrontAnim_ = false;
+    try { flushWeeklyHtml_(); } catch (eWkMet) {}
     try { scheduleMeteoToChart_(); } catch (eMet) { console.warn("meteo tail:", eMet); }
   });
   weatherTimers_.push(setTimeout(function () {
@@ -16018,6 +16071,7 @@ function finishWeatherToWbgt_() {
   stopFrontStuckWatch_();
   if (!weatherRunning_) return;
   frontAnim = false;
+  window.weatherFrontAnim_ = false;
   weatherMeteoVisit_ = false;
   weatherMeteoNext_ = false;
   try {
@@ -16062,6 +16116,7 @@ window.WbgtWeather = {
     frontSwitchCount_ = 0;
     frontCascadeArmed_ = false;
     frontAnim = false;
+    window.weatherFrontAnim_ = false;
     sideBeatCount_ = 0;
     frontHoldBeatsLeft_ = -1;
     frontOpeningHold_ = true;
