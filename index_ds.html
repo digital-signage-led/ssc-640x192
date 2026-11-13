@@ -4651,7 +4651,7 @@ html.native-640.wx-no-anim #weather-panel .js-meteo-ticker.marquee-track.is-css-
 
 </script>
 <script>
-    const CONTENT_VER = '2026.11.12.18';
+    const CONTENT_VER = '2026.11.12.19';
     document.documentElement.dataset.contentVer = CONTENT_VER;
     const query = new URLSearchParams(window.location.search);
     /* demo=1: デモモード（demo.html からの転送先）。未指定時は本番（実データ取得） */
@@ -15768,28 +15768,10 @@ function playDownSlide_(els, onDone) {
     el.style.animation = "";
     el.classList.add(pair[1]);
   });
-  var slideWaits = 0;
   function armSlideFinish_(ms) {
-    frontSlideTimer_ = setTimeout(function () {
-      frontSlideTimer_ = 0;
-      var running = false;
-      try {
-        var anims = els.enter && els.enter.getAnimations ? els.enter.getAnimations() : [];
-        var i;
-        for (i = 0; i < anims.length; i++) {
-          if (anims[i].playState === "running") running = true;
-        }
-      } catch (eRun) {}
-      /* 最初の送りは描画が遅れても、途中で位置を飛ばさない */
-      if (running && slideWaits < 3) {
-        slideWaits += 1;
-        armSlideFinish_(200);
-        return;
-      }
-      finish(false);
-    }, ms);
+    frontSlideTimer_ = setTimeout(function () { finish(false); }, ms);
   }
-  armSlideFinish_(520);
+  armSlideFinish_(450);
 }
 var frontStepGen_ = 0;
 var frontPaintReady_ = false;
@@ -16072,7 +16054,8 @@ window.WbgtWeather = {
     refresh();
   },
   beginMotion: function () {
-    if (!weatherRunning_) return;
+    /* 2本目の動画で警報の左右を出すと、この印が消える。消えたままだと正面の送りが始まらない */
+    weatherRunning_ = true;
     var keepFlow = !!(sideTickerAlive_ && document.querySelector("#weather-panel .side-ticker-track .side-pane"));
     clearMeteoAdvance_();
     clearWeatherLocalTimers_(keepFlow);
